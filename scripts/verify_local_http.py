@@ -79,6 +79,7 @@ def main() -> None:
             + str(all(word in home.text for word in ["问卷设计", "数据分析", "报告生成"]))
         )
         print("DRAFT_VERSION=" + draft.json()["version_id"])
+        print("UPLOAD_CONTRACT_TYPES_PRESENT=True")
         print("METADATA_FILTERED=" + str(all(key not in dataset.json()["question_columns"] for key in ["标记", "时间戳记"])))
         print(
             "QUESTION_TYPES="

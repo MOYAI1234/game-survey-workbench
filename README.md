@@ -87,6 +87,33 @@ python -m uv run python scripts/seed_demo_workspace.py
 python -m uv run --with uvicorn --with httpx python scripts/verify_local_http.py
 ```
 
+## 数据上传规范
+
+数据文件必须使用双层表头：
+
+- 第 1 行：题目文案或列名
+- 第 2 行：类型标记
+- 第 3 行开始：答卷数据
+
+当前只允许这些类型标记：
+
+- `metadata`
+- `single_choice`
+- `multi_select`
+- `free_text`
+- `scale`
+
+其中：
+
+- `metadata` 列不会进入 `question_columns`
+- 其他类型会直接作为归一化 schema 的题型来源
+
+如果缺少第二层表头、类型为空、或出现不支持的类型值，接口会直接返回 `400 Bad Request`，不会回退到启发式猜测。
+
+标准模板可参考：
+
+- `docs/templates/survey_import_template.csv`
+
 ## 数据上传与题型识别
 
 数据导入接口使用 multipart 文件上传：
