@@ -45,6 +45,20 @@ def test_import_dataset_route_accepts_uploaded_file(tmp_path: Path, monkeypatch)
     assert payload["question_columns"]["Q1"]["other_text_column"] == "Q1_其他说明"
 
 
+def test_import_dataset_route_rejects_upload_without_type_row(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT", str(tmp_path))
+    client = TestClient(create_app())
+    client.post("/projects", json={"slug": "upload-demo", "name": "Upload Demo", "knowledge_pack": {}})
+
+    response = client.post(
+        "/projects/upload-demo/datasets/import",
+        files={"file": ("survey.csv", "Q1,Q2\n满意,建议更多奖励\n", "text/csv")},
+    )
+
+    assert response.status_code == 400
+    assert "Missing type marker row" in response.json()["detail"]
+
+
 def test_detect_question_type_marks_multiple_choices_question_as_multi_select():
     result = detect_question_type_from_header_and_series(
         "What are your most satisfying parts? (Multiple Choices)",

@@ -44,7 +44,10 @@ async def import_dataset_route(project_slug: str, file: UploadFile = File(...)):
     )
     temp_path.unlink(missing_ok=True)
 
-    dataset = import_dataset(stored_path, project_slug=project_slug, workspace_root=settings.workspace_root)
+    try:
+        dataset = import_dataset(stored_path, project_slug=project_slug, workspace_root=settings.workspace_root)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return dataset.model_dump()
 
 
