@@ -14,6 +14,7 @@ from game_survey_workbench.models.dataset import (
     ImportedDataset,
     QuestionColumnSchema,
 )
+from game_survey_workbench.services.dataset_schema import classify_column
 from game_survey_workbench.services.workspace import bootstrap_workspace
 
 
@@ -23,6 +24,15 @@ def detect_question_type(series: pd.Series) -> str:
     if not clean.empty and numeric.notna().all():
         return "scale"
     return "single_choice"
+
+
+def detect_question_type_from_header_and_series(header: str, series: pd.Series) -> str:
+    lowered = header.lower()
+    if "multiple choices" in lowered:
+        return "multi_select"
+    if "feel free" in lowered or "suggestion" in lowered:
+        return "free_text"
+    return detect_question_type(series)
 
 
 def _load_tabular_file(path: Path) -> pd.DataFrame:
@@ -41,6 +51,8 @@ def import_dataset(csv_path: Path, *, project_slug: str, workspace_root: Path) -
     question_columns: dict[str, QuestionColumnSchema] = {}
     for column in dataframe.columns:
         lowered = column.lower()
+        if classify_column(column) == "metadata":
+            continue
         if "其他" in column or "other" in lowered:
             continue
         other_column = next(
@@ -52,7 +64,8 @@ def import_dataset(csv_path: Path, *, project_slug: str, workspace_root: Path) -
             None,
         )
         question_columns[column] = QuestionColumnSchema(
-            question_type=detect_question_type(dataframe[column]),
+            column_role="question",
+            question_type=detect_question_type_from_header_and_series(column, dataframe[column]),
             other_text_column=other_column,
         )
 

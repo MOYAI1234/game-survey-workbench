@@ -9,6 +9,7 @@ from sqlmodel import Field, SQLModel
 
 
 class QuestionColumnSchema(SQLModel):
+    column_role: str = "question"
     question_type: str
     other_text_column: str | None = None
 
