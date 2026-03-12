@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
+from uuid import uuid4
 
 from jinja2 import Environment, FileSystemLoader
 from sqlmodel import Session
@@ -32,8 +33,8 @@ def save_report(
     create_db_and_tables(workspace_root)
     report_dir = workspace_root / "projects" / project_slug / "reports"
     report_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y-%m-%d-%H%M")
-    report_path = report_dir / f"report-{timestamp}.md"
+    timestamp = datetime.now().strftime("%Y-%m-%d-%H%M%S")
+    report_path = report_dir / f"report-{timestamp}-{uuid4().hex[:8]}.md"
     report_path.write_text(
         render_report_markdown(title=title, summary_points=summary_points, sections=sections),
         encoding="utf-8",

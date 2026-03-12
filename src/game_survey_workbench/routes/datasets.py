@@ -1,6 +1,8 @@
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Request, status
+from tempfile import NamedTemporaryFile
+
+from fastapi import APIRouter, HTTPException, Request, UploadFile, File, status
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
@@ -8,14 +10,14 @@ from sqlmodel import Session, select
 from game_survey_workbench.config import get_settings
 from game_survey_workbench.db import get_engine
 from game_survey_workbench.models.project import ProjectRecord
-from game_survey_workbench.services.dataset_import import import_dataset
+from game_survey_workbench.services.dataset_import import import_dataset, store_uploaded_dataset
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
 
 
 @router.post("/projects/{project_slug}/datasets/import", status_code=status.HTTP_201_CREATED)
-def import_dataset_route(project_slug: str):
+async def import_dataset_route(project_slug: str, file: UploadFile = File(...)):
     settings = get_settings()
     engine = get_engine(settings.workspace_root)
     with Session(engine) as session:
@@ -26,11 +28,23 @@ def import_dataset_route(project_slug: str):
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    default_csv = settings.workspace_root / "projects" / project_slug / "data" / "raw" / "dataset.csv"
-    if not default_csv.exists():
-        raise HTTPException(status_code=404, detail="Dataset file not found")
+    suffix = Path(file.filename or "upload.csv").suffix.lower()
+    if suffix not in {".csv", ".xlsx", ".xls"}:
+        raise HTTPException(status_code=400, detail="Unsupported dataset format")
 
-    dataset = import_dataset(default_csv, project_slug=project_slug, workspace_root=settings.workspace_root)
+    with NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
+        temp_path = Path(temp_file.name)
+        temp_file.write(await file.read())
+
+    stored_path = store_uploaded_dataset(
+        source_path=temp_path,
+        filename=file.filename or f"dataset{suffix}",
+        project_slug=project_slug,
+        workspace_root=settings.workspace_root,
+    )
+    temp_path.unlink(missing_ok=True)
+
+    dataset = import_dataset(stored_path, project_slug=project_slug, workspace_root=settings.workspace_root)
     return dataset.model_dump()
 
 

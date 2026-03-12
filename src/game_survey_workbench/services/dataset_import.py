@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 from uuid import uuid4
 
@@ -90,3 +91,19 @@ def import_dataset(csv_path: Path, *, project_slug: str, workspace_root: Path) -
         session.commit()
 
     return imported
+
+
+def store_uploaded_dataset(
+    *,
+    source_path: Path,
+    filename: str,
+    project_slug: str,
+    workspace_root: Path,
+) -> Path:
+    raw_dir = workspace_root / "projects" / project_slug / "data" / "raw"
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    target_path = raw_dir / filename
+    if target_path.exists():
+        target_path = raw_dir / f"{source_path.stem}-{uuid4().hex[:8]}{source_path.suffix}"
+    shutil.copy2(source_path, target_path)
+    return target_path

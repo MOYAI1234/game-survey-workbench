@@ -4,7 +4,11 @@ def test_end_to_end_flow_creates_report(client, seeded_workspace):
         f"/projects/{project['slug']}/questionnaires/draft",
         json={"research_goal": "Learn why players drop after the patch"},
     ).json()
-    dataset = client.post(f"/projects/{project['slug']}/datasets/import").json()
+    dataset_file = seeded_workspace / "projects" / "demo" / "data" / "raw" / "dataset.csv"
+    dataset = client.post(
+        f"/projects/{project['slug']}/datasets/import",
+        files={"file": ("dataset.csv", dataset_file.read_text(encoding="utf-8"), "text/csv")},
+    ).json()
     report = client.post(
         f"/projects/{project['slug']}/reports/generate",
         json={"analysis_run_id": dataset["analysis_run_id"]},

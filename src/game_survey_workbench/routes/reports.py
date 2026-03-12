@@ -7,6 +7,7 @@ from sqlmodel import Session, select
 
 from game_survey_workbench.config import get_settings
 from game_survey_workbench.db import get_engine
+from game_survey_workbench.models.dataset import DatasetRecord
 from game_survey_workbench.models.project import ProjectRecord
 from game_survey_workbench.models.reporting import ReportGenerateRequest
 from game_survey_workbench.services.reporting import save_report
@@ -23,9 +24,17 @@ def generate_report(project_slug: str, payload: ReportGenerateRequest):
         project = session.exec(
             select(ProjectRecord).where(ProjectRecord.slug == project_slug)
         ).first()
+        dataset = session.exec(
+            select(DatasetRecord).where(
+                DatasetRecord.analysis_run_id == payload.analysis_run_id,
+                DatasetRecord.project_slug == project_slug,
+            )
+        ).first()
 
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
+    if dataset is None:
+        raise HTTPException(status_code=404, detail="Analysis run not found")
 
     path = save_report(
         project_slug=project_slug,
