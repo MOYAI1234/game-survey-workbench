@@ -16,7 +16,7 @@
 - 项目创建与 Knowledge Pack 配置
 - Markdown 知识文档解析与本地入库
 - 问卷设计上下文拼装与草案版本保存
-- 问卷数据导入、基础题型识别与 schema 导出
+- 问卷数据导入、metadata 过滤、基础题型识别与 schema 导出
 - 基础确定性统计能力
 - 基于 LLM 接口抽象的洞察上下文拼装
 - Markdown 报告渲染与版本化保存
@@ -86,6 +86,28 @@ python -m uv run python scripts/seed_demo_workspace.py
 ```bash
 python -m uv run --with uvicorn --with httpx python scripts/verify_local_http.py
 ```
+
+## 数据上传与题型识别
+
+数据导入接口使用 multipart 文件上传：
+
+```bash
+curl -X POST "http://127.0.0.1:8000/projects/demo/datasets/import" \
+  -F "file=@workspace/projects/demo/data/raw/dataset.csv"
+```
+
+当前支持上传的文件格式：
+
+- `.csv`
+- `.xlsx`
+- `.xls`
+
+当前归一化 schema 会显式过滤 metadata 列，例如 `标记`、`时间戳记`，并识别这些题型：
+
+- `single_choice`
+- `multi_select`
+- `free_text`
+- `scale`
 
 ## 目录结构
 
