@@ -9,6 +9,7 @@ import pandas as pd
 from sqlmodel import Session
 
 from game_survey_workbench.db import create_db_and_tables, get_engine
+from game_survey_workbench.models.analysis_run import AnalysisRunRecord
 from game_survey_workbench.models.dataset import (
     DatasetRecord,
     ImportedDataset,
@@ -103,6 +104,14 @@ def import_dataset(csv_path: Path, *, project_slug: str, workspace_root: Path) -
             analysis_run_id=analysis_run_id,
         )
         session.add(record)
+        session.add(
+            AnalysisRunRecord(
+                analysis_run_id=analysis_run_id,
+                project_slug=project_slug,
+                dataset_id=dataset_id,
+                status="ready",
+            )
+        )
         session.commit()
 
     return imported
