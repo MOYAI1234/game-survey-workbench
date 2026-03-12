@@ -41,7 +41,10 @@ def test_save_report_creates_unique_paths(tmp_path: Path, monkeypatch):
     bootstrap_workspace(tmp_path)
     project_slug = "demo"
     dataset_path = tmp_path / "survey.csv"
-    dataset_path.write_text("Q1,Q2\n满意,5\n", encoding="utf-8")
+    dataset_path.write_text(
+        "Q1,Q2\nsingle_choice,scale\n满意,5\n",
+        encoding="utf-8",
+    )
     imported = import_dataset(dataset_path, project_slug=project_slug, workspace_root=tmp_path)
 
     client = TestClient(create_app())
@@ -64,7 +67,10 @@ def test_generate_report_uses_analysis_run_record_for_project_validation(tmp_pat
     monkeypatch.setenv("GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT", str(tmp_path))
     bootstrap_workspace(tmp_path)
     dataset_path = tmp_path / "survey.csv"
-    dataset_path.write_text("Q1,Q2\n满意,5\n", encoding="utf-8")
+    dataset_path.write_text(
+        "Q1,Q2\nsingle_choice,scale\n满意,5\n",
+        encoding="utf-8",
+    )
     imported = import_dataset(dataset_path, project_slug="project-a", workspace_root=tmp_path)
 
     engine = get_engine(tmp_path)

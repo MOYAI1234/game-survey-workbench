@@ -6,7 +6,10 @@ from game_survey_workbench.services.dataset_import import import_dataset
 
 def test_import_dataset_creates_analysis_run_record(tmp_path: Path):
     csv_path = tmp_path / "survey.csv"
-    csv_path.write_text("Q1,Q2\n满意,5\n", encoding="utf-8")
+    csv_path.write_text(
+        "Q1,Q2\nsingle_choice,scale\n满意,5\n",
+        encoding="utf-8",
+    )
 
     dataset = import_dataset(csv_path, project_slug="demo", workspace_root=tmp_path)
 
