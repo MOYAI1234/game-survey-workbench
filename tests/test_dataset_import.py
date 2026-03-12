@@ -57,6 +57,20 @@ def test_detect_question_type_marks_free_text_prompt_as_free_text():
     assert result == "free_text"
 
 
+def test_detect_question_type_does_not_treat_comma_delimited_free_text_as_multi_select():
+    result = detect_question_type_from_header_and_series(
+        "What do you think about the current pass rewards?",
+        pd.Series(
+            [
+                "Too expensive, especially for new players",
+                "Rewards feel repetitive, and the pacing is slow",
+            ]
+        ),
+    )
+
+    assert result == "free_text"
+
+
 def test_import_dataset_excludes_metadata_columns_from_question_schema(tmp_path: Path):
     csv_path = tmp_path / "survey.csv"
     csv_path.write_text(

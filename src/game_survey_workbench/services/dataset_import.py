@@ -19,7 +19,7 @@ from game_survey_workbench.services.dataset_schema import classify_column
 from game_survey_workbench.services.workspace import bootstrap_workspace
 
 
-MULTI_SELECT_SEPARATORS = (";", "|", ",")
+MULTI_SELECT_SEPARATORS = (";", "|")
 
 
 def _clean_text_values(series: pd.Series) -> pd.Series:
