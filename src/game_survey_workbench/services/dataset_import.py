@@ -19,11 +19,44 @@ from game_survey_workbench.services.dataset_schema import classify_column
 from game_survey_workbench.services.workspace import bootstrap_workspace
 
 
-def detect_question_type(series: pd.Series) -> str:
-    clean = series.dropna()
+MULTI_SELECT_SEPARATORS = (";", "|", ",")
+
+
+def _clean_text_values(series: pd.Series) -> pd.Series:
+    return series.dropna().astype(str).str.strip()
+
+
+def _numeric_density(series: pd.Series) -> float:
+    clean = _clean_text_values(series)
+    if clean.empty:
+        return 0.0
     numeric = pd.to_numeric(clean, errors="coerce")
-    if not clean.empty and numeric.notna().all():
+    return float(numeric.notna().mean())
+
+
+def _separator_density(series: pd.Series) -> float:
+    clean = _clean_text_values(series)
+    if clean.empty:
+        return 0.0
+    contains_separator = clean.apply(lambda value: any(separator in value for separator in MULTI_SELECT_SEPARATORS))
+    return float(contains_separator.mean())
+
+
+def _average_text_length(series: pd.Series) -> float:
+    clean = _clean_text_values(series)
+    if clean.empty:
+        return 0.0
+    return float(clean.str.len().mean())
+
+
+def detect_question_type(series: pd.Series) -> str:
+    if _separator_density(series) >= 0.5:
+        return "multi_select"
+    numeric_density = _numeric_density(series)
+    if numeric_density >= 0.8:
         return "scale"
+    if _average_text_length(series) >= 25 and numeric_density < 0.3:
+        return "free_text"
     return "single_choice"
 
 
