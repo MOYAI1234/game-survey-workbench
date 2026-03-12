@@ -1,0 +1,14 @@
+{% extends "layout.html" %}
+{% block title %}Game Survey Workbench{% endblock %}
+{% block content %}
+<section class="hero">
+  <p class="eyebrow">Knowledge-Driven Research</p>
+  <h1>Game Survey Workbench</h1>
+  <p>围绕项目上下文统一管理问卷设计、数据分析与报告生成。</p>
+  <ul class="workflow-list">
+    {% for workflow in workflows %}
+    <li>{{ workflow }}</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

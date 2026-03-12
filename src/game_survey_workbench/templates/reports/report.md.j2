@@ -1,0 +1,14 @@
+# {{ title }}
+
+## Executive Summary
+{% for point in summary_points %}
+- {{ point }}
+{% endfor %}
+
+{% for heading, items in sections.items() %}
+## {{ heading }}
+{% for item in items %}
+- {{ item }}
+{% endfor %}
+
+{% endfor %}

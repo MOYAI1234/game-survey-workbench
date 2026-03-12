@@ -1,0 +1,30 @@
+[project]
+name = "game-survey-workbench"
+version = "0.1.0"
+description = "Local-first game survey research workbench."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115,<1.0",
+  "jinja2>=3.1,<4.0",
+  "openpyxl>=3.1,<4.0",
+  "python-frontmatter>=1.1,<2.0",
+  "sqlmodel>=0.0.24,<1.0",
+  "pandas>=2.2,<3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx>=0.28,<1.0",
+  "pytest>=9.0,<10.0",
+]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
