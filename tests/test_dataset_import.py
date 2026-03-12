@@ -13,7 +13,7 @@ from game_survey_workbench.services.dataset_import import (
 def test_import_dataset_identifies_other_text_columns(tmp_path: Path):
     csv_path = tmp_path / "survey.csv"
     csv_path.write_text(
-        "Q1,Q1_其他说明,Q2\n满意,节奏太慢,5\n",
+        "Q1,Q1_其他说明,Q2\nsingle_choice,free_text,scale\n满意,节奏太慢,5\n",
         encoding="utf-8",
     )
 
@@ -30,7 +30,13 @@ def test_import_dataset_route_accepts_uploaded_file(tmp_path: Path, monkeypatch)
 
     response = client.post(
         "/projects/upload-demo/datasets/import",
-        files={"file": ("survey.csv", "Q1,Q1_其他说明,Q2\n满意,节奏太慢,5\n", "text/csv")},
+        files={
+            "file": (
+                "survey.csv",
+                "Q1,Q1_其他说明,Q2\nsingle_choice,free_text,scale\n满意,节奏太慢,5\n",
+                "text/csv",
+            )
+        },
     )
 
     assert response.status_code == 201
@@ -71,10 +77,26 @@ def test_detect_question_type_does_not_treat_comma_delimited_free_text_as_multi_
     assert result == "free_text"
 
 
+def test_import_dataset_uses_second_header_row_as_type_source_of_truth(tmp_path: Path):
+    csv_path = tmp_path / "survey.csv"
+    csv_path.write_text(
+        "分层,Q1,Q2\n"
+        "metadata,multi_select,free_text\n"
+        "免费玩家,Reward A;Reward B,希望奖励更多\n",
+        encoding="utf-8",
+    )
+
+    dataset = import_dataset(csv_path, project_slug="demo", workspace_root=tmp_path)
+
+    assert "分层" not in dataset.question_columns
+    assert dataset.question_columns["Q1"].question_type == "multi_select"
+    assert dataset.question_columns["Q2"].question_type == "free_text"
+
+
 def test_import_dataset_excludes_metadata_columns_from_question_schema(tmp_path: Path):
     csv_path = tmp_path / "survey.csv"
     csv_path.write_text(
-        "标记,时间戳记,Q1\n1,2026-03-12 10:00,满意\n",
+        "标记,时间戳记,Q1\nmetadata,metadata,single_choice\n1,2026-03-12 10:00,满意\n",
         encoding="utf-8",
     )
 

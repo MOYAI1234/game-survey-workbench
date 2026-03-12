@@ -16,6 +16,7 @@ from game_survey_workbench.models.dataset import (
     QuestionColumnSchema,
 )
 from game_survey_workbench.services.dataset_schema import classify_column
+from game_survey_workbench.services.upload_contract import parse_dual_header_dataframe
 from game_survey_workbench.services.workspace import bootstrap_workspace
 
 
@@ -80,12 +81,15 @@ def _load_tabular_file(path: Path) -> pd.DataFrame:
 def import_dataset(csv_path: Path, *, project_slug: str, workspace_root: Path) -> ImportedDataset:
     bootstrap_workspace(workspace_root)
     create_db_and_tables(workspace_root)
-    dataframe = _load_tabular_file(csv_path)
+    parsed = parse_dual_header_dataframe(csv_path)
+    dataframe = parsed.dataframe
+    column_types = dict(zip(parsed.column_titles, parsed.column_types, strict=False))
 
     question_columns: dict[str, QuestionColumnSchema] = {}
     for column in dataframe.columns:
         lowered = column.lower()
-        if classify_column(column) == "metadata":
+        declared_type = column_types[column]
+        if declared_type == "metadata" or classify_column(column) == "metadata":
             continue
         if "其他" in column or "other" in lowered:
             continue
@@ -99,7 +103,7 @@ def import_dataset(csv_path: Path, *, project_slug: str, workspace_root: Path) -
         )
         question_columns[column] = QuestionColumnSchema(
             column_role="question",
-            question_type=detect_question_type_from_header_and_series(column, dataframe[column]),
+            question_type=declared_type,
             include_in_analysis=True,
             other_text_column=other_column,
             reason=None,
