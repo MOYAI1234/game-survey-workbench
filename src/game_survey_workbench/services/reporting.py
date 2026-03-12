@@ -5,9 +5,10 @@ from pathlib import Path
 from uuid import uuid4
 
 from jinja2 import Environment, FileSystemLoader
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from game_survey_workbench.db import create_db_and_tables, get_engine
+from game_survey_workbench.models.analysis_run import AnalysisRunRecord
 from game_survey_workbench.models.reporting import ReportRecord
 
 
@@ -19,6 +20,14 @@ def get_environment() -> Environment:
 def render_report_markdown(title: str, summary_points: list[str], sections: dict[str, list[str]]) -> str:
     template = get_environment().get_template("reports/report.md.j2")
     return template.render(title=title, summary_points=summary_points, sections=sections)
+
+
+def get_analysis_run_record(*, analysis_run_id: str, workspace_root: Path) -> AnalysisRunRecord | None:
+    engine = get_engine(workspace_root)
+    with Session(engine) as session:
+        return session.exec(
+            select(AnalysisRunRecord).where(AnalysisRunRecord.analysis_run_id == analysis_run_id)
+        ).first()
 
 
 def save_report(
