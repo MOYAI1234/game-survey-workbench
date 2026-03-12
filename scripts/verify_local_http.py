@@ -59,8 +59,10 @@ def main() -> None:
             timeout=5.0,
         )
         draft.raise_for_status()
+        dataset_path = workspace / "projects" / "demo" / "data" / "raw" / "dataset.csv"
         dataset = httpx.post(
             "http://127.0.0.1:8765/projects/demo/datasets/import",
+            files={"file": ("dataset.csv", dataset_path.read_bytes(), "text/csv")},
             timeout=5.0,
         )
         dataset.raise_for_status()
@@ -77,6 +79,20 @@ def main() -> None:
             + str(all(word in home.text for word in ["问卷设计", "数据分析", "报告生成"]))
         )
         print("DRAFT_VERSION=" + draft.json()["version_id"])
+        print("METADATA_FILTERED=" + str(all(key not in dataset.json()["question_columns"] for key in ["标记", "时间戳记"])))
+        print(
+            "QUESTION_TYPES="
+            + str(
+                {
+                    "multi_select": dataset.json()["question_columns"][
+                        "What are your most satisfying parts of Season Pass?"
+                    ]["question_type"],
+                    "free_text": dataset.json()["question_columns"][
+                        "Feel free to tell us what rewards you want to see in the Season Pass! You could also give us more suggestion about the game here!"
+                    ]["question_type"],
+                }
+            )
+        )
         print("REPORT_PATH=" + report.json()["path"])
     finally:
         server.should_exit = True
