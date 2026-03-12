@@ -66,7 +66,9 @@ def import_dataset(csv_path: Path, *, project_slug: str, workspace_root: Path) -
         question_columns[column] = QuestionColumnSchema(
             column_role="question",
             question_type=detect_question_type_from_header_and_series(column, dataframe[column]),
+            include_in_analysis=True,
             other_text_column=other_column,
+            reason=None,
         )
 
     dataset_id = str(uuid4())

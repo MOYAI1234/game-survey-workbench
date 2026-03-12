@@ -11,7 +11,9 @@ from sqlmodel import Field, SQLModel
 class QuestionColumnSchema(SQLModel):
     column_role: str = "question"
     question_type: str
+    include_in_analysis: bool = True
     other_text_column: str | None = None
+    reason: str | None = None
 
 
 class ImportedDataset(SQLModel):
