@@ -11,7 +11,9 @@ class StoredChunk:
     content: str
     stages: list[str]
     doc_type: str
+    tags: list[str]
     scenario: str | None = None
+    priority: int = 0
 
 
 class LocalVectorStore:
@@ -42,7 +44,7 @@ class LocalVectorStore:
         scenarios: list[str] | None = None,
     ) -> list[dict]:
         terms = [item.lower() for item in query.split() if item.strip()]
-        matches: list[tuple[int, dict]] = []
+        matches: list[tuple[tuple[int, int], dict]] = []
 
         for item in self.load_chunks():
             if stages and not set(stages).intersection(item.get("stages", [])):
@@ -55,7 +57,8 @@ class LocalVectorStore:
             haystack = f"{item.get('document_title', '')} {item.get('content', '')}".lower()
             score = sum(term in haystack for term in terms)
             if score or not terms:
-                matches.append((score, item))
+                priority = int(item.get("priority", 0))
+                matches.append(((score, priority), item))
 
         matches.sort(key=lambda pair: pair[0], reverse=True)
         return [item for _, item in matches]

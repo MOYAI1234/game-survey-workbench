@@ -39,6 +39,9 @@ def ingest_knowledge_file(source: Path, *, project_root: Path) -> IngestKnowledg
             title=parsed.title,
             doc_type=parsed.doc_type,
             stages=parsed.stages,
+            tags=parsed.tags,
+            scenario=parsed.scenario,
+            priority=parsed.priority,
         )
         session.add(document)
         session.commit()
@@ -51,6 +54,9 @@ def ingest_knowledge_file(source: Path, *, project_root: Path) -> IngestKnowledg
                 content=chunk,
                 stages=parsed.stages,
                 doc_type=parsed.doc_type,
+                tags=parsed.tags,
+                scenario=parsed.scenario,
+                priority=parsed.priority,
             )
             for chunk in chunks
         ]
