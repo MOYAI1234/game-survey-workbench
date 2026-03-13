@@ -4,12 +4,21 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
+from sqlmodel import Session, select
 
+from game_survey_workbench.db import get_engine
+from game_survey_workbench.errors import NoSavedCodingResultsError
 from game_survey_workbench.models.analysis_run import AnalysisRunRecord, require_analysis_run
 from game_survey_workbench.models.dataset import (
     DatasetRecord,
     QuestionColumnSchema,
     get_dataset_record,
+)
+from game_survey_workbench.models.text_coding import CodingResult
+from game_survey_workbench.services.analytics import (
+    describe_multi_select_summary,
+    describe_scale_summary,
+    describe_single_choice_summary,
 )
 from game_survey_workbench.services.dataset_import import load_imported_dataset_dataframe
 
@@ -67,3 +76,57 @@ def load_free_text_responses_for_question(
     if not responses:
         raise NoFreeTextResponsesFoundError(f"No free-text responses found for '{question_column}'.")
     return responses
+
+
+def build_deterministic_findings_for_run(
+    *,
+    analysis_run_id: str,
+    workspace_root: Path,
+) -> list[str]:
+    context = load_analysis_run_context(
+        analysis_run_id=analysis_run_id,
+        workspace_root=workspace_root,
+    )
+    findings: list[str] = []
+    for question_column, question_payload in context.dataset_record.dataset_schema.items():
+        if not isinstance(question_payload, dict):
+            continue
+        question_schema = QuestionColumnSchema.model_validate(question_payload)
+        if not question_schema.include_in_analysis or question_column not in context.dataframe.columns:
+            continue
+
+        series = context.dataframe[question_column]
+        finding: str | None = None
+        if question_schema.question_type == "scale":
+            finding = describe_scale_summary(question_column, series, top_box_values={4, 5})
+        elif question_schema.question_type == "single_choice":
+            finding = describe_single_choice_summary(question_column, series)
+        elif question_schema.question_type == "multi_select":
+            finding = describe_multi_select_summary(question_column, series)
+
+        if finding:
+            findings.append(finding)
+    return findings
+
+
+def load_saved_coding_themes(*, analysis_run_id: str, workspace_root: Path) -> list[dict]:
+    engine = get_engine(workspace_root)
+    with Session(engine) as session:
+        results = list(
+            session.exec(
+                select(CodingResult).where(CodingResult.analysis_run_id == analysis_run_id)
+            ).all()
+        )
+
+    themes = [
+        {
+            **theme,
+            "question_column": result.question_column,
+        }
+        for result in results
+        for theme in result.themes
+        if isinstance(theme, dict)
+    ]
+    if not themes:
+        raise NoSavedCodingResultsError("No saved coding results found for this analysis run.")
+    return themes

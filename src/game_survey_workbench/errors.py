@@ -12,3 +12,7 @@ class AnalysisRunNotFoundError(ValueError):
 
 class CodingResponseFormatError(ValueError):
     pass
+
+
+class NoSavedCodingResultsError(ValueError):
+    pass

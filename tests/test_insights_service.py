@@ -1,8 +1,10 @@
+import pytest
 from pathlib import Path
 
 from sqlmodel import Session, select
 
 from game_survey_workbench.db import get_engine
+from game_survey_workbench.errors import NoSavedCodingResultsError
 from game_survey_workbench.llm.client import FakeLLMClient
 from game_survey_workbench.models.insight import InsightRecord
 from game_survey_workbench.models.project import ProjectCreate
@@ -115,3 +117,38 @@ def test_generate_analysis_insights_retrieves_knowledge_and_persists(tmp_path: P
     assert saved is not None
     assert saved.analysis_run_id == "run-1"
     assert "## Evidence Basis" in saved.narrative
+
+
+def test_generate_analysis_insights_rejects_missing_saved_coding_results(tmp_path: Path):
+    source = tmp_path / "churn.md"
+    source.write_text(
+        "---\n"
+        "title: Churn Framework\n"
+        "doc_type: theory\n"
+        "stage:\n"
+        "  - analysis\n"
+        "scenario: churn\n"
+        "---\n"
+        "Boredom and difficulty are the top churn drivers.\n",
+        encoding="utf-8",
+    )
+    ingest_knowledge_file(source, project_root=tmp_path)
+    create_project(
+        ProjectCreate(
+            slug="churn-study",
+            name="Churn Study",
+            knowledge_pack={"doc_types": ["theory"], "scenarios": ["churn"]},
+        ),
+        workspace_root=tmp_path,
+    )
+
+    with pytest.raises(NoSavedCodingResultsError):
+        generate_analysis_insights(
+            project_slug="churn-study",
+            analysis_run_id="run-1",
+            research_goal="Understand churn drivers",
+            statistical_findings=["Top box dropped to 32%"],
+            coded_themes=[],
+            workspace_root=tmp_path,
+            client=FakeLLMClient("Boredom emerged as the dominant churn factor."),
+        )
