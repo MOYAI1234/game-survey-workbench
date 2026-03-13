@@ -8,6 +8,11 @@ from sqlalchemy.types import JSON
 from sqlmodel import Field, SQLModel
 
 
+class TextCodingRequest(SQLModel):
+    question_column: str
+    responses: list[str] = Field(default_factory=list)
+
+
 class CodingResult(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     analysis_run_id: str = Field(index=True)

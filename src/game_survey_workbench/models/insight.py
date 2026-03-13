@@ -8,6 +8,12 @@ from sqlalchemy.types import JSON
 from sqlmodel import Field, SQLModel
 
 
+class InsightGenerateRequest(SQLModel):
+    research_goal: str
+    statistical_findings: list[str | dict] = Field(default_factory=list)
+    coded_themes: list[str | dict] = Field(default_factory=list)
+
+
 class InsightRecord(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     analysis_run_id: str = Field(index=True)
