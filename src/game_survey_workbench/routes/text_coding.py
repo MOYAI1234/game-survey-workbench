@@ -1,7 +1,11 @@
 from fastapi import APIRouter, HTTPException, status
 
 from game_survey_workbench.config import get_settings
-from game_survey_workbench.errors import NoKnowledgeMatchedError, ProjectNotFoundError
+from game_survey_workbench.errors import (
+    CodingResponseFormatError,
+    NoKnowledgeMatchedError,
+    ProjectNotFoundError,
+)
 from game_survey_workbench.llm.client import (
     MissingLLMConfigurationError,
     build_llm_client,
@@ -58,6 +62,8 @@ def code_text_route(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except NoKnowledgeMatchedError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except CodingResponseFormatError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     return {
         "analysis_run_id": analysis_run_id,

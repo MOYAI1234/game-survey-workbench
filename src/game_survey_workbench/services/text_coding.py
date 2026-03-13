@@ -6,7 +6,11 @@ from pathlib import Path
 from sqlmodel import Session
 
 from game_survey_workbench.db import create_db_and_tables, get_engine
-from game_survey_workbench.errors import NoKnowledgeMatchedError, ProjectNotFoundError
+from game_survey_workbench.errors import (
+    CodingResponseFormatError,
+    NoKnowledgeMatchedError,
+    ProjectNotFoundError,
+)
 from game_survey_workbench.llm.client import LLMClient
 from game_survey_workbench.models.text_coding import CodingResult
 from game_survey_workbench.services.analysis_context import NoFreeTextResponsesFoundError
@@ -49,19 +53,46 @@ def load_coding_prompt() -> str:
 def parse_coding_response(raw_output: str) -> dict:
     try:
         payload = json.loads(raw_output)
-    except json.JSONDecodeError:
-        return {"themes": [], "uncoded_count": 0}
+    except json.JSONDecodeError as exc:
+        raise CodingResponseFormatError("LLM coding response was not valid JSON.") from exc
 
     themes = payload.get("themes")
     if not isinstance(themes, list):
-        themes = []
+        raise CodingResponseFormatError("LLM coding response must include a themes list.")
 
     uncoded_count = payload.get("uncoded_count", 0)
     if not isinstance(uncoded_count, int):
-        uncoded_count = 0
+        raise CodingResponseFormatError("LLM coding response uncoded_count must be an integer.")
+
+    normalized_themes: list[dict] = []
+    for theme in themes:
+        if not isinstance(theme, dict):
+            raise CodingResponseFormatError("Each coded theme must be an object.")
+
+        theme_name = theme.get("theme_name")
+        count = theme.get("count")
+        example_responses = theme.get("example_responses")
+        if not isinstance(theme_name, str) or not theme_name.strip():
+            raise CodingResponseFormatError("Each coded theme must include a non-empty theme_name.")
+        if not isinstance(count, int):
+            raise CodingResponseFormatError("Each coded theme must include an integer count.")
+        if not isinstance(example_responses, list) or not all(
+            isinstance(response, str) for response in example_responses
+        ):
+            raise CodingResponseFormatError(
+                "Each coded theme must include example_responses as a list of strings."
+            )
+        normalized_themes.append(
+            {
+                **theme,
+                "theme_name": theme_name.strip(),
+                "count": count,
+                "example_responses": example_responses,
+            }
+        )
 
     return {
-        "themes": themes,
+        "themes": normalized_themes,
         "uncoded_count": uncoded_count,
     }
 
