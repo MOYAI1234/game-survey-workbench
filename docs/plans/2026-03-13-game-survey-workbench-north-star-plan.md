@@ -260,11 +260,12 @@ As of 2026-03-13, the roadmap status within Stage 2 is:
 - Stage 2A `Retrieval Foundation Hardening`: completed
 - Stage 2B `Real LLM Runtime Integration`: completed
 - Stage 2C `Questionnaire Design Grounding`: completed
-- Stage 2D `Open-Text Coding and Insight Synthesis`: next implementation focus
+- Stage 2D `Open-Text Coding and Insight Synthesis`: core implementation completed on `master`
+- Stage 2D follow-up `Report Evidence Hardening`: completed on `master`
 
-This status update clarifies execution order for future sessions. Agents should treat Stage 2D as the active implementation target and should not skip ahead to Stage 3 or Stage 4 unless explicitly directed.
+This status update clarifies execution order for future sessions. The Stage 2D hardening follow-up is no longer the active implementation target. Future sessions should treat the next question as Stage 2 closeout validation and should not skip ahead to Stage 3 or Stage 4 unless the remaining Stage 2 readiness is explicitly reviewed.
 
-## Current Product State After Stage 2C
+## Current Product State After Stage 2D Core Implementation
 
 The product now has these Stage 2 capabilities in place:
 
@@ -277,34 +278,46 @@ The product now has these Stage 2 capabilities in place:
 - grounded questionnaire draft generation driven by project retrieval + LLM prompt execution
 - editable Markdown questionnaire output with visible `Knowledge Basis`
 - structured questionnaire citation/snippet persistence for later reuse
+- open-text coding prompt loading, context assembly, retrieval, and persistence through `CodingResult`
+- insight synthesis prompt loading, context assembly, retrieval, and persistence through `InsightRecord`
+- analysis-side routes for text coding and insight synthesis
+- typed exceptions for missing project, missing knowledge, and related analysis-side failures
+- persisted analysis-context loading from `analysis_run_id`
+- text coding routes bound to saved free-text inputs instead of client-supplied response lists
+- malformed coding output rejection through a typed format error, with no false-success persistence
+- insight synthesis routes bound to saved coding results and deterministic findings reconstructed from persisted run artifacts
+- saved insight narrative and saved evidence persisted as separate report concerns
+- report rendering support for one clean report-level `## Evidence Basis` section
+- end-to-end regression coverage for the persisted evidence flow
 
-What remains missing is the analysis-side Stage 2 value layer:
+What remains incomplete before Stage 2 can be considered fully closed is no longer the Stage 2D evidence plumbing itself. The remaining question is overall Stage 2 readiness and credibility:
 
-- open-text coding grounded in prompts and source evidence
-- insight synthesis that combines deterministic findings and retrieved knowledge
-- downstream report usage of saved evidence-driven outputs
+- validate questionnaire grounding, coding, insight synthesis, and reporting against more realistic research inputs beyond the current regression fixtures
+- identify whether retrieval quality, prompt quality, or output usefulness still need another Stage 2 refinement pass
+- decide explicitly whether Stage 2 is complete enough to begin Stage 3 context-layer planning
 
 ## Next Planned Artifact
 
 The next concrete planning artifact should be:
 
-`docs/plans/2026-03-13-game-survey-workbench-stage-2d-open-text-coding-and-insight-synthesis-implementation.md`
+`docs/plans/2026-03-13-game-survey-workbench-stage-2-closeout-assessment-plan.md`
 
-Its purpose is to make the analysis side of the workbench knowledge-guided by:
+Its purpose should be to assess Stage 2 completion rather than reopen product direction. It should:
 
-- routing open-text and `other` responses through an LLM-supported coding path
-- combining deterministic findings with retrieved knowledge to produce grounded insight narratives
-- preserving structured evidence and citations so reporting stays inspectable
-- keeping deterministic analysis and LLM interpretation clearly separated
+- verify the full `Knowledge Base -> Questionnaire Design -> Data Analysis -> Markdown Report` loop against realistic acceptance inputs
+- identify any remaining Stage 2 quality gaps that materially block product credibility
+- separate true Stage 2 blockers from nice-to-have improvements
+- provide a clear recommendation on whether to do one more Stage 2 refinement pass or start Stage 3 planning
 
 ## After Stage 2D
 
-If Stage 2D is completed successfully, the next planned implementation focus should remain inside the north-star order:
+Now that the Stage 2D follow-up hardening work is completed on `master`, the next planned focus should remain inside the north-star order:
 
-- complete report-generation integration using saved Stage 2 outputs
-- tighten evidence flow from coding and insights into Markdown reports
-- only then consider broader Stage 3 context-layer work
+- run a Stage 2 closeout assessment against realistic project inputs
+- confirm whether the Stage 2 workflows are credible enough for regular researcher use
+- if material Stage 2 gaps remain, plan one more Stage 2 refinement pass
+- only after that decision, consider broader Stage 3 context-layer work
 
 Future sessions should continue to respect the stage order:
 
-`Stage 2A/2B foundations -> Stage 2C questionnaire grounding -> Stage 2D coding and insight synthesis -> later Stage 3 context work`
+`Stage 2A/2B foundations -> Stage 2C questionnaire grounding -> Stage 2D coding and insight synthesis -> Stage 2D report/evidence hardening -> Stage 2 closeout assessment -> later Stage 3 context work`
