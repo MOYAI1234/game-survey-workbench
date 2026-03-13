@@ -1,7 +1,17 @@
-from game_survey_workbench.models.questionnaire import QuestionnaireSpecVersion
+from pathlib import Path
+
+from game_survey_workbench.llm.client import FakeLLMClient
+from game_survey_workbench.models.project import ProjectCreate
+from game_survey_workbench.models.questionnaire import (
+    QuestionnaireDraftRequest,
+    QuestionnaireSpecVersion,
+)
+from game_survey_workbench.services.knowledge_ingest import ingest_knowledge_file
+from game_survey_workbench.services.projects import create_project
 from game_survey_workbench.services.questionnaires import (
     build_questionnaire_design_context,
     build_questionnaire_markdown,
+    generate_questionnaire_draft,
 )
 
 
@@ -68,3 +78,42 @@ def test_build_questionnaire_markdown_appends_knowledge_basis_section():
 
     assert "## Knowledge Basis" in markdown
     assert "Questionnaire Principles" in markdown
+
+
+def test_generate_questionnaire_draft_uses_project_retrieval_and_persists_citations(
+    tmp_path: Path,
+):
+    source = tmp_path / "principles.md"
+    source.write_text(
+        "---\n"
+        "title: Questionnaire Principles\n"
+        "doc_type: theory\n"
+        "stage:\n"
+        "  - design\n"
+        "scenario: onboarding\n"
+        "---\n"
+        "Questions should stay tightly aligned to the research goal.\n",
+        encoding="utf-8",
+    )
+    ingest_knowledge_file(source, project_root=tmp_path)
+    create_project(
+        ProjectCreate(
+            slug="returners",
+            name="Returners",
+            knowledge_pack={"doc_types": ["theory"], "scenarios": ["onboarding"]},
+        ),
+        workspace_root=tmp_path,
+    )
+
+    version = generate_questionnaire_draft(
+        project_slug="returners",
+        payload=QuestionnaireDraftRequest(
+            research_goal="Understand why players came back",
+            hypotheses=["Return is driven by version updates"],
+        ),
+        workspace_root=tmp_path,
+        client=FakeLLMClient("# Questionnaire Draft\n\n## Core Questions\n- Why did you return?"),
+    )
+
+    assert "## Knowledge Basis" in version.markdown_spec
+    assert version.citations[0]["document_title"] == "Questionnaire Principles"
