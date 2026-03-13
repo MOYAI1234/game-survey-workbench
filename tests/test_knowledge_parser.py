@@ -9,6 +9,8 @@ stage:
   - analysis
 tags:
   - retention
+scenario: onboarding
+priority: 3
 ---
 Body text here.
 """
@@ -18,4 +20,7 @@ Body text here.
     assert document.title == "Retention Framework"
     assert document.doc_type == "theory"
     assert document.stages == ["analysis"]
+    assert document.tags == ["retention"]
+    assert document.scenario == "onboarding"
+    assert document.priority == 3
     assert document.body == "Body text here."
