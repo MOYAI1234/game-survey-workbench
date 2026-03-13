@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import datetime, UTC
 from typing import Optional
 
+from sqlalchemy import Column
+from sqlalchemy.types import JSON
 from sqlmodel import Field, SQLModel
 
 
@@ -18,4 +20,8 @@ class QuestionnaireSpecVersion(SQLModel, table=True):
     version_id: str = Field(index=True, unique=True)
     research_goal: str
     markdown_spec: str
+    citations: list[dict] = Field(default_factory=list, sa_column=Column(JSON))
+    retrieved_snippets: list[dict] = Field(
+        default_factory=list, sa_column=Column(JSON)
+    )
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
