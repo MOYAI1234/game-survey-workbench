@@ -8,3 +8,11 @@ class NoKnowledgeMatchedError(ValueError):
 
 class AnalysisRunNotFoundError(ValueError):
     pass
+
+
+class CodingResponseFormatError(ValueError):
+    pass
+
+
+class NoSavedCodingResultsError(ValueError):
+    pass

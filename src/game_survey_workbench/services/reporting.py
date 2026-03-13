@@ -23,14 +23,18 @@ def render_report_markdown(
     title: str,
     summary_points: list[str],
     sections: dict[str, list[str]],
+    narrative: str | None = None,
     evidence: list[dict] | None = None,
+    evidence_section: str | None = None,
 ) -> str:
     template = get_environment().get_template("reports/report.md.j2")
     return template.render(
         title=title,
         summary_points=summary_points,
         sections=sections,
+        narrative=narrative,
         evidence=evidence or [],
+        evidence_section=evidence_section,
     )
 
 
@@ -71,7 +75,9 @@ def save_report(
     title: str,
     summary_points: list[str],
     sections: dict[str, list[str]],
+    narrative: str | None = None,
     evidence: list[dict] | None = None,
+    evidence_section: str | None = None,
 ) -> Path:
     create_db_and_tables(workspace_root)
     report_dir = workspace_root / "projects" / project_slug / "reports"
@@ -83,7 +89,9 @@ def save_report(
             title=title,
             summary_points=summary_points,
             sections=sections,
+            narrative=narrative,
             evidence=evidence,
+            evidence_section=evidence_section,
         ),
         encoding="utf-8",
     )

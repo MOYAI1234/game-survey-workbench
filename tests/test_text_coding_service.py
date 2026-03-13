@@ -1,11 +1,14 @@
 from pathlib import Path
 
+import pytest
 from sqlmodel import Session, select
 
 from game_survey_workbench.db import get_engine
 from game_survey_workbench.llm.client import FakeLLMClient
+from game_survey_workbench.errors import CodingResponseFormatError
 from game_survey_workbench.models.project import ProjectCreate
 from game_survey_workbench.models.text_coding import CodingResult
+from game_survey_workbench.services.analysis_context import NoFreeTextResponsesFoundError
 from game_survey_workbench.services.knowledge_ingest import ingest_knowledge_file
 from game_survey_workbench.services.projects import create_project
 from game_survey_workbench.services.text_coding import (
@@ -68,6 +71,11 @@ def test_parse_coding_response_extracts_themes():
     assert result["uncoded_count"] == 0
 
 
+def test_parse_coding_response_raises_typed_error_on_invalid_json():
+    with pytest.raises(CodingResponseFormatError):
+        parse_coding_response("not-json")
+
+
 def test_code_open_text_column_retrieves_knowledge_and_persists_result(tmp_path: Path):
     source = tmp_path / "churn.md"
     source.write_text(
@@ -115,3 +123,79 @@ def test_code_open_text_column_retrieves_knowledge_and_persists_result(tmp_path:
     assert saved is not None
     assert saved.analysis_run_id == "run-1"
     assert saved.citations[0]["document_title"] == "Churn Framework"
+
+
+def test_code_open_text_column_rejects_empty_response_list(tmp_path: Path):
+    source = tmp_path / "churn.md"
+    source.write_text(
+        "---\n"
+        "title: Churn Framework\n"
+        "doc_type: theory\n"
+        "stage:\n"
+        "  - analysis\n"
+        "scenario: churn\n"
+        "---\n"
+        "Boredom and difficulty are the top churn drivers.\n",
+        encoding="utf-8",
+    )
+    ingest_knowledge_file(source, project_root=tmp_path)
+    create_project(
+        ProjectCreate(
+            slug="churn-study",
+            name="Churn Study",
+            knowledge_pack={"doc_types": ["theory"], "scenarios": ["churn"]},
+        ),
+        workspace_root=tmp_path,
+    )
+
+    with pytest.raises(NoFreeTextResponsesFoundError):
+        code_open_text_column(
+            project_slug="churn-study",
+            analysis_run_id="run-1",
+            question_column="Why did you leave?",
+            responses=[],
+            workspace_root=tmp_path,
+            client=FakeLLMClient('{"themes": [], "uncoded_count": 0}'),
+        )
+
+    engine = get_engine(tmp_path)
+    with Session(engine) as session:
+        assert session.exec(select(CodingResult)).all() == []
+
+
+def test_code_open_text_column_does_not_persist_invalid_llm_output(tmp_path: Path):
+    source = tmp_path / "churn.md"
+    source.write_text(
+        "---\n"
+        "title: Churn Framework\n"
+        "doc_type: theory\n"
+        "stage:\n"
+        "  - analysis\n"
+        "scenario: churn\n"
+        "---\n"
+        "Boredom and difficulty are the top churn drivers.\n",
+        encoding="utf-8",
+    )
+    ingest_knowledge_file(source, project_root=tmp_path)
+    create_project(
+        ProjectCreate(
+            slug="churn-study",
+            name="Churn Study",
+            knowledge_pack={"doc_types": ["theory"], "scenarios": ["churn"]},
+        ),
+        workspace_root=tmp_path,
+    )
+
+    with pytest.raises(CodingResponseFormatError):
+        code_open_text_column(
+            project_slug="churn-study",
+            analysis_run_id="run-1",
+            question_column="Why did you leave?",
+            responses=["got bored", "nothing to do"],
+            workspace_root=tmp_path,
+            client=FakeLLMClient("not-json"),
+        )
+
+    engine = get_engine(tmp_path)
+    with Session(engine) as session:
+        assert session.exec(select(CodingResult)).all() == []

@@ -70,12 +70,20 @@ def detect_question_type_from_header_and_series(header: str, series: pd.Series) 
     return detect_question_type(series)
 
 
-def _load_tabular_file(path: Path) -> pd.DataFrame:
+def _load_tabular_file(path: Path, *, header: int | None = 0) -> pd.DataFrame:
     if path.suffix.lower() == ".csv":
-        return pd.read_csv(path)
+        return pd.read_csv(path, header=header)
     if path.suffix.lower() in {".xlsx", ".xls"}:
-        return pd.read_excel(path)
+        return pd.read_excel(path, header=header)
     raise ValueError(f"Unsupported dataset format: {path.suffix}")
+
+
+def load_imported_dataset_dataframe(path: Path) -> pd.DataFrame:
+    raw = _load_tabular_file(path, header=None)
+    column_titles = raw.iloc[0].fillna("").astype(str).tolist()
+    dataframe = raw.iloc[2:].copy()
+    dataframe.columns = column_titles
+    return dataframe.reset_index(drop=True)
 
 
 def import_dataset(csv_path: Path, *, project_slug: str, workspace_root: Path) -> ImportedDataset:

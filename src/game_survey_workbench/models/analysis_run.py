@@ -6,6 +6,8 @@ from typing import Optional
 
 from sqlmodel import Field, Session, SQLModel, select
 
+from game_survey_workbench.errors import AnalysisRunNotFoundError
+
 
 class AnalysisRunRecord(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -24,3 +26,10 @@ def get_analysis_run(analysis_run_id: str, *, workspace_root: Path) -> AnalysisR
         return session.exec(
             select(AnalysisRunRecord).where(AnalysisRunRecord.analysis_run_id == analysis_run_id)
         ).first()
+
+
+def require_analysis_run(analysis_run_id: str, *, workspace_root: Path) -> AnalysisRunRecord:
+    analysis_run = get_analysis_run(analysis_run_id, workspace_root=workspace_root)
+    if analysis_run is None:
+        raise AnalysisRunNotFoundError("Analysis run not found.")
+    return analysis_run

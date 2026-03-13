@@ -1,13 +1,22 @@
 from fastapi import APIRouter, HTTPException, status
 
 from game_survey_workbench.config import get_settings
-from game_survey_workbench.errors import NoKnowledgeMatchedError, ProjectNotFoundError
+from game_survey_workbench.errors import (
+    CodingResponseFormatError,
+    NoKnowledgeMatchedError,
+    ProjectNotFoundError,
+)
 from game_survey_workbench.llm.client import (
     MissingLLMConfigurationError,
     build_llm_client,
 )
 from game_survey_workbench.models.analysis_run import get_analysis_run
 from game_survey_workbench.models.text_coding import TextCodingRequest
+from game_survey_workbench.services.analysis_context import (
+    NoFreeTextResponsesFoundError,
+    QuestionColumnNotFoundError,
+    load_free_text_responses_for_question,
+)
 from game_survey_workbench.services.text_coding import code_open_text_column
 
 router = APIRouter()
@@ -32,11 +41,16 @@ def code_text_route(
 
     try:
         client = build_llm_client(settings)
+        responses = load_free_text_responses_for_question(
+            analysis_run_id=analysis_run_id,
+            question_column=payload.question_column,
+            workspace_root=settings.workspace_root,
+        )
         result = code_open_text_column(
             project_slug=project_slug,
             analysis_run_id=analysis_run_id,
             question_column=payload.question_column,
-            responses=payload.responses,
+            responses=responses,
             workspace_root=settings.workspace_root,
             client=client,
         )
@@ -44,8 +58,12 @@ def code_text_route(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     except ProjectNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Project not found") from exc
+    except (NoFreeTextResponsesFoundError, QuestionColumnNotFoundError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except NoKnowledgeMatchedError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except CodingResponseFormatError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     return {
         "analysis_run_id": analysis_run_id,

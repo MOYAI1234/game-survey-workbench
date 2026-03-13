@@ -32,3 +32,33 @@ def summarize_multi_select(series: pd.Series, separator: str = ";") -> dict[str,
         for item in [part.strip() for part in raw.split(separator) if part.strip()]:
             counts[item] = counts.get(item, 0) + 1
     return counts
+
+
+def describe_scale_summary(question: str, series, top_box_values: set[int]) -> str | None:
+    clean = pd.to_numeric(series.dropna(), errors="coerce").dropna()
+    if clean.empty:
+        return None
+    summary = summarize_scale_question(clean, top_box_values=top_box_values)
+    return (
+        f"{question}: mean {summary.mean:.3f}; "
+        f"Top box {(summary.top_box_rate * 100):.1f}%"
+    )
+
+
+def describe_single_choice_summary(question: str, series: pd.Series) -> str | None:
+    summary = summarize_single_choice(series)
+    if not summary:
+        return None
+    top_choice, details = max(summary.items(), key=lambda item: item[1]["count"])
+    return (
+        f"{question}: top choice '{top_choice}' "
+        f"({int(details['count'])} responses, {details['percentage'] * 100:.1f}%)"
+    )
+
+
+def describe_multi_select_summary(question: str, series: pd.Series) -> str | None:
+    summary = summarize_multi_select(series)
+    if not summary:
+        return None
+    top_choice, count = max(summary.items(), key=lambda item: item[1])
+    return f"{question}: most selected item '{top_choice}' ({count} selections)"

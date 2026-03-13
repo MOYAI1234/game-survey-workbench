@@ -1,13 +1,21 @@
 from fastapi import APIRouter, HTTPException, status
 
 from game_survey_workbench.config import get_settings
-from game_survey_workbench.errors import NoKnowledgeMatchedError, ProjectNotFoundError
+from game_survey_workbench.errors import (
+    NoKnowledgeMatchedError,
+    NoSavedCodingResultsError,
+    ProjectNotFoundError,
+)
 from game_survey_workbench.llm.client import (
     MissingLLMConfigurationError,
     build_llm_client,
 )
 from game_survey_workbench.models.analysis_run import get_analysis_run
 from game_survey_workbench.models.insight import InsightGenerateRequest
+from game_survey_workbench.services.analysis_context import (
+    build_deterministic_findings_for_run,
+    load_saved_coding_themes,
+)
 from game_survey_workbench.services.insights import generate_analysis_insights
 
 router = APIRouter()
@@ -32,12 +40,20 @@ def generate_insights_route(
 
     try:
         client = build_llm_client(settings)
+        statistical_findings = build_deterministic_findings_for_run(
+            analysis_run_id=analysis_run_id,
+            workspace_root=settings.workspace_root,
+        )
+        coded_themes = load_saved_coding_themes(
+            analysis_run_id=analysis_run_id,
+            workspace_root=settings.workspace_root,
+        )
         result = generate_analysis_insights(
             project_slug=project_slug,
             analysis_run_id=analysis_run_id,
             research_goal=payload.research_goal,
-            statistical_findings=payload.statistical_findings,
-            coded_themes=payload.coded_themes,
+            statistical_findings=statistical_findings,
+            coded_themes=coded_themes,
             workspace_root=settings.workspace_root,
             client=client,
         )
@@ -46,6 +62,8 @@ def generate_insights_route(
     except ProjectNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Project not found") from exc
     except NoKnowledgeMatchedError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except NoSavedCodingResultsError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     return {

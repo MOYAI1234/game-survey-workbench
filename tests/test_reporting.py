@@ -7,6 +7,7 @@ from game_survey_workbench.app import create_app
 from game_survey_workbench.db import get_engine
 from game_survey_workbench.models.dataset import DatasetRecord
 from game_survey_workbench.services.dataset_import import import_dataset
+from game_survey_workbench.services.knowledge_ingest import ingest_knowledge_file
 from game_survey_workbench.services.reporting import render_report_markdown
 from game_survey_workbench.services.workspace import bootstrap_workspace
 
@@ -35,6 +36,88 @@ def test_render_report_markdown_includes_evidence_basis_when_provided():
 
     assert "## Evidence Basis" in markdown
     assert "Churn Framework" in markdown
+
+
+def test_generate_report_renders_saved_insight_narrative_without_bullet_wrapping(
+    tmp_path: Path,
+    monkeypatch,
+):
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT", str(tmp_path))
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_PROVIDER", "openai_compatible")
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_MODEL", "demo-model")
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_API_KEY", "test-key")
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_BASE_URL", "https://example.com/v1")
+
+    from game_survey_workbench.llm.client import OpenAICompatibleLLMClient
+
+    def fake_generate(self, prompt: str) -> str:
+        if "Open Text Coding Prompt" in prompt:
+            return (
+                '{"themes": [{"theme_name": "Boredom", "count": 2, '
+                '"example_responses": ["got bored", "nothing to do"]}], "uncoded_count": 0}'
+            )
+        return "Boredom emerged as the dominant churn factor."
+
+    monkeypatch.setattr(OpenAICompatibleLLMClient, "generate", fake_generate)
+
+    source = tmp_path / "churn.md"
+    source.write_text(
+        "---\n"
+        "title: Churn Framework\n"
+        "doc_type: theory\n"
+        "stage:\n"
+        "  - analysis\n"
+        "scenario: churn\n"
+        "---\n"
+        "Boredom and difficulty are the top churn drivers.\n",
+        encoding="utf-8",
+    )
+    ingest_knowledge_file(source, project_root=tmp_path)
+
+    client = TestClient(create_app())
+    client.post(
+        "/projects",
+        json={
+            "slug": "demo",
+            "name": "Demo",
+            "knowledge_pack": {"doc_types": ["theory"], "scenarios": ["churn"]},
+        },
+    )
+    dataset = client.post(
+        "/projects/demo/datasets/import",
+        files={
+            "file": (
+                "survey.csv",
+                (
+                    "Segment,Satisfaction,Why did you leave?,Why did you leave?_other\n"
+                    "metadata,scale,single_choice,free_text\n"
+                    "A,5,Other,got bored\n"
+                    "B,4,Other,nothing to do\n"
+                    "C,2,Other,too hard\n"
+                ),
+                "text/csv",
+            )
+        },
+    ).json()
+    client.post(
+        f"/projects/demo/analysis/{dataset['analysis_run_id']}/code-text",
+        json={"question_column": "Why did you leave?"},
+    )
+    client.post(
+        f"/projects/demo/analysis/{dataset['analysis_run_id']}/insights",
+        json={"research_goal": "Understand churn drivers"},
+    )
+
+    report = client.post(
+        "/projects/demo/reports/generate",
+        json={"analysis_run_id": dataset["analysis_run_id"]},
+    ).json()
+    report_path = Path(report["path"])
+    markdown = report_path.read_text(encoding="utf-8")
+
+    assert "## Key Findings" in markdown
+    assert "\n- Boredom emerged" not in markdown
+    assert markdown.count("## Evidence Basis") == 1
 
 
 def test_generate_report_rejects_unknown_analysis_run_id(tmp_path: Path, monkeypatch):
@@ -106,3 +189,27 @@ def test_generate_report_uses_analysis_run_record_for_project_validation(tmp_pat
     )
 
     assert response.status_code == 404
+
+
+def test_generate_report_succeeds_without_stage_2d_artifacts(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT", str(tmp_path))
+    bootstrap_workspace(tmp_path)
+    dataset_path = tmp_path / "survey.csv"
+    dataset_path.write_text(
+        "Q1,Q2\nsingle_choice,scale\n满意,5\n",
+        encoding="utf-8",
+    )
+    imported = import_dataset(dataset_path, project_slug="demo", workspace_root=tmp_path)
+
+    client = TestClient(create_app())
+    client.post("/projects", json={"slug": "demo", "name": "Demo", "knowledge_pack": {}})
+
+    response = client.post(
+        "/projects/demo/reports/generate",
+        json={"analysis_run_id": imported.analysis_run_id},
+    )
+
+    assert response.status_code == 201
+    markdown = Path(response.json()["path"]).read_text(encoding="utf-8")
+    assert "Initial automated summary." in markdown
+    assert "## Evidence Basis" not in markdown
