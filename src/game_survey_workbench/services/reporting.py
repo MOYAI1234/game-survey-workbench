@@ -9,7 +9,9 @@ from sqlmodel import Session, select
 
 from game_survey_workbench.db import create_db_and_tables, get_engine
 from game_survey_workbench.models.analysis_run import AnalysisRunRecord
+from game_survey_workbench.models.insight import InsightRecord
 from game_survey_workbench.models.reporting import ReportRecord
+from game_survey_workbench.models.text_coding import CodingResult
 
 
 def get_environment() -> Environment:
@@ -38,6 +40,27 @@ def get_analysis_run_record(*, analysis_run_id: str, workspace_root: Path) -> An
         return session.exec(
             select(AnalysisRunRecord).where(AnalysisRunRecord.analysis_run_id == analysis_run_id)
         ).first()
+
+
+def get_latest_insight_record(*, analysis_run_id: str, workspace_root: Path) -> InsightRecord | None:
+    engine = get_engine(workspace_root)
+    with Session(engine) as session:
+        records = session.exec(
+            select(InsightRecord).where(InsightRecord.analysis_run_id == analysis_run_id)
+        ).all()
+    if not records:
+        return None
+    return sorted(records, key=lambda item: item.created_at, reverse=True)[0]
+
+
+def get_coding_results(*, analysis_run_id: str, workspace_root: Path) -> list[CodingResult]:
+    engine = get_engine(workspace_root)
+    with Session(engine) as session:
+        return list(
+            session.exec(
+                select(CodingResult).where(CodingResult.analysis_run_id == analysis_run_id)
+            ).all()
+        )
 
 
 def save_report(

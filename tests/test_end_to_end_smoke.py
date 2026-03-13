@@ -8,11 +8,17 @@ def test_end_to_end_flow_creates_report(client, seeded_workspace, monkeypatch):
     monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_API_KEY", "test-key")
     monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_BASE_URL", "https://example.com/v1")
 
-    monkeypatch.setattr(
-        OpenAICompatibleLLMClient,
-        "generate",
-        lambda self, prompt: "# Questionnaire Draft\n\n## Core Questions\n- Why did you return?",
-    )
+    def fake_generate(self, prompt: str):
+        if "Open Text Coding Prompt" in prompt:
+            return (
+                '{"themes": [{"theme_name": "Boredom", "count": 2, '
+                '"example_responses": ["got bored", "nothing to do"]}], "uncoded_count": 1}'
+            )
+        if "Insight Synthesis Prompt" in prompt:
+            return "Boredom emerged as the dominant churn factor based on the coded themes and knowledge."
+        return "# Questionnaire Draft\n\n## Core Questions\n- Why did you return?"
+
+    monkeypatch.setattr(OpenAICompatibleLLMClient, "generate", fake_generate)
     for source in (seeded_workspace / "knowledge").glob("*.md"):
         ingest_knowledge_file(source, project_root=seeded_workspace)
 
@@ -26,10 +32,27 @@ def test_end_to_end_flow_creates_report(client, seeded_workspace, monkeypatch):
         f"/projects/{project['slug']}/datasets/import",
         files={"file": ("dataset.csv", dataset_file.read_text(encoding="utf-8"), "text/csv")},
     ).json()
+    coding = client.post(
+        f"/projects/{project['slug']}/analysis/{dataset['analysis_run_id']}/code-text",
+        json={
+            "question_column": "Feel free to tell us what rewards you want to see in the Season Pass! You could also give us more suggestion about the game here!",
+            "responses": ["got bored", "nothing to do", "idk"],
+        },
+    ).json()
+    insights = client.post(
+        f"/projects/{project['slug']}/analysis/{dataset['analysis_run_id']}/insights",
+        json={
+            "research_goal": "Learn why players drop after the patch",
+            "statistical_findings": ["Top box dropped to 32%"],
+            "coded_themes": coding["themes"],
+        },
+    ).json()
     report = client.post(
         f"/projects/{project['slug']}/reports/generate",
         json={"analysis_run_id": dataset["analysis_run_id"]},
     ).json()
+    report_path = seeded_workspace / report["path"]
+    report_markdown = report_path.read_text(encoding="utf-8")
 
     assert draft["version_id"]
     assert dataset["dataset_id"]
@@ -44,3 +67,8 @@ def test_end_to_end_flow_creates_report(client, seeded_workspace, monkeypatch):
     )
     assert report["analysis_run_id"] == dataset["analysis_run_id"]
     assert report["path"].endswith(".md")
+    assert coding["themes"][0]["theme_name"] == "Boredom"
+    assert "## Evidence Basis" in insights["narrative"]
+    assert "Churn" in insights["citations"][0]["document_title"] or insights["citations"]
+    assert "## Evidence Basis" in report_markdown
+    assert "Boredom emerged as the dominant churn factor" in report_markdown
