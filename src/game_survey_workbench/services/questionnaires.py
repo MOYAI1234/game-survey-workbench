@@ -54,6 +54,11 @@ def build_questionnaire_markdown(*, llm_output: str, citations: list[dict]) -> s
     return "\n".join(sections).strip()
 
 
+def load_questionnaire_prompt() -> str:
+    prompt_path = Path(__file__).resolve().parent.parent / "llm" / "prompts" / "questionnaire_design.md"
+    return prompt_path.read_text(encoding="utf-8").strip()
+
+
 def save_questionnaire_draft(
     *,
     project_slug: str,
@@ -125,7 +130,8 @@ def generate_questionnaire_draft(
         hypotheses=payload.hypotheses,
         knowledge_snippets=snippets,
     )
-    llm_output = client.generate(context)
+    prompt = load_questionnaire_prompt()
+    llm_output = client.generate(f"{prompt}\n\n{context}")
     markdown = build_questionnaire_markdown(llm_output=llm_output, citations=snippets)
     return save_questionnaire_draft(
         project_slug=project_slug,

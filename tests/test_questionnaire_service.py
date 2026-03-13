@@ -1,3 +1,4 @@
+import pytest
 from pathlib import Path
 
 from game_survey_workbench.llm.client import FakeLLMClient
@@ -12,6 +13,7 @@ from game_survey_workbench.services.questionnaires import (
     build_questionnaire_design_context,
     build_questionnaire_markdown,
     generate_questionnaire_draft,
+    load_questionnaire_prompt,
 )
 
 
@@ -117,3 +119,28 @@ def test_generate_questionnaire_draft_uses_project_retrieval_and_persists_citati
 
     assert "## Knowledge Basis" in version.markdown_spec
     assert version.citations[0]["document_title"] == "Questionnaire Principles"
+
+
+def test_generate_questionnaire_draft_rejects_missing_knowledge(tmp_path: Path):
+    create_project(
+        ProjectCreate(
+            slug="empty-project",
+            name="Empty Project",
+            knowledge_pack={"doc_types": ["theory"], "scenarios": ["onboarding"]},
+        ),
+        workspace_root=tmp_path,
+    )
+
+    with pytest.raises(ValueError, match="No knowledge matched"):
+        generate_questionnaire_draft(
+            project_slug="empty-project",
+            payload=QuestionnaireDraftRequest(research_goal="Study returners"),
+            workspace_root=tmp_path,
+            client=FakeLLMClient("# Draft"),
+        )
+
+
+def test_load_questionnaire_prompt_contains_markdown_instruction():
+    prompt = load_questionnaire_prompt()
+
+    assert "Markdown" in prompt
