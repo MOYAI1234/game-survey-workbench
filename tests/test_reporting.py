@@ -23,6 +23,20 @@ def test_render_report_markdown_includes_required_sections():
     assert "Combat satisfaction is declining." in markdown
 
 
+def test_render_report_markdown_includes_evidence_basis_when_provided():
+    markdown = render_report_markdown(
+        title="Churn Report",
+        summary_points=["Boredom is the top driver."],
+        sections={"Key Findings": ["Top box dropped to 32%."]},
+        evidence=[
+            {"document_title": "Churn Framework", "content": "Boredom top driver."},
+        ],
+    )
+
+    assert "## Evidence Basis" in markdown
+    assert "Churn Framework" in markdown
+
+
 def test_generate_report_rejects_unknown_analysis_run_id(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT", str(tmp_path))
     client = TestClient(create_app())
