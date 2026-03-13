@@ -12,12 +12,23 @@ from game_survey_workbench.models.questionnaire import (
 )
 
 
+def format_knowledge_item(item: str | dict) -> str:
+    if isinstance(item, str):
+        return item
+
+    title = item.get("document_title", "Unknown Source")
+    content = item.get("content", "").strip()
+    tags = item.get("tags", [])
+    tag_text = f" [tags: {', '.join(tags)}]" if tags else ""
+    return f"{title}{tag_text}: {content}".strip()
+
+
 def build_questionnaire_design_context(
     *,
     project_name: str,
     research_goal: str,
     hypotheses: list[str],
-    knowledge_snippets: list[str],
+    knowledge_snippets: list[str | dict],
 ) -> str:
     return "\n".join(
         [
@@ -26,9 +37,18 @@ def build_questionnaire_design_context(
             "Hypotheses:",
             *[f"- {item}" for item in hypotheses],
             "Knowledge:",
-            *[f"- {item}" for item in knowledge_snippets],
+            *[f"- {format_knowledge_item(item)}" for item in knowledge_snippets],
         ]
     )
+
+
+def build_questionnaire_markdown(*, llm_output: str, citations: list[dict]) -> str:
+    sections = [llm_output.strip(), "", "## Knowledge Basis"]
+    for citation in citations:
+        title = citation.get("document_title", "Unknown Source")
+        content = citation.get("content", "").strip()
+        sections.append(f"- {title}: {content}")
+    return "\n".join(sections).strip()
 
 
 def save_questionnaire_draft(
