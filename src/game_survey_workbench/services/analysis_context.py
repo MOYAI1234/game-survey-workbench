@@ -18,6 +18,10 @@ class QuestionColumnNotFoundError(ValueError):
     pass
 
 
+class NoFreeTextResponsesFoundError(ValueError):
+    pass
+
+
 @dataclass
 class AnalysisRunContext:
     analysis_run: AnalysisRunRecord
@@ -59,4 +63,7 @@ def load_free_text_responses_for_question(
         raise QuestionColumnNotFoundError(f"Question column '{response_column}' not found.")
 
     series = context.dataframe[response_column].dropna().astype(str).str.strip()
-    return [value for value in series.tolist() if value]
+    responses = [value for value in series.tolist() if value]
+    if not responses:
+        raise NoFreeTextResponsesFoundError(f"No free-text responses found for '{question_column}'.")
+    return responses

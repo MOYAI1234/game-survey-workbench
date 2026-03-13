@@ -10,7 +10,7 @@ from sqlmodel import Field, SQLModel
 
 class TextCodingRequest(SQLModel):
     question_column: str
-    responses: list[str] = Field(default_factory=list)
+    responses: list[str] | None = None
 
 
 class CodingResult(SQLModel, table=True):

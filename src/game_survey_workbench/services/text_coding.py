@@ -9,6 +9,7 @@ from game_survey_workbench.db import create_db_and_tables, get_engine
 from game_survey_workbench.errors import NoKnowledgeMatchedError, ProjectNotFoundError
 from game_survey_workbench.llm.client import LLMClient
 from game_survey_workbench.models.text_coding import CodingResult
+from game_survey_workbench.services.analysis_context import NoFreeTextResponsesFoundError
 from game_survey_workbench.services.knowledge_ingest import retrieve_project_knowledge
 from game_survey_workbench.services.projects import get_project
 
@@ -85,6 +86,10 @@ def code_open_text_column(
     client: LLMClient,
     top_k: int = 10,
 ) -> CodingResult:
+    clean_responses = [response.strip() for response in responses if response and response.strip()]
+    if not clean_responses:
+        raise NoFreeTextResponsesFoundError(f"No free-text responses found for '{question_column}'.")
+
     project = get_project(workspace_root=workspace_root, project_slug=project_slug)
     if project is None:
         raise ProjectNotFoundError("Project not found.")
@@ -109,7 +114,7 @@ def code_open_text_column(
 
     context = build_coding_context(
         question=question_column,
-        responses=responses,
+        responses=clean_responses,
         knowledge_snippets=snippets,
     )
     prompt = load_coding_prompt()
