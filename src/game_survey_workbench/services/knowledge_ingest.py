@@ -73,6 +73,7 @@ def retrieve_knowledge(
     stages: list[str] | None = None,
     doc_types: list[str] | None = None,
     scenarios: list[str] | None = None,
+    top_k: int | None = None,
 ) -> list[dict]:
     store = LocalVectorStore(project_root / "artifacts" / "vector_store")
     return store.query(
@@ -80,6 +81,7 @@ def retrieve_knowledge(
         stages=stages,
         doc_types=doc_types,
         scenarios=scenarios,
+        top_k=top_k,
     )
 
 
@@ -89,6 +91,7 @@ def retrieve_project_knowledge(
     project_slug: str,
     query: str,
     stages: list[str] | None = None,
+    top_k: int | None = None,
 ) -> list[dict]:
     project = get_project(workspace_root=workspace_root, project_slug=project_slug)
     if project is None:
@@ -101,4 +104,5 @@ def retrieve_project_knowledge(
         stages=stages,
         doc_types=knowledge_pack.get("doc_types", []),
         scenarios=knowledge_pack.get("scenarios", []),
+        top_k=top_k,
     )
