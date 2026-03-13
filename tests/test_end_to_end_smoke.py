@@ -1,4 +1,21 @@
-def test_end_to_end_flow_creates_report(client, seeded_workspace):
+from game_survey_workbench.llm.client import OpenAICompatibleLLMClient
+from game_survey_workbench.services.knowledge_ingest import ingest_knowledge_file
+
+
+def test_end_to_end_flow_creates_report(client, seeded_workspace, monkeypatch):
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_PROVIDER", "openai_compatible")
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_MODEL", "demo-model")
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_API_KEY", "test-key")
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_BASE_URL", "https://example.com/v1")
+
+    monkeypatch.setattr(
+        OpenAICompatibleLLMClient,
+        "generate",
+        lambda self, prompt: "# Questionnaire Draft\n\n## Core Questions\n- Why did you return?",
+    )
+    for source in (seeded_workspace / "knowledge").glob("*.md"):
+        ingest_knowledge_file(source, project_root=seeded_workspace)
+
     project = client.post("/projects", json={"slug": "demo", "name": "Demo", "knowledge_pack": {}}).json()
     draft = client.post(
         f"/projects/{project['slug']}/questionnaires/draft",
