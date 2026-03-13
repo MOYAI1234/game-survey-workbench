@@ -3,7 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from sqlmodel import Session
+
+from game_survey_workbench.db import create_db_and_tables, get_engine
 from game_survey_workbench.llm.client import LLMClient
+from game_survey_workbench.models.insight import InsightRecord
+from game_survey_workbench.services.knowledge_ingest import retrieve_project_knowledge
+from game_survey_workbench.services.projects import get_project
 
 
 def format_context_item(item: str | dict) -> str:
@@ -89,3 +95,62 @@ def synthesize_insights(
         evidence_section=evidence_section,
         citations=knowledge_snippets,
     )
+
+
+def save_insight_record(*, workspace_root: Path, record: InsightRecord) -> InsightRecord:
+    create_db_and_tables(workspace_root)
+    engine = get_engine(workspace_root)
+    with Session(engine) as session:
+        session.add(record)
+        session.commit()
+        session.refresh(record)
+        return record
+
+
+def generate_analysis_insights(
+    *,
+    project_slug: str,
+    analysis_run_id: str,
+    research_goal: str,
+    statistical_findings: list[str | dict],
+    coded_themes: list[str | dict],
+    workspace_root: Path,
+    client: LLMClient,
+    top_k: int = 10,
+) -> InsightRecord:
+    project = get_project(workspace_root=workspace_root, project_slug=project_slug)
+    if project is None:
+        raise ValueError("Project not found.")
+
+    snippets = retrieve_project_knowledge(
+        workspace_root=workspace_root,
+        project_slug=project_slug,
+        query=research_goal,
+        stages=["analysis"],
+        top_k=top_k,
+    )
+    if not snippets:
+        snippets = retrieve_project_knowledge(
+            workspace_root=workspace_root,
+            project_slug=project_slug,
+            query="",
+            stages=["analysis"],
+            top_k=top_k,
+        )
+    if not snippets:
+        raise ValueError("No knowledge matched this insight request.")
+
+    synthesis = synthesize_insights(
+        client=client,
+        research_goal=research_goal,
+        statistical_findings=statistical_findings,
+        coded_themes=coded_themes,
+        knowledge_snippets=snippets,
+    )
+    record = InsightRecord(
+        analysis_run_id=analysis_run_id,
+        narrative=synthesis.narrative,
+        evidence_section=synthesis.evidence_section,
+        citations=synthesis.citations,
+    )
+    return save_insight_record(workspace_root=workspace_root, record=record)
