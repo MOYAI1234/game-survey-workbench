@@ -6,6 +6,7 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
 from game_survey_workbench.config import get_settings
+from game_survey_workbench.errors import NoKnowledgeMatchedError, ProjectNotFoundError
 from game_survey_workbench.llm.client import (
     MissingLLMConfigurationError,
     build_llm_client,
@@ -30,11 +31,10 @@ def create_questionnaire_draft(project_slug: str, payload: QuestionnaireDraftReq
         )
     except MissingLLMConfigurationError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    except ValueError as exc:
-        detail = str(exc)
-        if detail == "Project not found.":
-            raise HTTPException(status_code=404, detail="Project not found") from exc
-        raise HTTPException(status_code=400, detail=detail) from exc
+    except ProjectNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Project not found") from exc
+    except NoKnowledgeMatchedError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     return {
         "version_id": version.version_id,

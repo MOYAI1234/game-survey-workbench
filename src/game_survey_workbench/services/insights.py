@@ -6,6 +6,7 @@ from pathlib import Path
 from sqlmodel import Session
 
 from game_survey_workbench.db import create_db_and_tables, get_engine
+from game_survey_workbench.errors import NoKnowledgeMatchedError, ProjectNotFoundError
 from game_survey_workbench.llm.client import LLMClient
 from game_survey_workbench.models.insight import InsightRecord
 from game_survey_workbench.services.knowledge_ingest import retrieve_project_knowledge
@@ -120,7 +121,7 @@ def generate_analysis_insights(
 ) -> InsightRecord:
     project = get_project(workspace_root=workspace_root, project_slug=project_slug)
     if project is None:
-        raise ValueError("Project not found.")
+        raise ProjectNotFoundError("Project not found.")
 
     snippets = retrieve_project_knowledge(
         workspace_root=workspace_root,
@@ -138,7 +139,7 @@ def generate_analysis_insights(
             top_k=top_k,
         )
     if not snippets:
-        raise ValueError("No knowledge matched this insight request.")
+        raise NoKnowledgeMatchedError("No knowledge matched this insight request.")
 
     synthesis = synthesize_insights(
         client=client,
