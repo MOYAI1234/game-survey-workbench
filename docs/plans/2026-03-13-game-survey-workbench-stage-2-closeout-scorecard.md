@@ -1,46 +1,51 @@
 # Stage 2 Closeout Scorecard
 
-Assessment date: Pending
+Assessment date: 2026-03-13
 
 ## Input realism
 
-Status: Pending
+Status: credible
 
 Notes:
-- Verify the knowledge documents read like plausible survey-research guidance.
-- Verify the survey fixture mixes typed columns from the current upload contract.
+- The knowledge fixtures read like plausible season-pass research guidance rather than toy placeholders.
+- The survey fixture exercises `metadata`, `single_choice`, `scale`, and `free_text` with `_其他说明` linkage, which matches the current upload contract and analysis-side flow.
 
 ## Questionnaire grounding
 
-Status: Pending
+Status: usable but weak
 
 Notes:
-- Check whether generated questions visibly reflect retrieved knowledge and project goal.
+- The generated questionnaire includes a visible `## Knowledge Basis` section and the draft questions line up with reward clarity, effort-to-value balance, and repeat-play risk.
+- The output is still narrow: it reflects one retrieved source and produces a short question list without much rationale, segmentation guidance, or stronger wording variety.
 
 ## Coding usefulness
 
-Status: Pending
+Status: credible
 
 Notes:
-- Check whether open-text coding themes are specific enough to guide researcher follow-up.
+- Saved coding results produced concrete themes, counts, and example responses rather than empty structure.
+- The themes `Pacing Friction` and `Reward Clarity` are specific enough to support follow-up interpretation in this closeout fixture.
 
 ## Insight usefulness
 
-Status: Pending
+Status: usable but weak
 
 Notes:
-- Check whether synthesized insights combine deterministic findings with grounded evidence.
+- The saved insight narrative clearly combines coded themes with deterministic satisfaction signals.
+- Evidence is preserved separately and rendered cleanly, but this assessment still relies on scripted LLM output in the harness, so real provider-backed usefulness is not yet proven by the closeout evidence.
 
 ## Report clarity
 
-Status: Pending
+Status: usable but weak
 
 Notes:
-- Check whether the final Markdown report is editable, coherent, and keeps one clean evidence section.
+- The final report is coherent Markdown and contains exactly one clean `## Evidence Basis` section.
+- The current report shell still feels mechanical: the executive summary is generic and the evidence section pastes long source excerpts with limited summarization.
 
 ## Final recommendation
 
-Status: Pending
+Status: Stage 2 needs one more refinement pass
 
 Notes:
-- Choose only one outcome: `Stage 2 complete enough to start Stage 3 planning` or `Stage 2 needs one more refinement pass`.
+- The workflow is structurally credible, but the closeout evidence does not yet prove regular researcher usefulness with a real provider-backed LLM run.
+- The next pass should stay inside Stage 2 and focus on acceptance credibility rather than changing product direction.
