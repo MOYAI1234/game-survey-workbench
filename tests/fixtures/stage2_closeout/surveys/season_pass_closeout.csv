@@ -1,0 +1,6 @@
+Respondent ID,Player Segment,How clear is the current season pass reward ladder?,Which reward track do you value most?,What frustrated you most about the current season pass?,How satisfied are you with the current season pass overall?,How satisfied are you with the current season pass overall?_其他说明
+metadata,metadata,scale,single_choice,free_text,scale,free_text
+1001,Paying returner,2,Exclusive cosmetics,"The rewards look fine at first, but the final tiers take too long to finish.",2,"I only stayed because I had already paid."
+1002,Non-paying active,3,Free resources,"I could not tell which weeks would unlock useful items, so I stopped checking.",3,"The pass feels confusing more than exciting."
+1003,Paying active,4,Premium currency,"Please add more surprise moments between milestones instead of long empty stretches.",4,"Value is acceptable, but pacing still feels flat."
+1004,Lapsed payer,1,Exclusive cosmetics,"Too much grind for items that do not feel special enough.",1,"I will likely skip the next pass unless rewards improve."
