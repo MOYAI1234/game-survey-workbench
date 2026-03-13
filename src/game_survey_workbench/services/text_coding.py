@@ -3,6 +3,14 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from sqlmodel import Session
+
+from game_survey_workbench.db import create_db_and_tables, get_engine
+from game_survey_workbench.llm.client import LLMClient
+from game_survey_workbench.models.text_coding import CodingResult
+from game_survey_workbench.services.knowledge_ingest import retrieve_project_knowledge
+from game_survey_workbench.services.projects import get_project
+
 
 def format_knowledge_item(item: str | dict) -> str:
     if isinstance(item, str):
@@ -54,3 +62,63 @@ def parse_coding_response(raw_output: str) -> dict:
         "themes": themes,
         "uncoded_count": uncoded_count,
     }
+
+
+def save_coding_result(*, workspace_root: Path, result: CodingResult) -> CodingResult:
+    create_db_and_tables(workspace_root)
+    engine = get_engine(workspace_root)
+    with Session(engine) as session:
+        session.add(result)
+        session.commit()
+        session.refresh(result)
+        return result
+
+
+def code_open_text_column(
+    *,
+    project_slug: str,
+    analysis_run_id: str,
+    question_column: str,
+    responses: list[str],
+    workspace_root: Path,
+    client: LLMClient,
+    top_k: int = 10,
+) -> CodingResult:
+    project = get_project(workspace_root=workspace_root, project_slug=project_slug)
+    if project is None:
+        raise ValueError("Project not found.")
+
+    snippets = retrieve_project_knowledge(
+        workspace_root=workspace_root,
+        project_slug=project_slug,
+        query=question_column,
+        stages=["analysis"],
+        top_k=top_k,
+    )
+    if not snippets:
+        snippets = retrieve_project_knowledge(
+            workspace_root=workspace_root,
+            project_slug=project_slug,
+            query="",
+            stages=["analysis"],
+            top_k=top_k,
+        )
+    if not snippets:
+        raise ValueError("No knowledge matched this text coding request.")
+
+    context = build_coding_context(
+        question=question_column,
+        responses=responses,
+        knowledge_snippets=snippets,
+    )
+    prompt = load_coding_prompt()
+    raw_output = client.generate(f"{prompt}\n\n{context}")
+    parsed = parse_coding_response(raw_output)
+    result = CodingResult(
+        analysis_run_id=analysis_run_id,
+        question_column=question_column,
+        themes=parsed["themes"],
+        uncoded_count=parsed["uncoded_count"],
+        citations=snippets,
+    )
+    return save_coding_result(workspace_root=workspace_root, result=result)
