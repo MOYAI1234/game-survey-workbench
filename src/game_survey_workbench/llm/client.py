@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
+import httpx
+
 from game_survey_workbench.config import Settings
 
 
@@ -29,7 +31,30 @@ class OpenAICompatibleLLMClient:
     base_url: str
 
     def generate(self, prompt: str) -> str:
-        raise NotImplementedError
+        url = f"{self.base_url.rstrip('/')}/responses"
+        with httpx.Client() as client:
+            response = client.post(
+                url,
+                headers={"Authorization": f"Bearer {self.api_key}"},
+                json={
+                    "model": self.model,
+                    "input": prompt,
+                },
+                timeout=30.0,
+            )
+
+        if response.status_code >= 400:
+            raise RuntimeError(
+                f"OpenAI-compatible request failed with status {response.status_code}."
+            )
+
+        payload = response.json()
+        for output in payload.get("output", []):
+            for content in output.get("content", []):
+                if content.get("type") == "output_text" and content.get("text"):
+                    return content["text"]
+
+        raise RuntimeError("OpenAI-compatible response did not include output_text.")
 
 
 def build_llm_client(settings: Settings) -> LLMClient:
