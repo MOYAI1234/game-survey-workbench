@@ -33,3 +33,12 @@ def create_project(payload: ProjectCreate, *, workspace_root: Path) -> ProjectRe
         session.commit()
         session.refresh(record)
         return record
+
+
+def get_project(*, workspace_root: Path, project_slug: str) -> ProjectRecord | None:
+    create_db_and_tables(workspace_root)
+    engine = get_engine(workspace_root)
+    with Session(engine) as session:
+        return session.exec(
+            select(ProjectRecord).where(ProjectRecord.slug == project_slug)
+        ).first()

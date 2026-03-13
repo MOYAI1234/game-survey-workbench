@@ -10,6 +10,7 @@ from game_survey_workbench.models.knowledge import KnowledgeDocument
 from game_survey_workbench.retrieval.chunking import split_markdown
 from game_survey_workbench.retrieval.store import LocalVectorStore, StoredChunk
 from game_survey_workbench.services.knowledge_parser import parse_markdown_document
+from game_survey_workbench.services.projects import get_project
 from game_survey_workbench.services.workspace import bootstrap_workspace
 
 
@@ -79,4 +80,25 @@ def retrieve_knowledge(
         stages=stages,
         doc_types=doc_types,
         scenarios=scenarios,
+    )
+
+
+def retrieve_project_knowledge(
+    *,
+    workspace_root: Path,
+    project_slug: str,
+    query: str,
+    stages: list[str] | None = None,
+) -> list[dict]:
+    project = get_project(workspace_root=workspace_root, project_slug=project_slug)
+    if project is None:
+        return []
+
+    knowledge_pack = project.knowledge_pack or {}
+    return retrieve_knowledge(
+        workspace_root,
+        query=query,
+        stages=stages,
+        doc_types=knowledge_pack.get("doc_types", []),
+        scenarios=knowledge_pack.get("scenarios", []),
     )
