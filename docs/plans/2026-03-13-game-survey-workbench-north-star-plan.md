@@ -262,6 +262,8 @@ As of 2026-03-13, the roadmap status within Stage 2 is:
 - Stage 2C `Questionnaire Design Grounding`: completed
 - Stage 2D `Open-Text Coding and Insight Synthesis`: core implementation completed on `master`
 - Stage 2D follow-up `Report Evidence Hardening`: completed on `master`
+- Stage 2 closeout assessment: completed on `codex/stage2-closeout-assessment`
+- Stage 2 closeout recommendation: `one more Stage 2 refinement pass`
 
 This status update clarifies execution order for future sessions. The Stage 2D hardening follow-up is no longer the active implementation target. Future sessions should treat the next question as Stage 2 closeout validation and should not skip ahead to Stage 3 or Stage 4 unless the remaining Stage 2 readiness is explicitly reviewed.
 
@@ -296,28 +298,34 @@ What remains incomplete before Stage 2 can be considered fully closed is no long
 - identify whether retrieval quality, prompt quality, or output usefulness still need another Stage 2 refinement pass
 - decide explicitly whether Stage 2 is complete enough to begin Stage 3 context-layer planning
 
+After the 2026-03-13 closeout assessment, that readiness question is now narrowed further:
+
+- the end-to-end loop is structurally working on realistic closeout fixtures
+- coding persistence and report-level evidence rendering are no longer the active blockers
+- the remaining Stage 2 blocker is credibility for regular researcher use, especially questionnaire/report usefulness and real provider-backed acceptance evidence
+
 ## Next Planned Artifact
 
 The next concrete planning artifact should be:
 
-`docs/plans/2026-03-13-game-survey-workbench-stage-2-closeout-assessment-plan.md`
+`docs/plans/2026-03-13-game-survey-workbench-stage-2-refinement-plan.md`
 
-Its purpose should be to assess Stage 2 completion rather than reopen product direction. It should:
+Its purpose should be to close the final Stage 2 credibility gap rather than reopen product direction. It should:
 
-- verify the full `Knowledge Base -> Questionnaire Design -> Data Analysis -> Markdown Report` loop against realistic acceptance inputs
-- identify any remaining Stage 2 quality gaps that materially block product credibility
-- separate true Stage 2 blockers from nice-to-have improvements
-- provide a clear recommendation on whether to do one more Stage 2 refinement pass or start Stage 3 planning
+- add provider-backed closeout evidence capture without breaking deterministic scripted acceptance coverage
+- improve questionnaire and report usefulness within the existing Stage 2 product shape
+- rerun closeout review with fresh evidence
+- provide a final evidence-backed recommendation on whether Stage 2 is complete enough to begin Stage 3 planning
 
 ## After Stage 2D
 
-Now that the Stage 2D follow-up hardening work is completed on `master`, the next planned focus should remain inside the north-star order:
+Now that the Stage 2 closeout assessment has been completed, the next planned focus should remain inside the north-star order:
 
-- run a Stage 2 closeout assessment against realistic project inputs
-- confirm whether the Stage 2 workflows are credible enough for regular researcher use
-- if material Stage 2 gaps remain, plan one more Stage 2 refinement pass
+- execute one final Stage 2 refinement pass tied directly to the closeout findings
+- rerun closeout review with stronger acceptance evidence
+- make an explicit go/no-go decision on Stage 2 completion
 - only after that decision, consider broader Stage 3 context-layer work
 
 Future sessions should continue to respect the stage order:
 
-`Stage 2A/2B foundations -> Stage 2C questionnaire grounding -> Stage 2D coding and insight synthesis -> Stage 2D report/evidence hardening -> Stage 2 closeout assessment -> later Stage 3 context work`
+`Stage 2A/2B foundations -> Stage 2C questionnaire grounding -> Stage 2D coding and insight synthesis -> Stage 2D report/evidence hardening -> Stage 2 closeout assessment -> final Stage 2 refinement pass -> later Stage 3 context work`
