@@ -12,3 +12,9 @@
 {% endfor %}
 
 {% endfor %}
+{% if evidence %}
+## Evidence Basis
+{% for item in evidence %}
+- {{ item.document_title }}: {{ item.content }}
+{% endfor %}
+{% endif %}

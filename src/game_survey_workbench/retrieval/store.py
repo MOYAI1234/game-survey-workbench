@@ -42,6 +42,7 @@ class LocalVectorStore:
         stages: list[str] | None = None,
         doc_types: list[str] | None = None,
         scenarios: list[str] | None = None,
+        top_k: int | None = None,
     ) -> list[dict]:
         terms = [item.lower() for item in query.split() if item.strip()]
         matches: list[tuple[tuple[int, int], dict]] = []
@@ -61,4 +62,6 @@ class LocalVectorStore:
                 matches.append(((score, priority), item))
 
         matches.sort(key=lambda pair: pair[0], reverse=True)
+        if top_k is not None:
+            matches = matches[:top_k]
         return [item for _, item in matches]

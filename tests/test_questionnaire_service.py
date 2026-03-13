@@ -1,6 +1,7 @@
 import pytest
 from pathlib import Path
 
+from game_survey_workbench.errors import NoKnowledgeMatchedError
 from game_survey_workbench.llm.client import FakeLLMClient
 from game_survey_workbench.models.project import ProjectCreate
 from game_survey_workbench.models.questionnaire import (
@@ -131,7 +132,7 @@ def test_generate_questionnaire_draft_rejects_missing_knowledge(tmp_path: Path):
         workspace_root=tmp_path,
     )
 
-    with pytest.raises(ValueError, match="No knowledge matched"):
+    with pytest.raises(NoKnowledgeMatchedError, match="No knowledge matched"):
         generate_questionnaire_draft(
             project_slug="empty-project",
             payload=QuestionnaireDraftRequest(research_goal="Study returners"),
