@@ -252,3 +252,52 @@ The next planning artifact should be a stage-level implementation plan for:
 `LLM + Knowledge Integration`
 
 That stage plan should advance the product along Stage 2 without changing the north-star shape defined here.
+
+## Current Stage Status
+
+As of 2026-03-13, the roadmap status within Stage 2 is:
+
+- Stage 2A `Retrieval Foundation Hardening`: completed
+- Stage 2B `Real LLM Runtime Integration`: completed
+- Stage 2C `Questionnaire Design Grounding`: next implementation focus
+- Stage 2D `Open-Text Coding and Insight Synthesis`: planned after Stage 2C
+
+This status update clarifies execution order for future sessions. Agents should treat Stage 2C as the active implementation target and should not skip ahead to Stage 2D unless explicitly directed.
+
+## Current Product State After Stage 2A/2B
+
+The product now has these Stage 2 foundations in place:
+
+- richer knowledge metadata parsing with `doc_type`, `stages`, `tags`, `scenario`, and `priority`
+- deterministic filtered retrieval using project knowledge-pack constraints
+- project-aware retrieval helper for downstream workflows
+- configurable LLM runtime settings
+- provider-agnostic LLM client selection
+- an OpenAI-compatible HTTP runtime adapter with explicit missing-config failure behavior
+
+What remains missing is the first end-user workflow that visibly combines those capabilities into grounded product behavior.
+
+## Next Planned Artifact
+
+The next concrete planning artifact should be:
+
+`docs/plans/2026-03-13-game-survey-workbench-stage-2c-questionnaire-grounding-implementation.md`
+
+Its purpose is to make questionnaire drafting the first credible knowledge-guided workflow by:
+
+- retrieving project-filtered knowledge for design requests
+- generating editable Markdown questionnaire drafts
+- attaching visible knowledge basis text in the Markdown output
+- persisting structured citations/snippets for later inspection and reuse
+
+## After Stage 2C
+
+If Stage 2C is completed successfully, the next planned implementation focus should be Stage 2D:
+
+- open-text coding grounded in prompts and source evidence
+- insight synthesis that combines deterministic findings with retrieved knowledge
+- output structures that preserve evidence instead of producing opaque narrative text
+
+Future sessions should continue to respect the stage order:
+
+`Stage 2A/2B foundations -> Stage 2C questionnaire grounding -> Stage 2D coding and insight synthesis`
