@@ -41,11 +41,7 @@ def test_end_to_end_flow_creates_report(client, seeded_workspace, monkeypatch):
     ).json()
     insights = client.post(
         f"/projects/{project['slug']}/analysis/{dataset['analysis_run_id']}/insights",
-        json={
-            "research_goal": "Learn why players drop after the patch",
-            "statistical_findings": ["Top box dropped to 32%"],
-            "coded_themes": coding["themes"],
-        },
+        json={"research_goal": "Learn why players drop after the patch"},
     ).json()
     report = client.post(
         f"/projects/{project['slug']}/reports/generate",
@@ -68,7 +64,8 @@ def test_end_to_end_flow_creates_report(client, seeded_workspace, monkeypatch):
     assert report["analysis_run_id"] == dataset["analysis_run_id"]
     assert report["path"].endswith(".md")
     assert coding["themes"][0]["theme_name"] == "Boredom"
-    assert "## Evidence Basis" in insights["narrative"]
+    assert "## Evidence Basis" not in insights["narrative"]
+    assert insights["evidence_section"].startswith("## Evidence Basis")
     assert "Churn" in insights["citations"][0]["document_title"] or insights["citations"]
-    assert "## Evidence Basis" in report_markdown
+    assert report_markdown.count("## Evidence Basis") == 1
     assert "Boredom emerged as the dominant churn factor" in report_markdown

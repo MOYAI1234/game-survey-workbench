@@ -62,7 +62,7 @@ def build_evidence_section(*, citations: list[dict]) -> str:
 
 
 def build_insight_markdown(*, llm_output: str, citations: list[dict]) -> str:
-    return "\n\n".join([llm_output.strip(), build_evidence_section(citations=citations)]).strip()
+    return llm_output.strip()
 
 
 def load_insight_prompt() -> str:

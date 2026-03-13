@@ -5,6 +5,12 @@
 - {{ point }}
 {% endfor %}
 
+{% if narrative %}
+## Key Findings
+
+{{ narrative }}
+
+{% endif %}
 {% for heading, items in sections.items() %}
 ## {{ heading }}
 {% for item in items %}
@@ -12,7 +18,9 @@
 {% endfor %}
 
 {% endfor %}
-{% if evidence %}
+{% if evidence_section %}
+{{ evidence_section }}
+{% elif evidence %}
 ## Evidence Basis
 {% for item in evidence %}
 - {{ item.document_title }}: {{ item.content }}

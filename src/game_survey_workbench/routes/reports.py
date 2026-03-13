@@ -48,11 +48,15 @@ def generate_report(project_slug: str, payload: ReportGenerateRequest):
     )
     summary_points = ["Initial automated summary."]
     sections = {"Key Findings": ["Analysis run completed."]}
+    narrative = None
     evidence = None
+    evidence_section = None
     if insight_record is not None:
-        summary_points = [insight_record.narrative.splitlines()[0]]
-        sections = {"Key Findings": [insight_record.narrative]}
+        summary_points = ["Insight narrative generated from saved analysis artifacts."]
+        sections = {}
+        narrative = insight_record.narrative
         evidence = insight_record.citations
+        evidence_section = insight_record.evidence_section
     elif coding_results:
         theme_names = [
             theme.get("theme_name", "Unnamed Theme")
@@ -69,7 +73,9 @@ def generate_report(project_slug: str, payload: ReportGenerateRequest):
         title=f"{project.name} Report",
         summary_points=summary_points,
         sections=sections,
+        narrative=narrative,
         evidence=evidence,
+        evidence_section=evidence_section,
     )
     return {"path": str(path), "analysis_run_id": payload.analysis_run_id}
 
