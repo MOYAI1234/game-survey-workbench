@@ -17,6 +17,8 @@ from game_survey_workbench.services.questionnaires import (
     load_questionnaire_prompt,
 )
 
+STAGE2_CLOSEOUT_FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "stage2_closeout"
+
 
 def test_questionnaire_spec_version_supports_citations_and_retrieved_snippets():
     version = QuestionnaireSpecVersion(
@@ -145,3 +147,30 @@ def test_load_questionnaire_prompt_contains_markdown_instruction():
     prompt = load_questionnaire_prompt()
 
     assert "Markdown" in prompt
+
+
+def test_questionnaire_draft_includes_visible_knowledge_basis_with_realistic_fixture(tmp_path: Path):
+    for source in (STAGE2_CLOSEOUT_FIXTURE_ROOT / "knowledge").glob("*.md"):
+        ingest_knowledge_file(source, project_root=tmp_path)
+    create_project(
+        ProjectCreate(
+            slug="stage2-closeout",
+            name="Stage 2 Closeout",
+            knowledge_pack={},
+        ),
+        workspace_root=tmp_path,
+    )
+
+    version = generate_questionnaire_draft(
+        project_slug="stage2-closeout",
+        payload=QuestionnaireDraftRequest(
+            research_goal="Assess whether the season pass experience feels credible enough for repeat play.",
+        ),
+        workspace_root=tmp_path,
+        client=FakeLLMClient(
+            "# Questionnaire Draft\n\n## Core Questions\n- Which parts of the reward ladder feel least respectful of player time?"
+        ),
+    )
+
+    assert "## Knowledge Basis" in version.markdown_spec
+    assert "Live Ops Survey Design Guide" in version.markdown_spec

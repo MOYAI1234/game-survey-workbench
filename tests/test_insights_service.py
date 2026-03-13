@@ -17,6 +17,8 @@ from game_survey_workbench.services.insights import (
 from game_survey_workbench.services.knowledge_ingest import ingest_knowledge_file
 from game_survey_workbench.services.projects import create_project
 
+STAGE2_CLOSEOUT_FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "stage2_closeout"
+
 
 def test_insight_record_stores_narrative_and_structured_citations():
     record = InsightRecord(
@@ -156,3 +158,29 @@ def test_generate_analysis_insights_rejects_missing_saved_coding_results(tmp_pat
             workspace_root=tmp_path,
             client=FakeLLMClient("Boredom emerged as the dominant churn factor."),
         )
+
+
+def test_generate_analysis_insights_with_realistic_fixture_persists_visible_evidence(tmp_path: Path):
+    for source in (STAGE2_CLOSEOUT_FIXTURE_ROOT / "knowledge").glob("*.md"):
+        ingest_knowledge_file(source, project_root=tmp_path)
+    create_project(
+        ProjectCreate(
+            slug="stage2-closeout",
+            name="Stage 2 Closeout",
+            knowledge_pack={},
+        ),
+        workspace_root=tmp_path,
+    )
+
+    result = generate_analysis_insights(
+        project_slug="stage2-closeout",
+        analysis_run_id="run-closeout",
+        research_goal="Identify the most credible blockers to season pass satisfaction and future conversion.",
+        statistical_findings=["Overall satisfaction remains weak in the most dissatisfied segment."],
+        coded_themes=[{"theme_name": "Pacing Friction", "count": 2}],
+        workspace_root=tmp_path,
+        client=FakeLLMClient("Pacing friction and reward clarity dominate season pass concerns."),
+    )
+
+    assert result.evidence_section.startswith("## Evidence Basis")
+    assert "Live Ops Survey Design Guide" in result.evidence_section or "Free-Text Interpretation Notes" in result.evidence_section

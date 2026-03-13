@@ -1,5 +1,5 @@
 import os
-import shutil
+import socket
 import tempfile
 from pathlib import Path
 
@@ -14,7 +14,6 @@ except ModuleNotFoundError:
     from verify_local_http import run_local_server, seed_fixture_workspace
 
 FIXTURE_ROOT = Path(__file__).resolve().parent.parent / "tests" / "fixtures" / "stage2_closeout"
-WORKSPACE_ROOT = Path(tempfile.gettempdir()) / "gsw-stage2-closeout"
 PROJECT_SLUG = "demo"
 PROJECT_NAME = "Stage 2 Closeout Demo"
 QUESTIONNAIRE_GOAL = "Assess whether the season pass experience feels credible enough for repeat play."
@@ -88,22 +87,31 @@ def ingest_closeout_knowledge(workspace_root: Path) -> None:
         ingest_knowledge_file(source, project_root=workspace_root)
 
 
+def create_workspace_root() -> Path:
+    return Path(tempfile.mkdtemp(prefix="gsw-stage2-closeout-"))
+
+
+def find_free_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
+
+
 def run_stage2_closeout_assessment() -> dict[str, str | bool | int]:
-    if WORKSPACE_ROOT.exists():
-        shutil.rmtree(WORKSPACE_ROOT)
-    WORKSPACE_ROOT.mkdir(parents=True, exist_ok=True)
+    workspace_root = create_workspace_root()
+    port = find_free_port()
 
     previous_workspace_root = os.environ.get("GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT")
-    os.environ["GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT"] = str(WORKSPACE_ROOT)
+    os.environ["GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT"] = str(workspace_root)
     original_llm_env = configure_fake_llm_environment()
     original_generate = OpenAICompatibleLLMClient.generate
     OpenAICompatibleLLMClient.generate = fake_llm_generate
 
     try:
-        seed_stage2_closeout_workspace(WORKSPACE_ROOT)
-        ingest_closeout_knowledge(WORKSPACE_ROOT)
+        seed_stage2_closeout_workspace(workspace_root)
+        ingest_closeout_knowledge(workspace_root)
 
-        with run_local_server(port=8766) as base_url:
+        with run_local_server(port=port) as base_url:
             httpx.post(
                 f"{base_url}/projects",
                 json={"slug": PROJECT_SLUG, "name": PROJECT_NAME, "knowledge_pack": {}},
@@ -118,15 +126,16 @@ def run_stage2_closeout_assessment() -> dict[str, str | bool | int]:
             draft.raise_for_status()
             draft_payload = draft.json()
             questionnaire_path = (
-                WORKSPACE_ROOT
+                workspace_root
                 / "projects"
                 / PROJECT_SLUG
                 / "questionnaire"
                 / "versions"
                 / f"{draft_payload['version_id']}.md"
             )
+            questionnaire_markdown = questionnaire_path.read_text(encoding="utf-8")
 
-            dataset_path = WORKSPACE_ROOT / "projects" / PROJECT_SLUG / "data" / "raw" / DATASET_FILENAME
+            dataset_path = workspace_root / "projects" / PROJECT_SLUG / "data" / "raw" / DATASET_FILENAME
             dataset = httpx.post(
                 f"{base_url}/projects/{PROJECT_SLUG}/datasets/import",
                 files={"file": (DATASET_FILENAME, dataset_path.read_bytes(), "text/csv")},
@@ -165,6 +174,7 @@ def run_stage2_closeout_assessment() -> dict[str, str | bool | int]:
 
         return {
             "QUESTIONNAIRE_PATH": str(questionnaire_path),
+            "QUESTIONNAIRE_HAS_KNOWLEDGE_BASIS": "## Knowledge Basis" in questionnaire_markdown,
             "CODING_THEMES_PRESENT": bool(coding_payload["themes"]),
             "INSIGHT_EVIDENCE_PRESENT": bool(insight_payload["evidence_section"].strip()),
             "REPORT_EVIDENCE_SECTION_COUNT": report_markdown.count("## Evidence Basis"),

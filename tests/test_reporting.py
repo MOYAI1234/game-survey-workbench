@@ -38,6 +38,20 @@ def test_render_report_markdown_includes_evidence_basis_when_provided():
     assert "Churn Framework" in markdown
 
 
+def test_render_report_markdown_keeps_single_evidence_basis_section_when_precomposed_section_is_provided():
+    markdown = render_report_markdown(
+        title="Stage 2 Closeout Report",
+        summary_points=["Closeout harness completed."],
+        sections={"Key Findings": ["Pacing friction remains visible."]},
+        narrative="Players cited pacing friction and weak clarity.",
+        evidence=[{"document_title": "Ignored fallback", "content": "Should not duplicate."}],
+        evidence_section="## Evidence Basis\n- Live Ops Survey Design Guide: Reward clarity matters.",
+    )
+
+    assert markdown.count("## Evidence Basis") == 1
+    assert "Live Ops Survey Design Guide" in markdown
+
+
 def test_generate_report_renders_saved_insight_narrative_without_bullet_wrapping(
     tmp_path: Path,
     monkeypatch,
