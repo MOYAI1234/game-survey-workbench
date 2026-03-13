@@ -189,3 +189,27 @@ def test_generate_report_uses_analysis_run_record_for_project_validation(tmp_pat
     )
 
     assert response.status_code == 404
+
+
+def test_generate_report_succeeds_without_stage_2d_artifacts(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT", str(tmp_path))
+    bootstrap_workspace(tmp_path)
+    dataset_path = tmp_path / "survey.csv"
+    dataset_path.write_text(
+        "Q1,Q2\nsingle_choice,scale\n满意,5\n",
+        encoding="utf-8",
+    )
+    imported = import_dataset(dataset_path, project_slug="demo", workspace_root=tmp_path)
+
+    client = TestClient(create_app())
+    client.post("/projects", json={"slug": "demo", "name": "Demo", "knowledge_pack": {}})
+
+    response = client.post(
+        "/projects/demo/reports/generate",
+        json={"analysis_run_id": imported.analysis_run_id},
+    )
+
+    assert response.status_code == 201
+    markdown = Path(response.json()["path"]).read_text(encoding="utf-8")
+    assert "Initial automated summary." in markdown
+    assert "## Evidence Basis" not in markdown

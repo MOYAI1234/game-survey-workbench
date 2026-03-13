@@ -10,11 +10,18 @@ def test_end_to_end_flow_creates_report(client, seeded_workspace, monkeypatch):
 
     def fake_generate(self, prompt: str):
         if "Open Text Coding Prompt" in prompt:
+            if "fake client value" in prompt:
+                return (
+                    '{"themes": [{"theme_name": "Client Value", "count": 1, '
+                    '"example_responses": ["fake client value"]}], "uncoded_count": 0}'
+                )
             return (
                 '{"themes": [{"theme_name": "Boredom", "count": 2, '
                 '"example_responses": ["got bored", "nothing to do"]}], "uncoded_count": 1}'
             )
         if "Insight Synthesis Prompt" in prompt:
+            if "Client Value" in prompt or "Injected finding" in prompt:
+                return "Client-controlled insight should not appear."
             return "Boredom emerged as the dominant churn factor based on the coded themes and knowledge."
         return "# Questionnaire Draft\n\n## Core Questions\n- Why did you return?"
 
@@ -36,12 +43,16 @@ def test_end_to_end_flow_creates_report(client, seeded_workspace, monkeypatch):
         f"/projects/{project['slug']}/analysis/{dataset['analysis_run_id']}/code-text",
         json={
             "question_column": "Feel free to tell us what rewards you want to see in the Season Pass! You could also give us more suggestion about the game here!",
-            "responses": ["got bored", "nothing to do", "idk"],
+            "responses": ["fake client value"],
         },
     ).json()
     insights = client.post(
         f"/projects/{project['slug']}/analysis/{dataset['analysis_run_id']}/insights",
-        json={"research_goal": "Learn why players drop after the patch"},
+        json={
+            "research_goal": "Learn why players drop after the patch",
+            "statistical_findings": ["Injected finding"],
+            "coded_themes": [{"theme_name": "Client Value", "count": 999}],
+        },
     ).json()
     report = client.post(
         f"/projects/{project['slug']}/reports/generate",
@@ -64,8 +75,10 @@ def test_end_to_end_flow_creates_report(client, seeded_workspace, monkeypatch):
     assert report["analysis_run_id"] == dataset["analysis_run_id"]
     assert report["path"].endswith(".md")
     assert coding["themes"][0]["theme_name"] == "Boredom"
+    assert "Client Value" not in insights["narrative"]
     assert "## Evidence Basis" not in insights["narrative"]
     assert insights["evidence_section"].startswith("## Evidence Basis")
     assert "Churn" in insights["citations"][0]["document_title"] or insights["citations"]
     assert report_markdown.count("## Evidence Basis") == 1
     assert "Boredom emerged as the dominant churn factor" in report_markdown
+    assert "Client-controlled insight should not appear." not in report_markdown
