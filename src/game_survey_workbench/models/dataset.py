@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Optional
 
 from sqlalchemy import Column
 from sqlalchemy.types import JSON
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Session, SQLModel, select
 
 
 class QuestionColumnSchema(SQLModel):
@@ -32,3 +33,13 @@ class DatasetRecord(SQLModel, table=True):
     dataset_schema: dict = Field(default_factory=dict, sa_column=Column(JSON))
     analysis_run_id: str | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+
+def get_dataset_record(dataset_id: str, *, workspace_root: Path) -> DatasetRecord | None:
+    from game_survey_workbench.db import get_engine
+
+    engine = get_engine(workspace_root)
+    with Session(engine) as session:
+        return session.exec(
+            select(DatasetRecord).where(DatasetRecord.dataset_id == dataset_id)
+        ).first()
