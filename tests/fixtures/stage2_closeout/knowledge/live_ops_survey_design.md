@@ -8,7 +8,7 @@ tags:
   - live-ops
   - survey-design
   - progression
-priority: high
+priority: 2
 ---
 When evaluating a season pass or similar live-ops system, ask players about three linked concerns: reward clarity, effort-to-value balance, and whether the progression path feels respectful of time.
 

@@ -8,7 +8,7 @@ tags:
   - qualitative
   - coding
   - reporting
-priority: medium
+priority: 1
 ---
 Open-text feedback about a pass or reward track is most useful when the coding separates request types from root causes.
 
