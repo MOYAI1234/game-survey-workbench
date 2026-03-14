@@ -1,5 +1,7 @@
 # {{ title }}
 
+*Report generated {{ now }}*
+
 ## Executive Summary
 {% for point in summary_points %}
 - {{ point }}
@@ -23,6 +25,7 @@
 {% elif evidence %}
 ## Evidence Basis
 {% for item in evidence %}
-- {{ item.document_title }}: {{ item.content }}
+- **{{ item.document_title }}**{% if item.content and item.content|length <= 200 %}: {{ item.content }}{% elif item.content %}: {{ item.content[:200] }}…{% endif %}
+
 {% endfor %}
 {% endif %}
