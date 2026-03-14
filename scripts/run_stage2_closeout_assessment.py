@@ -102,6 +102,7 @@ def find_free_port() -> int:
 def run_stage2_closeout_assessment(mode: str = "scripted") -> dict[str, str | bool | int]:
     workspace_root = create_workspace_root()
     port = find_free_port()
+    llm_route_timeout = 120.0 if mode == "provider" else 30.0
 
     previous_workspace_root = os.environ.get("GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT")
     os.environ["GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT"] = str(workspace_root)
@@ -140,7 +141,7 @@ def run_stage2_closeout_assessment(mode: str = "scripted") -> dict[str, str | bo
             draft = httpx.post(
                 f"{base_url}/projects/{PROJECT_SLUG}/questionnaires/draft",
                 json={"research_goal": QUESTIONNAIRE_GOAL},
-                timeout=5.0,
+                timeout=llm_route_timeout,
             )
             draft.raise_for_status()
             draft_payload = draft.json()
@@ -167,7 +168,7 @@ def run_stage2_closeout_assessment(mode: str = "scripted") -> dict[str, str | bo
             coding = httpx.post(
                 f"{base_url}/projects/{PROJECT_SLUG}/analysis/{analysis_run_id}/code-text",
                 json={"question_column": CODING_QUESTION},
-                timeout=5.0,
+                timeout=llm_route_timeout,
             )
             coding.raise_for_status()
             coding_payload = coding.json()
@@ -175,7 +176,7 @@ def run_stage2_closeout_assessment(mode: str = "scripted") -> dict[str, str | bo
             insights = httpx.post(
                 f"{base_url}/projects/{PROJECT_SLUG}/analysis/{analysis_run_id}/insights",
                 json={"research_goal": INSIGHT_GOAL},
-                timeout=5.0,
+                timeout=llm_route_timeout,
             )
             insights.raise_for_status()
             insight_payload = insights.json()
