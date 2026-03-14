@@ -14,6 +14,7 @@ from game_survey_workbench.models.questionnaire import (
 )
 from game_survey_workbench.services.knowledge_ingest import retrieve_project_knowledge
 from game_survey_workbench.services.projects import get_project
+from game_survey_workbench.services.research_brief import get_research_brief
 
 
 def format_knowledge_item(item: str | dict) -> str:
@@ -33,17 +34,26 @@ def build_questionnaire_design_context(
     research_goal: str,
     hypotheses: list[str],
     knowledge_snippets: list[str | dict],
+    brief_background: str = "",
+    brief_target_audience: str = "",
 ) -> str:
-    return "\n".join(
+    parts = [
+        f"Project: {project_name}",
+        f"Goal: {research_goal}",
+    ]
+    if brief_background:
+        parts.append(f"Background: {brief_background}")
+    if brief_target_audience:
+        parts.append(f"Target Audience: {brief_target_audience}")
+    parts.extend(
         [
-            f"Project: {project_name}",
-            f"Goal: {research_goal}",
             "Hypotheses:",
             *[f"- {item}" for item in hypotheses],
             "Knowledge:",
             *[f"- {format_knowledge_item(item)}" for item in knowledge_snippets],
         ]
     )
+    return "\n".join(parts)
 
 
 def build_questionnaire_markdown(*, llm_output: str, citations: list[dict]) -> str:
@@ -125,11 +135,17 @@ def generate_questionnaire_draft(
     if not snippets:
         raise NoKnowledgeMatchedError("No knowledge matched this questionnaire request.")
 
+    brief = get_research_brief(
+        project_slug=project_slug,
+        workspace_root=workspace_root,
+    )
     context = build_questionnaire_design_context(
         project_name=project.name,
         research_goal=payload.research_goal,
         hypotheses=payload.hypotheses,
         knowledge_snippets=snippets,
+        brief_background=brief.background if brief else "",
+        brief_target_audience=brief.target_audience if brief else "",
     )
     prompt = load_questionnaire_prompt()
     llm_output = client.generate(f"{prompt}\n\n{context}")

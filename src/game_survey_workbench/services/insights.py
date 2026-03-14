@@ -15,6 +15,7 @@ from game_survey_workbench.llm.client import LLMClient
 from game_survey_workbench.models.insight import InsightRecord
 from game_survey_workbench.services.knowledge_ingest import retrieve_project_knowledge
 from game_survey_workbench.services.projects import get_project
+from game_survey_workbench.services.research_brief import get_research_brief
 
 
 def format_context_item(item: str | dict) -> str:
@@ -39,16 +40,28 @@ def build_insight_context(
     statistical_findings: list[str | dict],
     coded_themes: list[str | dict],
     knowledge_snippets: list[str | dict],
+    brief_objectives: list[str] | None = None,
 ) -> str:
     sections = [
         f"Goal: {research_goal}",
+    ]
+    if brief_objectives:
+        sections.extend(
+            [
+                "Brief Objectives:",
+                *[f"- {objective}" for objective in brief_objectives],
+            ]
+        )
+    sections.extend(
+        [
         "Stats:",
         *[f"- {format_context_item(item)}" for item in statistical_findings],
         "Themes:",
         *[f"- {format_context_item(item)}" for item in coded_themes],
         "Knowledge:",
         *[f"- {format_context_item(item)}" for item in knowledge_snippets],
-    ]
+        ]
+    )
     return "\n".join(sections)
 
 
@@ -84,12 +97,14 @@ def synthesize_insights(
     statistical_findings: list[str | dict],
     coded_themes: list[str | dict],
     knowledge_snippets: list[dict],
+    brief_objectives: list[str] | None = None,
 ) -> InsightSynthesisResult:
     context = build_insight_context(
         research_goal=research_goal,
         statistical_findings=statistical_findings,
         coded_themes=coded_themes,
         knowledge_snippets=knowledge_snippets,
+        brief_objectives=brief_objectives,
     )
     prompt = load_insight_prompt()
     llm_output = client.generate(f"{prompt}\n\n{context}")
@@ -148,12 +163,17 @@ def generate_analysis_insights(
     if not snippets:
         raise NoKnowledgeMatchedError("No knowledge matched this insight request.")
 
+    brief = get_research_brief(
+        project_slug=project_slug,
+        workspace_root=workspace_root,
+    )
     synthesis = synthesize_insights(
         client=client,
         research_goal=research_goal,
         statistical_findings=statistical_findings,
         coded_themes=coded_themes,
         knowledge_snippets=snippets,
+        brief_objectives=brief.objectives if brief else None,
     )
     record = InsightRecord(
         analysis_run_id=analysis_run_id,

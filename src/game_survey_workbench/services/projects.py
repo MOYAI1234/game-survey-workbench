@@ -27,6 +27,7 @@ def create_project(payload: ProjectCreate, *, workspace_root: Path) -> ProjectRe
         record = ProjectRecord(
             slug=payload.slug,
             name=payload.name,
+            description=payload.description,
             knowledge_pack=payload.knowledge_pack.model_dump(),
         )
         session.add(record)
@@ -42,3 +43,10 @@ def get_project(*, workspace_root: Path, project_slug: str) -> ProjectRecord | N
         return session.exec(
             select(ProjectRecord).where(ProjectRecord.slug == project_slug)
         ).first()
+
+
+def list_projects(*, workspace_root: Path) -> list[ProjectRecord]:
+    create_db_and_tables(workspace_root)
+    engine = get_engine(workspace_root)
+    with Session(engine) as session:
+        return list(session.exec(select(ProjectRecord).order_by(ProjectRecord.id)).all())

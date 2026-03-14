@@ -172,3 +172,29 @@ def test_generate_insights_route_rejects_missing_saved_coding_results(tmp_path: 
 
     assert response.status_code == 400
     assert "No saved coding results" in response.json()["detail"]
+
+
+def test_brief_route_rejects_missing_project(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT", str(tmp_path))
+    client = TestClient(create_app())
+
+    response = client.put(
+        "/projects/missing/brief",
+        json={"background": "Missing project"},
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Project not found"
+
+
+def test_plan_route_rejects_missing_project(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT", str(tmp_path))
+    client = TestClient(create_app())
+
+    response = client.put(
+        "/projects/missing/plan",
+        json={"tasks": [{"label": "Step A", "status": "pending"}]},
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Project not found"
