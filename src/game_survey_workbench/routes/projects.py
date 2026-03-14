@@ -8,7 +8,7 @@ from game_survey_workbench.config import get_settings
 from game_survey_workbench.models.project import ProjectCreate
 from game_survey_workbench.models.research_brief import ResearchBriefPayload
 from game_survey_workbench.models.task_plan import TaskPlanPayload
-from game_survey_workbench.services.projects import create_project
+from game_survey_workbench.services.projects import create_project, get_project
 from game_survey_workbench.services.research_brief import (
     get_research_brief,
     save_research_brief,
@@ -35,10 +35,28 @@ def create_project_route(payload: ProjectCreate):
 
 @router.get("/projects/{project_slug}", response_class=HTMLResponse)
 def project_detail(project_slug: str, request: Request):
+    settings = get_settings()
+    project = get_project(
+        workspace_root=settings.workspace_root,
+        project_slug=project_slug,
+    )
+    brief = get_research_brief(
+        project_slug=project_slug,
+        workspace_root=settings.workspace_root,
+    )
+    plan = get_task_plan(
+        project_slug=project_slug,
+        workspace_root=settings.workspace_root,
+    )
     return templates.TemplateResponse(
         request,
         "projects/detail.html",
-        {"project_slug": project_slug},
+        {
+            "project": project,
+            "project_slug": project_slug,
+            "brief": brief,
+            "plan": plan,
+        },
     )
 
 

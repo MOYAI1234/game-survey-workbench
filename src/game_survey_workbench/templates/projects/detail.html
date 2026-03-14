@@ -1,7 +1,77 @@
 {% extends "layout.html" %}
-{% block title %}Project{% endblock %}
+{% block title %}{{ project.name if project else project_slug }}{% endblock %}
 {% block content %}
-<h1>项目创建</h1>
-<p>当前项目：{{ project_slug }}</p>
-<p>在这里管理知识包和项目资料。</p>
+<header class="project-header">
+  <p class="eyebrow">Project Workspace</p>
+  <h1>{{ project.name if project else project_slug }}</h1>
+  {% if project and project.description %}
+  <p class="project-description">{{ project.description }}</p>
+  {% endif %}
+  {% if project and project.status %}
+  <p class="project-status">Status: {{ project.status }}</p>
+  {% endif %}
+</header>
+
+<section class="brief-section">
+  <h2>Research Brief / 研究简报</h2>
+  {% if brief %}
+  <dl>
+    <dt>Background</dt>
+    <dd>{{ brief.background }}</dd>
+    <dt>Objectives</dt>
+    <dd>
+      <ul>
+        {% for objective in brief.objectives %}
+        <li>{{ objective }}</li>
+        {% endfor %}
+      </ul>
+    </dd>
+    {% if brief.hypotheses %}
+    <dt>Hypotheses</dt>
+    <dd>
+      <ul>
+        {% for hypothesis in brief.hypotheses %}
+        <li>{{ hypothesis }}</li>
+        {% endfor %}
+      </ul>
+    </dd>
+    {% endif %}
+    {% if brief.target_audience %}
+    <dt>Target Audience</dt>
+    <dd>{{ brief.target_audience }}</dd>
+    {% endif %}
+    {% if brief.success_criteria %}
+    <dt>Success Criteria</dt>
+    <dd>{{ brief.success_criteria }}</dd>
+    {% endif %}
+  </dl>
+  {% else %}
+  <p class="empty-state">No brief yet. Use <code>PUT /projects/{{ project_slug }}/brief</code> to set one.</p>
+  {% endif %}
+</section>
+
+<section class="plan-section">
+  <h2>Task Plan / 任务计划</h2>
+  {% if plan and plan.tasks %}
+  <ul class="task-list">
+    {% for task in plan.tasks %}
+    <li class="task-{{ task.status }}">
+      {% if task.status == "done" %}✓{% else %}○{% endif %}
+      {{ task.label }}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty-state">No task plan yet. Use <code>PUT /projects/{{ project_slug }}/plan</code> to set one.</p>
+  {% endif %}
+</section>
+
+<section class="workflow-links">
+  <h2>Workflows</h2>
+  <ul>
+    <li><a href="/projects/{{ project_slug }}/questionnaires/latest">问卷设计</a></li>
+    <li><a href="/projects/{{ project_slug }}/analysis/latest">数据分析</a></li>
+    <li><a href="/projects/{{ project_slug }}/reports/latest">报告生成</a></li>
+  </ul>
+</section>
 {% endblock %}
