@@ -79,6 +79,20 @@ def test_load_insight_prompt_contains_citation_instruction():
     assert "citation" in prompt.lower() or "evidence" in prompt.lower()
 
 
+def test_insight_prompt_requests_executive_takeaway_and_recommendations():
+    prompt = load_insight_prompt()
+
+    assert "executive" in prompt.lower() or "takeaway" in prompt.lower(), (
+        "Prompt should request an executive takeaway"
+    )
+    assert "recommend" in prompt.lower() or "action" in prompt.lower(), (
+        "Prompt should request actionable recommendations"
+    )
+    assert "concise" in prompt.lower() or "brief" in prompt.lower(), (
+        "Prompt should request concise evidence references"
+    )
+
+
 def test_generate_analysis_insights_retrieves_knowledge_and_persists(tmp_path: Path):
     source = tmp_path / "churn.md"
     source.write_text(

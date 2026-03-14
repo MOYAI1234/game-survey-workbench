@@ -1,6 +1,6 @@
 # Stage 2 Closeout Scorecard
 
-Assessment date: 2026-03-13
+Assessment date: 2026-03-15
 
 ## Input realism
 
@@ -12,11 +12,12 @@ Notes:
 
 ## Questionnaire grounding
 
-Status: usable but weak
+Status: credible
 
 Notes:
-- The generated questionnaire includes a visible `## Knowledge Basis` section and the draft questions line up with reward clarity, effort-to-value balance, and repeat-play risk.
-- The output is still narrow: it reflects one retrieved source and produces a short question list without much rationale, segmentation guidance, or stronger wording variety.
+- The refinement pass strengthened the questionnaire prompt itself: it now explicitly asks for section rationale, segmentation-aware questions, and diagnostic notes, and that contract is covered by automated tests.
+- A provider-backed closeout succeeded on 2026-03-15. The generated questionnaire now shows segment-aware routing, explicit section rationale, concrete diagnostic notes, and behaviorally framed questions rather than a thin generic list.
+- The provider artifact is credible enough for regular researcher use in the current Stage 2 scope, even though future polish could still improve phrasing consistency.
 
 ## Coding usefulness
 
@@ -28,24 +29,27 @@ Notes:
 
 ## Insight usefulness
 
-Status: usable but weak
+Status: credible
 
 Notes:
-- The saved insight narrative clearly combines coded themes with deterministic satisfaction signals.
-- Evidence is preserved separately and rendered cleanly, but this assessment still relies on scripted LLM output in the harness, so real provider-backed usefulness is not yet proven by the closeout evidence.
+- The insight prompt now asks for an executive takeaway, supporting analysis, and recommended actions, and those requirements are covered by automated tests.
+- The scripted insight path still combines coded themes with deterministic satisfaction signals, and evidence is preserved separately and rendered cleanly.
+- A provider-backed closeout succeeded on 2026-03-15. The generated narrative ties deterministic findings, coded themes, and project knowledge into an executive takeaway plus actionable recommendations that are credible for researcher-facing interpretation.
 
 ## Report clarity
 
-Status: usable but weak
+Status: credible
 
 Notes:
-- The final report is coherent Markdown and contains exactly one clean `## Evidence Basis` section.
-- The current report shell still feels mechanical: the executive summary is generic and the evidence section pastes long source excerpts with limited summarization.
+- The report template now renders a visible report date, and fallback evidence rendering is covered by tests for bold titles plus truncation of long excerpts.
+- The generated provider-backed closeout report remains coherent Markdown and still contains exactly one clean `## Evidence Basis` section.
+- The main remaining rough edge is the generic executive summary line at the top of the report shell, but the provider-backed key findings section is now strong enough that this no longer looks like a Stage 2 blocker.
 
 ## Final recommendation
 
-Status: Stage 2 needs one more refinement pass
+Status: Stage 2 complete - ready for Stage 3 planning
 
 Notes:
-- The workflow is structurally credible, but the closeout evidence does not yet prove regular researcher usefulness with a real provider-backed LLM run.
-- The next pass should stay inside Stage 2 and focus on acceptance credibility rather than changing product direction.
+- The workflow is structurally credible, and the refinement changes now have both scripted regression coverage and a successful provider-backed closeout run behind them.
+- The remaining rough edges are polish concerns, not core Stage 2 credibility blockers: the questionnaire is researcher-usable, the insight narrative is grounded and actionable, and the report is readable with one clean evidence section.
+- Stage 3 planning can begin without changing the north-star product direction, while any remaining report-shell polish can be handled as follow-up work rather than a prerequisite for progress.
