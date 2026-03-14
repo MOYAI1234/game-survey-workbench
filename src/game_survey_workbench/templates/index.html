@@ -5,6 +5,29 @@
   <p class="eyebrow">Knowledge-Driven Research</p>
   <h1>Game Survey Workbench</h1>
   <p>围绕项目上下文统一管理问卷设计、数据分析与报告生成。</p>
+</section>
+
+<section class="project-list">
+  <h2>Projects</h2>
+  {% if projects %}
+  <ul>
+    {% for project in projects %}
+    <li>
+      <a href="/projects/{{ project.slug }}">{{ project.name }}</a>
+      {% if project.description %}
+      <span class="project-desc">- {{ project.description }}</span>
+      {% endif %}
+      <span class="status-badge">{{ project.status }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty-state">暂无项目。Use <code>POST /projects</code> to create one.</p>
+  {% endif %}
+</section>
+
+<section class="workflow-overview">
+  <h3>Core Workflows</h3>
   <ul class="workflow-list">
     {% for workflow in workflows %}
     <li>{{ workflow }}</li>
