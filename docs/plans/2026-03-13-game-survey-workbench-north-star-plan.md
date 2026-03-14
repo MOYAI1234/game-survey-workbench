@@ -255,7 +255,7 @@ That stage plan should advance the product along Stage 2 without changing the no
 
 ## Current Stage Status
 
-As of 2026-03-13, the roadmap status within Stage 2 is:
+As of 2026-03-15, the roadmap status within Stage 2 is:
 
 - Stage 2A `Retrieval Foundation Hardening`: completed
 - Stage 2B `Real LLM Runtime Integration`: completed
@@ -263,9 +263,11 @@ As of 2026-03-13, the roadmap status within Stage 2 is:
 - Stage 2D `Open-Text Coding and Insight Synthesis`: core implementation completed on `master`
 - Stage 2D follow-up `Report Evidence Hardening`: completed on `master`
 - Stage 2 closeout assessment: completed on `codex/stage2-closeout-assessment`
-- Stage 2 closeout recommendation: `one more Stage 2 refinement pass`
+- final Stage 2 refinement pass: completed on `codex/stage2-refinement-implementation`
+- Stage 2 provider-backed closeout validation: completed on `codex/stage2-refinement-implementation`
+- Stage 2 closeout recommendation: `Stage 2 complete - ready for Stage 3 planning`
 
-This status update clarifies execution order for future sessions. The Stage 2D hardening follow-up is no longer the active implementation target. Future sessions should treat the next question as Stage 2 closeout validation and should not skip ahead to Stage 3 or Stage 4 unless the remaining Stage 2 readiness is explicitly reviewed.
+This status update clarifies execution order for future sessions. The final Stage 2 refinement pass and provider-backed closeout validation have been completed. Future sessions may begin Stage 3 planning while keeping any remaining Stage 2 shell-polish items scoped as follow-up work rather than phase blockers.
 
 ## Current Product State After Stage 2D Core Implementation
 
@@ -298,34 +300,23 @@ What remains incomplete before Stage 2 can be considered fully closed is no long
 - identify whether retrieval quality, prompt quality, or output usefulness still need another Stage 2 refinement pass
 - decide explicitly whether Stage 2 is complete enough to begin Stage 3 context-layer planning
 
-After the 2026-03-13 closeout assessment, that readiness question is now narrowed further:
+After the 2026-03-15 provider-backed closeout validation, that readiness question is now resolved:
 
 - the end-to-end loop is structurally working on realistic closeout fixtures
 - coding persistence and report-level evidence rendering are no longer the active blockers
-- the remaining Stage 2 blocker is credibility for regular researcher use, especially questionnaire/report usefulness and real provider-backed acceptance evidence
+- provider-backed acceptance evidence now shows grounded questionnaire output, actionable insight synthesis, and readable report output credible enough for Stage 2 completion
 
 ## Next Planned Artifact
 
-The next concrete planning artifact should be:
-
-`docs/plans/2026-03-13-game-survey-workbench-stage-2-refinement-plan.md`
-
-Its purpose should be to close the final Stage 2 credibility gap rather than reopen product direction. It should:
-
-- add provider-backed closeout evidence capture without breaking deterministic scripted acceptance coverage
-- improve questionnaire and report usefulness within the existing Stage 2 product shape
-- rerun closeout review with fresh evidence
-- provide a final evidence-backed recommendation on whether Stage 2 is complete enough to begin Stage 3 planning
+The next concrete planning artifact should be a Stage 3 planning document focused on the workbench context layer described above.
 
 ## After Stage 2D
 
-Now that the Stage 2 closeout assessment has been completed, the next planned focus should remain inside the north-star order:
+Now that the final Stage 2 refinement pass and provider-backed closeout validation have been completed, the next planned focus can move forward inside the north-star order:
 
-- execute one final Stage 2 refinement pass tied directly to the closeout findings
-- rerun closeout review with stronger acceptance evidence
-- make an explicit go/no-go decision on Stage 2 completion
-- only after that decision, consider broader Stage 3 context-layer work
+- begin Stage 3 planning for the workbench context layer
+- keep any remaining Stage 2 shell-polish work narrowly scoped and subordinate to the Stage 3 planning sequence
 
 Future sessions should continue to respect the stage order:
 
-`Stage 2A/2B foundations -> Stage 2C questionnaire grounding -> Stage 2D coding and insight synthesis -> Stage 2D report/evidence hardening -> Stage 2 closeout assessment -> final Stage 2 refinement pass -> later Stage 3 context work`
+`Stage 2A/2B foundations -> Stage 2C questionnaire grounding -> Stage 2D coding and insight synthesis -> Stage 2D report/evidence hardening -> Stage 2 closeout assessment -> final Stage 2 refinement pass -> provider-backed closeout validation -> Stage 3 context work`
