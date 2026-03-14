@@ -1,5 +1,7 @@
+import argparse
 import os
 import socket
+import sys
 import tempfile
 from pathlib import Path
 
@@ -97,15 +99,32 @@ def find_free_port() -> int:
         return int(sock.getsockname()[1])
 
 
-def run_stage2_closeout_assessment() -> dict[str, str | bool | int]:
+def run_stage2_closeout_assessment(mode: str = "scripted") -> dict[str, str | bool | int]:
     workspace_root = create_workspace_root()
     port = find_free_port()
 
     previous_workspace_root = os.environ.get("GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT")
     os.environ["GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT"] = str(workspace_root)
-    original_llm_env = configure_fake_llm_environment()
-    original_generate = OpenAICompatibleLLMClient.generate
-    OpenAICompatibleLLMClient.generate = fake_llm_generate
+
+    original_generate = None
+    original_llm_env = None
+
+    if mode == "scripted":
+        original_llm_env = configure_fake_llm_environment()
+        original_generate = OpenAICompatibleLLMClient.generate
+        OpenAICompatibleLLMClient.generate = fake_llm_generate
+    else:
+        required_vars = [
+            "GAME_SURVEY_WORKBENCH_LLM_PROVIDER",
+            "GAME_SURVEY_WORKBENCH_LLM_MODEL",
+            "GAME_SURVEY_WORKBENCH_LLM_API_KEY",
+            "GAME_SURVEY_WORKBENCH_LLM_BASE_URL",
+        ]
+        missing = [variable for variable in required_vars if not os.environ.get(variable)]
+        if missing:
+            raise RuntimeError(
+                f"Provider mode requires these environment variables: {', '.join(missing)}"
+            )
 
     try:
         seed_stage2_closeout_workspace(workspace_root)
@@ -173,6 +192,7 @@ def run_stage2_closeout_assessment() -> dict[str, str | bool | int]:
         report_markdown = report_path.read_text(encoding="utf-8")
 
         return {
+            "MODE": mode,
             "QUESTIONNAIRE_PATH": str(questionnaire_path),
             "QUESTIONNAIRE_HAS_KNOWLEDGE_BASIS": "## Knowledge Basis" in questionnaire_markdown,
             "CODING_THEMES_PRESENT": bool(coding_payload["themes"]),
@@ -181,8 +201,10 @@ def run_stage2_closeout_assessment() -> dict[str, str | bool | int]:
             "REPORT_PATH": str(report_path),
         }
     finally:
-        OpenAICompatibleLLMClient.generate = original_generate
-        restore_environment(original_llm_env)
+        if original_generate is not None:
+            OpenAICompatibleLLMClient.generate = original_generate
+        if original_llm_env is not None:
+            restore_environment(original_llm_env)
         if previous_workspace_root is None:
             os.environ.pop("GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT", None)
         else:
@@ -190,7 +212,16 @@ def run_stage2_closeout_assessment() -> dict[str, str | bool | int]:
 
 
 def main() -> None:
-    results = run_stage2_closeout_assessment()
+    parser = argparse.ArgumentParser(description="Run Stage 2 closeout assessment")
+    parser.add_argument(
+        "--mode",
+        choices=["scripted", "provider"],
+        default="scripted",
+        help="scripted (default): use fake LLM output; provider: use real configured LLM",
+    )
+    args = parser.parse_args(sys.argv[1:])
+
+    results = run_stage2_closeout_assessment(mode=args.mode)
     for key, value in results.items():
         print(f"{key}={value}")
 
