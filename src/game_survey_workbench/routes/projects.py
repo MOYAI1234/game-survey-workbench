@@ -19,6 +19,9 @@ def create_project_route(payload: ProjectCreate):
     return {
         "slug": project.slug,
         "name": project.name,
+        "description": project.description,
+        "status": project.status,
+        "updated_at": project.updated_at,
         "knowledge_pack": project.knowledge_pack,
     }
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Optional
 
 from sqlalchemy import Column
@@ -15,6 +16,7 @@ class KnowledgePack(SQLModel):
 class ProjectCreate(SQLModel):
     slug: str
     name: str
+    description: str = ""
     knowledge_pack: KnowledgePack = Field(default_factory=KnowledgePack)
 
 
@@ -22,4 +24,7 @@ class ProjectRecord(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     slug: str = Field(index=True, unique=True)
     name: str
+    description: str = ""
+    status: str = "active"
     knowledge_pack: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
