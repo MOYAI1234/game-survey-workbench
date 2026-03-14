@@ -249,9 +249,9 @@ If a new idea appears to conflict with this document:
 
 The next planning artifact should be a stage-level implementation plan for:
 
-`LLM + Knowledge Integration`
+`Advanced Research Capability Expansion`
 
-That stage plan should advance the product along Stage 2 without changing the north-star shape defined here.
+That stage plan should advance the product along Stage 4 without changing the north-star shape defined here. Stage 3 context-layer planning and implementation are now complete on `codex/stage3a-project-enrichment`.
 
 ## Current Stage Status
 
@@ -268,6 +268,18 @@ As of 2026-03-15, the roadmap status within Stage 2 is:
 - Stage 2 closeout recommendation: `Stage 2 complete - ready for Stage 3 planning`
 
 This status update clarifies execution order for future sessions. The final Stage 2 refinement pass and provider-backed closeout validation have been completed. Future sessions may begin Stage 3 planning while keeping any remaining Stage 2 shell-polish items scoped as follow-up work rather than phase blockers.
+
+As of 2026-03-15, the roadmap status within Stage 3 is:
+
+- Stage 3A `Project Model Enrichment`: completed on `codex/stage3a-project-enrichment`
+- Stage 3B `Research Brief Model and CRUD`: completed on `codex/stage3a-project-enrichment`
+- Stage 3C `Task Plan Model and CRUD`: completed on `codex/stage3a-project-enrichment`
+- Stage 3D `Project Homepage`: completed on `codex/stage3a-project-enrichment`
+- Stage 3E `Landing Page Project Listing`: completed on `codex/stage3a-project-enrichment`
+- Stage 3F `Context Injection`: completed on `codex/stage3a-project-enrichment`
+- Stage 3 context-layer execution: completed on `codex/stage3a-project-enrichment`
+
+This status update records that Stage 3 planning is no longer pending. The context layer has been implemented end-to-end, including persistent project metadata, brief and plan storage, homepage and landing-page context views, and brief-aware downstream prompt assembly.
 
 ## Current Product State After Stage 2D Core Implementation
 
@@ -308,15 +320,15 @@ After the 2026-03-15 provider-backed closeout validation, that readiness questio
 
 ## Next Planned Artifact
 
-The next concrete planning artifact should be a Stage 3 planning document focused on the workbench context layer described above.
+The next concrete planning artifact should be a Stage 4 planning document focused on advanced research capability expansion, now that the Stage 3 context layer has been implemented on `codex/stage3a-project-enrichment`.
 
-## After Stage 2D
+## After Stage 3
 
-Now that the final Stage 2 refinement pass and provider-backed closeout validation have been completed, the next planned focus can move forward inside the north-star order:
+Now that Stage 3 context-layer execution has been completed, the next planned focus can move forward inside the north-star order:
 
-- begin Stage 3 planning for the workbench context layer
-- keep any remaining Stage 2 shell-polish work narrowly scoped and subordinate to the Stage 3 planning sequence
+- begin Stage 4 planning for advanced research capability expansion
+- keep any remaining Stage 2 or Stage 3 shell-polish work narrowly scoped and subordinate to the Stage 4 planning sequence
 
 Future sessions should continue to respect the stage order:
 
-`Stage 2A/2B foundations -> Stage 2C questionnaire grounding -> Stage 2D coding and insight synthesis -> Stage 2D report/evidence hardening -> Stage 2 closeout assessment -> final Stage 2 refinement pass -> provider-backed closeout validation -> Stage 3 context work`
+`Stage 2A/2B foundations -> Stage 2C questionnaire grounding -> Stage 2D coding and insight synthesis -> Stage 2D report/evidence hardening -> Stage 2 closeout assessment -> final Stage 2 refinement pass -> provider-backed closeout validation -> Stage 3 context work -> Stage 4 advanced capability expansion`
