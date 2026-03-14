@@ -9,6 +9,7 @@ from game_survey_workbench.models import dataset as _dataset_models
 from game_survey_workbench.models import analysis_run as _analysis_run_models
 from game_survey_workbench.models import analysis as _analysis_models
 from game_survey_workbench.models import insight as _insight_models
+from game_survey_workbench.models import research_brief as _research_brief_models
 from game_survey_workbench.models import reporting as _reporting_models
 from game_survey_workbench.models import text_coding as _text_coding_models
 

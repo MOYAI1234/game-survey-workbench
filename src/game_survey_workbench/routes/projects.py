@@ -6,7 +6,12 @@ from fastapi.templating import Jinja2Templates
 
 from game_survey_workbench.config import get_settings
 from game_survey_workbench.models.project import ProjectCreate
+from game_survey_workbench.models.research_brief import ResearchBriefPayload
 from game_survey_workbench.services.projects import create_project
+from game_survey_workbench.services.research_brief import (
+    get_research_brief,
+    save_research_brief,
+)
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
@@ -33,3 +38,40 @@ def project_detail(project_slug: str, request: Request):
         "projects/detail.html",
         {"project_slug": project_slug},
     )
+
+
+@router.put("/projects/{project_slug}/brief")
+def upsert_brief(project_slug: str, payload: ResearchBriefPayload):
+    settings = get_settings()
+    brief = save_research_brief(
+        project_slug=project_slug,
+        payload=payload,
+        workspace_root=settings.workspace_root,
+    )
+    return {
+        "project_slug": brief.project_slug,
+        "background": brief.background,
+        "objectives": brief.objectives,
+        "hypotheses": brief.hypotheses,
+        "target_audience": brief.target_audience,
+        "success_criteria": brief.success_criteria,
+    }
+
+
+@router.get("/projects/{project_slug}/brief")
+def read_brief(project_slug: str):
+    settings = get_settings()
+    brief = get_research_brief(
+        project_slug=project_slug,
+        workspace_root=settings.workspace_root,
+    )
+    if brief is None:
+        return {"project_slug": project_slug, "brief": None}
+    return {
+        "project_slug": brief.project_slug,
+        "background": brief.background,
+        "objectives": brief.objectives,
+        "hypotheses": brief.hypotheses,
+        "target_audience": brief.target_audience,
+        "success_criteria": brief.success_criteria,
+    }
