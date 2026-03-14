@@ -38,6 +38,36 @@ def test_render_report_markdown_includes_evidence_basis_when_provided():
     assert "Churn Framework" in markdown
 
 
+def test_render_report_markdown_includes_report_date():
+    from datetime import date
+
+    markdown = render_report_markdown(
+        title="Churn Report",
+        summary_points=["Boredom is the top driver."],
+        sections={"Key Findings": ["Top box dropped to 32%."]},
+    )
+
+    assert "Report generated" in markdown or date.today().isoformat() in markdown
+
+
+def test_render_report_markdown_evidence_fallback_uses_titles_only_when_content_is_long():
+    markdown = render_report_markdown(
+        title="Churn Report",
+        summary_points=["Summary."],
+        sections={},
+        evidence=[
+            {
+                "document_title": "Churn Framework",
+                "content": "A" * 300,
+            },
+        ],
+    )
+
+    assert "## Evidence Basis" in markdown
+    assert "Churn Framework" in markdown
+    assert "A" * 300 not in markdown
+
+
 def test_render_report_markdown_keeps_single_evidence_basis_section_when_precomposed_section_is_provided():
     markdown = render_report_markdown(
         title="Stage 2 Closeout Report",

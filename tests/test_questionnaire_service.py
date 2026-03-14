@@ -149,6 +149,20 @@ def test_load_questionnaire_prompt_contains_markdown_instruction():
     assert "Markdown" in prompt
 
 
+def test_questionnaire_prompt_requests_segmentation_and_rationale():
+    prompt = load_questionnaire_prompt()
+
+    assert "segment" in prompt.lower(), (
+        "Prompt should request segmentation-aware questions"
+    )
+    assert "rationale" in prompt.lower() or "why" in prompt.lower(), (
+        "Prompt should request question rationale"
+    )
+    assert "diagnostic" in prompt.lower() or "follow-up" in prompt.lower(), (
+        "Prompt should request diagnostic framing"
+    )
+
+
 def test_questionnaire_draft_includes_visible_knowledge_basis_with_realistic_fixture(tmp_path: Path):
     for source in (STAGE2_CLOSEOUT_FIXTURE_ROOT / "knowledge").glob("*.md"):
         ingest_knowledge_file(source, project_root=tmp_path)

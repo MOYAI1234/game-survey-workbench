@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from uuid import uuid4
 
@@ -35,6 +35,7 @@ def render_report_markdown(
         narrative=narrative,
         evidence=evidence or [],
         evidence_section=evidence_section,
+        now=date.today().isoformat(),
     )
 
 

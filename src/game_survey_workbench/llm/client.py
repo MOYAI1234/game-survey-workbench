@@ -31,17 +31,29 @@ class OpenAICompatibleLLMClient:
     base_url: str
 
     def generate(self, prompt: str) -> str:
-        url = f"{self.base_url.rstrip('/')}/responses"
+        base_url = self.base_url.rstrip("/")
+        timeout = 120.0
         with httpx.Client() as client:
             response = client.post(
-                url,
+                f"{base_url}/responses",
                 headers={"Authorization": f"Bearer {self.api_key}"},
                 json={
                     "model": self.model,
                     "input": prompt,
                 },
-                timeout=30.0,
+                timeout=timeout,
             )
+
+            if response.status_code == 404:
+                response = client.post(
+                    f"{base_url}/chat/completions",
+                    headers={"Authorization": f"Bearer {self.api_key}"},
+                    json={
+                        "model": self.model,
+                        "messages": [{"role": "user", "content": prompt}],
+                    },
+                    timeout=timeout,
+                )
 
         if response.status_code >= 400:
             raise RuntimeError(
@@ -49,6 +61,13 @@ class OpenAICompatibleLLMClient:
             )
 
         payload = response.json()
+        choices = payload.get("choices", [])
+        if choices:
+            message = choices[0].get("message", {})
+            content = message.get("content")
+            if isinstance(content, str) and content.strip():
+                return content
+
         for output in payload.get("output", []):
             for content in output.get("content", []):
                 if content.get("type") == "output_text" and content.get("text"):
