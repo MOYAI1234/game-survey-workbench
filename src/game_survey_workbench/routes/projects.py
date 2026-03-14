@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import APIRouter, Request, status
+from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
@@ -19,6 +19,17 @@ router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
 
 
+def require_project(*, project_slug: str):
+    settings = get_settings()
+    project = get_project(
+        workspace_root=settings.workspace_root,
+        project_slug=project_slug,
+    )
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return settings, project
+
+
 @router.post("/projects", status_code=status.HTTP_201_CREATED)
 def create_project_route(payload: ProjectCreate):
     settings = get_settings()
@@ -35,11 +46,7 @@ def create_project_route(payload: ProjectCreate):
 
 @router.get("/projects/{project_slug}", response_class=HTMLResponse)
 def project_detail(project_slug: str, request: Request):
-    settings = get_settings()
-    project = get_project(
-        workspace_root=settings.workspace_root,
-        project_slug=project_slug,
-    )
+    settings, project = require_project(project_slug=project_slug)
     brief = get_research_brief(
         project_slug=project_slug,
         workspace_root=settings.workspace_root,
@@ -62,7 +69,7 @@ def project_detail(project_slug: str, request: Request):
 
 @router.put("/projects/{project_slug}/brief")
 def upsert_brief(project_slug: str, payload: ResearchBriefPayload):
-    settings = get_settings()
+    settings, _project = require_project(project_slug=project_slug)
     brief = save_research_brief(
         project_slug=project_slug,
         payload=payload,
@@ -80,7 +87,7 @@ def upsert_brief(project_slug: str, payload: ResearchBriefPayload):
 
 @router.get("/projects/{project_slug}/brief")
 def read_brief(project_slug: str):
-    settings = get_settings()
+    settings, _project = require_project(project_slug=project_slug)
     brief = get_research_brief(
         project_slug=project_slug,
         workspace_root=settings.workspace_root,
@@ -99,7 +106,7 @@ def read_brief(project_slug: str):
 
 @router.put("/projects/{project_slug}/plan")
 def upsert_plan(project_slug: str, payload: TaskPlanPayload):
-    settings = get_settings()
+    settings, _project = require_project(project_slug=project_slug)
     plan = save_task_plan(
         project_slug=project_slug,
         payload=payload,
@@ -113,7 +120,7 @@ def upsert_plan(project_slug: str, payload: TaskPlanPayload):
 
 @router.get("/projects/{project_slug}/plan")
 def read_plan(project_slug: str):
-    settings = get_settings()
+    settings, _project = require_project(project_slug=project_slug)
     plan = get_task_plan(
         project_slug=project_slug,
         workspace_root=settings.workspace_root,
