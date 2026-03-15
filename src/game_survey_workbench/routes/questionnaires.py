@@ -8,7 +8,6 @@ from sqlmodel import Session, select
 from game_survey_workbench.config import get_settings
 from game_survey_workbench.errors import (
     LLM_CONFIG_ERROR_MESSAGE,
-    NoKnowledgeMatchedError,
     ProjectNotFoundError,
 )
 from game_survey_workbench.llm.client import (
@@ -16,6 +15,7 @@ from game_survey_workbench.llm.client import (
     build_llm_client,
 )
 from game_survey_workbench.db import get_engine
+from game_survey_workbench.models.knowledge import KnowledgeDocument
 from game_survey_workbench.models.questionnaire import (
     QuestionnaireDraftRequest,
     QuestionnaireSpecVersion,
@@ -46,8 +46,6 @@ def _generate_questionnaire_version(
         )
     except ProjectNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Project not found") from exc
-    except NoKnowledgeMatchedError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.post("/projects/{project_slug}/questionnaires/draft", status_code=status.HTTP_201_CREATED)
@@ -155,10 +153,18 @@ def questionnaire_detail(project_slug: str, request: Request):
     engine = get_engine(settings.workspace_root)
     with Session(engine) as session:
         versions = list_versions(session, project_slug)
+        knowledge_count = len(list(session.exec(select(KnowledgeDocument)).all()))
 
     latest = None
     if versions:
         latest = versions[0]
+    fallback_notice = None
+    if latest is not None and not latest.retrieved_snippets:
+        fallback_notice = (
+            "当前还没有知识文档，已先基于研究简报和输入生成基础版本。建议补充共享知识库以提升问卷、洞察和报告质量。"
+            if knowledge_count == 0
+            else "当前未匹配到相关知识，已仅基于研究简报和输入生成基础版本。建议补充共享知识库以提升质量。"
+        )
 
     return templates.TemplateResponse(
         request,
@@ -167,6 +173,7 @@ def questionnaire_detail(project_slug: str, request: Request):
             "project_slug": project_slug,
             "spec": latest,
             "version_count": len(versions),
+            "fallback_notice": fallback_notice,
             "error_message": (
                 LLM_CONFIG_ERROR_MESSAGE
                 if request.query_params.get("error") == "llm_missing"

@@ -109,3 +109,69 @@ def test_questionnaire_page_loads_with_legacy_db_schema(
 
     assert response.status_code == 200
     assert "Legacy Draft" in response.text
+
+
+def test_questionnaire_draft_form_degrades_without_any_knowledge(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT", str(tmp_path))
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_PROVIDER", "fake")
+
+    with TestClient(create_app()) as client:
+        client.post(
+            "/projects",
+            json={"slug": "no-kb", "name": "No Knowledge"},
+        )
+
+        response = client.post(
+            "/projects/no-kb/questionnaires/draft-form",
+            data={"research_goal": "Understand new user onboarding"},
+            follow_redirects=False,
+        )
+        assert response.status_code == 303
+
+        latest_page = client.get("/projects/no-kb/questionnaires/latest")
+
+    assert latest_page.status_code == 200
+    assert "已先基于研究简报和输入生成基础版本" in latest_page.text
+    assert "Understand new user onboarding" in latest_page.text
+
+
+def test_questionnaire_draft_form_degrades_when_no_design_knowledge_matches(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT", str(tmp_path))
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_PROVIDER", "fake")
+    source = tmp_path / "analysis-only.md"
+    source.write_text(
+        "---\n"
+        "title: Analysis Only Guide\n"
+        "doc_type: guide\n"
+        "stage:\n"
+        "  - analysis\n"
+        "---\n"
+        "# Analysis Only Guide\n\nOnly analysis guidance.\n",
+        encoding="utf-8",
+    )
+    ingest_knowledge_file(source, project_root=tmp_path)
+
+    with TestClient(create_app()) as client:
+        client.post(
+            "/projects",
+            json={"slug": "analysis-only", "name": "Analysis Only"},
+        )
+
+        response = client.post(
+            "/projects/analysis-only/questionnaires/draft-form",
+            data={"research_goal": "Evaluate monetization sentiment"},
+            follow_redirects=False,
+        )
+        assert response.status_code == 303
+
+        latest_page = client.get("/projects/analysis-only/questionnaires/latest")
+
+    assert latest_page.status_code == 200
+    assert "当前未匹配到相关知识" in latest_page.text
+    assert "Evaluate monetization sentiment" in latest_page.text

@@ -6,7 +6,7 @@ from uuid import uuid4
 from sqlmodel import Session
 
 from game_survey_workbench.db import create_db_and_tables, get_engine
-from game_survey_workbench.errors import NoKnowledgeMatchedError, ProjectNotFoundError
+from game_survey_workbench.errors import ProjectNotFoundError
 from game_survey_workbench.llm.client import LLMClient
 from game_survey_workbench.models.questionnaire import (
     QuestionnaireDraftRequest,
@@ -137,8 +137,6 @@ def generate_questionnaire_draft(
             query="",
             stages=["design"],
         )
-    if not snippets:
-        raise NoKnowledgeMatchedError("No knowledge matched this questionnaire request.")
 
     brief = get_research_brief(
         project_slug=project_slug,

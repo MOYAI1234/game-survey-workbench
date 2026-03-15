@@ -12,6 +12,12 @@
 </section>
 {% endif %}
 
+{% if fallback_notice %}
+<section class="workflow-alert alert-success">
+  <strong>{{ fallback_notice }}</strong>
+</section>
+{% endif %}
+
 {% if spec %}
 <section class="questionnaire-content">
   <h2>最新草稿</h2>

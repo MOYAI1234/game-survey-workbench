@@ -1,7 +1,6 @@
 import pytest
 from pathlib import Path
 
-from game_survey_workbench.errors import NoKnowledgeMatchedError
 from game_survey_workbench.llm.client import FakeLLMClient
 from game_survey_workbench.models.project import ProjectCreate
 from game_survey_workbench.models.questionnaire import (
@@ -124,7 +123,7 @@ def test_generate_questionnaire_draft_uses_project_retrieval_and_persists_citati
     assert version.citations[0]["document_title"] == "Questionnaire Principles"
 
 
-def test_generate_questionnaire_draft_rejects_missing_knowledge(tmp_path: Path):
+def test_generate_questionnaire_draft_degrades_when_knowledge_is_missing(tmp_path: Path):
     create_project(
         ProjectCreate(
             slug="empty-project",
@@ -134,13 +133,16 @@ def test_generate_questionnaire_draft_rejects_missing_knowledge(tmp_path: Path):
         workspace_root=tmp_path,
     )
 
-    with pytest.raises(NoKnowledgeMatchedError, match="No knowledge matched"):
-        generate_questionnaire_draft(
-            project_slug="empty-project",
-            payload=QuestionnaireDraftRequest(research_goal="Study returners"),
-            workspace_root=tmp_path,
-            client=FakeLLMClient("# Draft"),
-        )
+    version = generate_questionnaire_draft(
+        project_slug="empty-project",
+        payload=QuestionnaireDraftRequest(research_goal="Study returners"),
+        workspace_root=tmp_path,
+        client=FakeLLMClient("# Draft"),
+    )
+
+    assert version.project_slug == "empty-project"
+    assert version.citations == []
+    assert version.retrieved_snippets == []
 
 
 def test_load_questionnaire_prompt_contains_markdown_instruction():
