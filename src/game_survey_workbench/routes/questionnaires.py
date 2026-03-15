@@ -121,6 +121,11 @@ def refine_questionnaire_form(
             url=f"/projects/{project_slug}/questionnaires/latest?error=llm_missing",
             status_code=status.HTTP_303_SEE_OTHER,
         )
+    except Exception:
+        return RedirectResponse(
+            url=f"/projects/{project_slug}/questionnaires/latest?error=refine_failed",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
 
     save_payload = QuestionnaireDraftRequest(
         research_goal=refined.research_goal,
@@ -165,6 +170,8 @@ def questionnaire_detail(project_slug: str, request: Request):
             "error_message": (
                 LLM_CONFIG_ERROR_MESSAGE
                 if request.query_params.get("error") == "llm_missing"
+                else "问卷改进失败，请重试或更换修改意见"
+                if request.query_params.get("error") == "refine_failed"
                 else None
             ),
         },

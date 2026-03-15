@@ -2,8 +2,11 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlmodel import Session
 
 from game_survey_workbench.app import create_app
+from game_survey_workbench.db import create_db_and_tables, get_engine
+from game_survey_workbench.models.questionnaire import QuestionnaireSpecVersion
 
 
 @pytest.fixture()
@@ -128,3 +131,63 @@ def test_report_history_page_is_chinese(client: TestClient):
 
     assert "报告历史" in content
     assert "Path" not in content
+
+
+def test_dataset_import_bad_format_shows_error(client: TestClient, tmp_path: Path):
+    client.post("/projects", json={"slug": "bad-csv", "name": "Bad CSV"})
+    csv_path = tmp_path / "bad.csv"
+    csv_path.write_text("col1,col2\nval1,val2\n", encoding="utf-8")
+
+    with csv_path.open("rb") as handle:
+        response = client.post(
+            "/projects/bad-csv/datasets/import-form",
+            files={"file": ("bad.csv", handle, "text/csv")},
+            follow_redirects=False,
+        )
+
+    assert response.status_code == 303
+    assert "upload_error=" in response.headers["location"]
+
+
+def test_questionnaire_refine_error_does_not_500(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT", str(tmp_path))
+    create_db_and_tables(tmp_path)
+    engine = get_engine(tmp_path)
+
+    with TestClient(create_app()) as client:
+        client.post("/projects", json={"slug": "refine-err", "name": "Refine Err"})
+        with Session(engine) as session:
+            session.add(
+                QuestionnaireSpecVersion(
+                    project_slug="refine-err",
+                    version_id="v1",
+                    research_goal="baseline",
+                    markdown_spec="# Draft\n\n1. Question",
+                    citations=[],
+                    retrieved_snippets=[],
+                )
+            )
+            session.commit()
+
+        from game_survey_workbench.routes import questionnaires as questionnaires_module
+
+        def _raise_unexpected(*args, **kwargs):
+            raise RuntimeError("unexpected refine failure")
+
+        monkeypatch.setattr(
+            questionnaires_module,
+            "refine_questionnaire_draft",
+            _raise_unexpected,
+        )
+
+        response = client.post(
+            "/projects/refine-err/questionnaires/refine-form",
+            data={"version_id": "v1", "feedback": "test"},
+            follow_redirects=False,
+        )
+
+        assert response.status_code == 303
+        assert "error=refine_failed" in response.headers["location"]

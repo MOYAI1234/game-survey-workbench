@@ -69,7 +69,13 @@ async def import_dataset_route(project_slug: str, file: UploadFile = File(...)):
 
 @router.post("/projects/{project_slug}/datasets/import-form")
 async def import_dataset_form(project_slug: str, file: UploadFile = File(...)):
-    dataset = await _import_uploaded_dataset(project_slug=project_slug, file=file)
+    try:
+        dataset = await _import_uploaded_dataset(project_slug=project_slug, file=file)
+    except HTTPException as exc:
+        return RedirectResponse(
+            url=f"/projects/{project_slug}?upload_error={exc.detail}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
     return RedirectResponse(
         url=f"/projects/{project_slug}/analysis/{dataset.analysis_run_id}",
         status_code=status.HTTP_303_SEE_OTHER,
