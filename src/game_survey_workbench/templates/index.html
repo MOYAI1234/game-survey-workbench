@@ -25,6 +25,21 @@
   {% endif %}
 </section>
 
+<section class="knowledge-summary">
+  <h2>共享知识库</h2>
+  <p>已入库知识文档 {{ knowledge_count }} 篇，多个项目会共享使用同一套知识库。</p>
+  {% if recent_knowledge_documents %}
+  <ul>
+    {% for document in recent_knowledge_documents %}
+    <li>{{ document.title }}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty-state">当前还没有知识文档，可先进入共享知识库上传研究方法、行业资料或历史报告。</p>
+  {% endif %}
+  <p><a href="/knowledge">进入共享知识库</a></p>
+</section>
+
 <section class="create-project">
   <h2>新建项目</h2>
   <form action="/projects/create" method="post" class="project-form">
