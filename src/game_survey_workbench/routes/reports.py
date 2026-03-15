@@ -24,6 +24,7 @@ from game_survey_workbench.services.reporting import (
     get_analysis_run_record,
     get_coding_results,
     get_latest_insight_record,
+    parse_report_markdown,
     save_report,
 )
 from game_survey_workbench.services.report_versions import list_report_versions
@@ -176,6 +177,7 @@ def report_detail(project_slug: str, request: Request):
         ).all()
 
     report_content = None
+    report_display = None
     report_path = None
     if records:
         latest = sorted(records, key=lambda item: item.created_at, reverse=True)[0]
@@ -183,6 +185,7 @@ def report_detail(project_slug: str, request: Request):
         path_obj = Path(report_path)
         if path_obj.exists():
             report_content = path_obj.read_text(encoding="utf-8")
+            report_display = parse_report_markdown(report_content)
 
     return templates.TemplateResponse(
         request,
@@ -190,6 +193,7 @@ def report_detail(project_slug: str, request: Request):
         {
             "project_slug": project_slug,
             "report_content": report_content,
+            "report_display": report_display,
             "report_path": report_path,
         },
     )

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
 from uuid import uuid4
@@ -17,6 +18,20 @@ from game_survey_workbench.services.recommendation_extractor import (
     extract_recommendations,
 )
 from game_survey_workbench.services.report_sections import assemble_report_markdown
+
+
+@dataclass
+class ReportDisplaySection:
+    title: str
+    paragraphs: list[str] = field(default_factory=list)
+    bullets: list[str] = field(default_factory=list)
+
+
+@dataclass
+class ReportDisplay:
+    title: str | None
+    generated_on: str | None
+    sections: list[ReportDisplaySection]
 
 
 def get_environment() -> Environment:
@@ -41,6 +56,45 @@ def render_report_markdown(
         evidence=evidence or [],
         evidence_section=evidence_section,
         now=date.today().isoformat(),
+    )
+
+
+def parse_report_markdown(markdown: str | None) -> ReportDisplay:
+    """Convert report markdown into display-friendly sections."""
+
+    if not markdown:
+        return ReportDisplay(title=None, generated_on=None, sections=[])
+
+    title: str | None = None
+    generated_on: str | None = None
+    sections: list[ReportDisplaySection] = []
+    current_section: ReportDisplaySection | None = None
+
+    for raw_line in markdown.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if line.startswith("# "):
+            title = line[2:].strip()
+            continue
+        if line.startswith("*") and line.endswith("*"):
+            generated_on = line.strip("*").strip()
+            continue
+        if line.startswith("## "):
+            current_section = ReportDisplaySection(title=line[3:].strip())
+            sections.append(current_section)
+            continue
+        if current_section is None:
+            continue
+        if line.startswith("- "):
+            current_section.bullets.append(line[2:].strip())
+        else:
+            current_section.paragraphs.append(line)
+
+    return ReportDisplay(
+        title=title,
+        generated_on=generated_on,
+        sections=sections,
     )
 
 
