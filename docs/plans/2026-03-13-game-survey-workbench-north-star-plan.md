@@ -414,18 +414,62 @@ After the 2026-03-15 provider-backed closeout validation, that readiness questio
 - coding persistence and report-level evidence rendering are no longer the active blockers
 - provider-backed acceptance evidence now shows grounded questionnaire output, actionable insight synthesis, and readable report output credible enough for Stage 2 completion
 
+## 1.0 Closeout and Validation Hardening
+
+### Validation-Ready Bootstrap
+
+Status: completed on `master`
+
+Scope:
+
+- `.env.example` with OpenAI and Ollama configuration examples
+- `run.bat` one-click startup script with auto-browser-open
+- LLM unconfigured graceful fallback (workflow error recording instead of 500)
+- README Quick Start and LLM Configuration sections
+
+### 1.0 UI Closeout (Chinese Localization + Error Hardening)
+
+Status: completed on `master`
+
+Scope:
+
+- full Chinese localization of navigation, landing page, project detail, analysis dashboard, questionnaire pages, report pages
+- API/internal concept leak removal (analysis_run_id, file paths, PUT endpoint prompts hidden from end users)
+- knowledge upload success/failure feedback
+- workflow step badges translated to user-facing Chinese labels
+- data upload format guidance and template download link
+- next-step navigation hints across workflow stages
+
+### Known Architecture Finding: Knowledge Library Scope
+
+During 1.0 validation testing, the following product-level finding was confirmed:
+
+- **Storage layer is already global**: knowledge documents are saved to `workspace/knowledge/`, shared across all projects
+- **UI misleadingly presents knowledge as project-scoped**: upload entry point is on the project detail page, implying project-private storage
+- **Retrieval is workspace-wide**: `LocalVectorStore.query()` searches all chunks, filtered only by `knowledge_pack` constraints
+- **Product mismatch**: users believe they are uploading "project knowledge" when they are actually contributing to a shared workspace knowledge base
+
+This is not an architecture defect — the storage design is correct for the intended product direction. The issue is that the UI framing does not match the storage reality. The 1.0 closeout addressed this partially by changing upload labels to "补充共享知识库" rather than implying project-private upload.
+
+The full resolution (dedicated knowledge management page, cross-project visibility, project-level knowledge selection) is deferred to 2.0. See `docs/plans/2026-03-15-game-survey-workbench-2.0-north-star.md`.
+
+## 1.0 Completion Status
+
+As of 2026-03-15, the 1.0 product is considered validation-ready:
+
+- Stage 1–7 feature development: completed
+- Validation-ready bootstrap: completed
+- 1.0 UI closeout: completed
+- Test baseline: 212+ tests passing
+- Core loop fully operable in browser with Chinese UI
+- LLM unconfigured state handled gracefully
+
 ## Next Planned Artifact
 
-The next concrete planning artifact should be a Stage 7 closeout assessment or a tightly scoped follow-up plan focused on post-report-intelligence research quality improvements.
+The next concrete planning artifact should be drawn from the 2.0 north-star (`docs/plans/2026-03-15-game-survey-workbench-2.0-north-star.md`). The recommended first 2.0 stage is `2.0A: Global Knowledge Library`, which resolves the knowledge scope mismatch identified during 1.0 validation.
 
-## After Stage 7
+## Development History
 
-Now that Stages 5, 6, and 7 have been executed, the next planned focus can move forward inside the north-star order:
+Executed stage order:
 
-- run a Stage 7 closeout assessment against realistic stakeholder-facing reporting workflows
-- keep any remaining shell-polish work narrowly scoped and subordinate to core-loop quality improvements
-- treat statistical significance testing, richer visualization, export automation, and broader analysis automation as future candidates rather than automatic next steps
-
-Future sessions should continue to respect the executed stage order:
-
-`Stage 2A/2B foundations -> Stage 2C questionnaire grounding -> Stage 2D coding and insight synthesis -> Stage 2D report/evidence hardening -> Stage 2 closeout assessment -> final Stage 2 refinement pass -> provider-backed closeout validation -> Stage 3 context work -> Stage 4 advanced capability expansion -> Stage 5 interactive workbench shell -> Stage 6 research iteration and workflow intelligence -> Stage 7 report intelligence and structured research output`
+`Stage 1 MVP -> Stage 2 Knowledge+LLM -> Stage 3 Context Layer -> Stage 4 Advanced Research -> Stage 5 Interactive Shell -> Stage 6 Research Iteration -> Stage 7 Report Intelligence -> 1.0 Validation Bootstrap -> 1.0 UI Closeout`
