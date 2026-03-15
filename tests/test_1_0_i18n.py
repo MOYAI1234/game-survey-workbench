@@ -97,3 +97,14 @@ def test_analysis_page_is_chinese(client: TestClient, tmp_path: Path):
     assert "文本编码" in content
     assert "洞察合成" in content
     assert "报告生成" in content
+
+
+def test_questionnaire_page_is_chinese(client: TestClient):
+    client.post("/projects", json={"slug": "q-cn", "name": "问卷测试"})
+
+    response = client.get("/projects/q-cn/questionnaires/latest")
+    content = response.text
+
+    assert "问卷设计" in content
+    assert "生成问卷草稿" in content
+    assert "研究目标" in content

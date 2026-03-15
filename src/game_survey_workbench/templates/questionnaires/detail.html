@@ -1,28 +1,30 @@
 {% extends "layout.html" %}
-{% block title %}Questionnaire — {{ project_slug }}{% endblock %}
+{% block title %}问卷设计 — {{ project_slug }}{% endblock %}
 {% block content %}
 <header>
-  <p class="eyebrow"><a href="/projects/{{ project_slug }}">← {{ project_slug }}</a></p>
-  <h1>Questionnaire Design</h1>
+  <p class="eyebrow"><a href="/projects/{{ project_slug }}">← 返回项目</a></p>
+  <h1>问卷设计</h1>
 </header>
 
 {% if error_message %}
 <section class="workflow-alert alert-error">
-  <strong>Last operation failed:</strong> {{ error_message }}
+  <strong>操作失败：</strong> {{ error_message }}
 </section>
 {% endif %}
 
 {% if spec %}
 <section class="questionnaire-content">
-  <h2>Latest Draft</h2>
-  <p class="muted">Version: {{ spec.version_id }} | Goal: {{ spec.research_goal }}</p>
+  <h2>最新草稿</h2>
   <p class="muted">
-    <a href="/projects/{{ project_slug }}/questionnaires/history">View version history{% if version_count %} ({{ version_count }}){% endif %}</a>
+    版本：{{ spec.version_id }} ｜ 研究目标：{{ spec.research_goal }}
+  </p>
+  <p class="muted">
+    <a href="/projects/{{ project_slug }}/questionnaires/history">查看版本历史{% if version_count %} ({{ version_count }} 个版本){% endif %}</a>
   </p>
   <pre class="questionnaire-markdown">{{ spec.markdown_spec }}</pre>
   {% if spec.retrieved_snippets %}
   <details>
-    <summary>Knowledge Basis ({{ spec.retrieved_snippets | length }} sources)</summary>
+    <summary>参考知识来源（{{ spec.retrieved_snippets | length }} 篇）</summary>
     <ul>
       {% for snippet in spec.retrieved_snippets %}
       <li>{{ snippet.document_title if snippet is mapping else snippet }}</li>
@@ -35,35 +37,37 @@
 {% endif %}
 
 <section class="draft-form">
-  <h2>{% if spec %}Generate New Draft{% else %}Generate Questionnaire Draft{% endif %}</h2>
+  <h2>{% if spec %}生成新的草稿{% else %}生成问卷草稿{% endif %}</h2>
+  <p class="help-text">系统将结合项目知识库和研究简报，由 LLM 生成问卷草稿。</p>
   <form action="/projects/{{ project_slug }}/questionnaires/draft-form" method="post">
-    <label for="research_goal">Research Goal</label>
+    <label for="research_goal">研究目标</label>
     <input
       type="text"
       id="research_goal"
       name="research_goal"
       required
-      placeholder="e.g. Understand what drives player retention in our RPG"
+      placeholder="如：了解玩家对新赛季通行证的购买意愿和定价敏感度"
       value="{{ spec.research_goal if spec else '' }}"
     >
-    <button type="submit">Generate Draft</button>
+    <button type="submit">生成草稿</button>
   </form>
 </section>
 
 {% if spec %}
 <section class="draft-form">
-  <h2>Refine This Draft</h2>
+  <h2>迭代改进当前草稿</h2>
+  <p class="help-text">保留当前草稿中满意的部分，告诉系统需要修改或补充的方向。</p>
   <form action="/projects/{{ project_slug }}/questionnaires/refine-form" method="post">
     <input type="hidden" name="version_id" value="{{ spec.version_id }}">
-    <label for="feedback">What would you like to change?</label>
+    <label for="feedback">修改意见</label>
     <textarea
       id="feedback"
       name="feedback"
       rows="4"
       required
-      placeholder="e.g. Add a question about spending habits, simplify question 3."
+      placeholder="如：增加一道关于消费习惯的题目，简化第 3 题的措辞"
     ></textarea>
-    <button type="submit">Refine Draft</button>
+    <button type="submit">改进草稿</button>
   </form>
 </section>
 {% endif %}

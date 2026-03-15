@@ -34,7 +34,7 @@ def test_questionnaire_page_has_draft_form(client, project_slug):
     assert response.status_code == 200
     html = response.text
     assert 'name="research_goal"' in html
-    assert "Generate" in html or "Draft" in html
+    assert "生成草稿" in html or "问卷设计" in html
 
 
 def test_questionnaire_draft_form_submission(client, project_slug):
