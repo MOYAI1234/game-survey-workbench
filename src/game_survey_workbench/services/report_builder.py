@@ -91,7 +91,10 @@ def build_report_sections(
                 key="evidence_basis",
                 title="Evidence Basis",
                 order=90,
-                content=evidence_section,
+                content=_strip_section_heading(
+                    content=evidence_section,
+                    title="Evidence Basis",
+                ),
             )
         )
 
@@ -164,3 +167,12 @@ def _build_themes_section(coded_themes: list[dict]) -> str:
         lines.append("")
 
     return "\n".join(lines)
+
+
+def _strip_section_heading(*, content: str, title: str) -> str:
+    stripped = content.lstrip()
+    heading = f"## {title}"
+    if stripped.startswith(heading):
+        remainder = stripped[len(heading):].lstrip()
+        return remainder
+    return content

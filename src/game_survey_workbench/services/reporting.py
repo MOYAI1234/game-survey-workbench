@@ -12,6 +12,11 @@ from game_survey_workbench.models.analysis_run import AnalysisRunRecord
 from game_survey_workbench.models.insight import InsightRecord
 from game_survey_workbench.models.reporting import ReportRecord
 from game_survey_workbench.models.text_coding import CodingResult
+from game_survey_workbench.services.report_builder import build_report_sections
+from game_survey_workbench.services.recommendation_extractor import (
+    extract_recommendations,
+)
+from game_survey_workbench.services.report_sections import assemble_report_markdown
 
 
 def get_environment() -> Environment:
@@ -36,6 +41,35 @@ def render_report_markdown(
         evidence=evidence or [],
         evidence_section=evidence_section,
         now=date.today().isoformat(),
+    )
+
+
+def generate_structured_report(
+    *,
+    project_name: str,
+    brief: dict | None,
+    dataset_meta: dict,
+    statistical_findings: list[str],
+    coded_themes: list[dict],
+    insight_narrative: str | None,
+    evidence_section: str | None,
+) -> str:
+    """Generate a structured Markdown report."""
+
+    registry = build_report_sections(
+        brief=brief,
+        dataset_meta=dataset_meta,
+        statistical_findings=statistical_findings,
+        coded_themes=coded_themes,
+        insight_narrative=insight_narrative,
+        evidence_section=evidence_section,
+        recommendations=extract_recommendations(insight_narrative),
+    )
+
+    return assemble_report_markdown(
+        title=f"{project_name} Report",
+        date=date.today().isoformat(),
+        registry=registry,
     )
 
 
@@ -87,6 +121,7 @@ def save_report(
     narrative: str | None = None,
     evidence: list[dict] | None = None,
     evidence_section: str | None = None,
+    markdown: str | None = None,
 ) -> Path:
     create_db_and_tables(workspace_root)
     report_dir = workspace_root / "projects" / project_slug / "reports"
@@ -94,7 +129,8 @@ def save_report(
     timestamp = datetime.now().strftime("%Y-%m-%d-%H%M%S")
     report_path = report_dir / f"report-{timestamp}-{uuid4().hex[:8]}.md"
     report_path.write_text(
-        render_report_markdown(
+        markdown
+        or render_report_markdown(
             title=title,
             summary_points=summary_points,
             sections=sections,

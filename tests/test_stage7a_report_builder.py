@@ -123,6 +123,23 @@ def test_builder_includes_evidence_basis():
     assert "Churn Framework" in evidence.content
 
 
+def test_builder_strips_duplicate_evidence_heading():
+    registry = build_report_sections(
+        brief=None,
+        dataset_meta={"row_count": 100, "question_count": 5, "question_types": {}},
+        statistical_findings=[],
+        coded_themes=[],
+        insight_narrative=None,
+        evidence_section="## Evidence Basis\n- **Churn Framework**: retention benchmarks",
+        recommendations=[],
+    )
+
+    evidence = registry.get("evidence_basis")
+
+    assert evidence is not None
+    assert "## Evidence Basis" not in evidence.content
+
+
 def test_builder_without_brief_skips_methodology_background():
     registry = build_report_sections(
         brief=None,
