@@ -108,3 +108,23 @@ def test_questionnaire_page_is_chinese(client: TestClient):
     assert "问卷设计" in content
     assert "生成问卷草稿" in content
     assert "研究目标" in content
+
+
+def test_report_page_is_chinese(client: TestClient):
+    client.post("/projects", json={"slug": "rpt-cn", "name": "报告测试"})
+
+    response = client.get("/projects/rpt-cn/reports/latest")
+    content = response.text
+
+    assert "研究报告" in content
+    assert "尚未生成报告" in content or "报告" in content
+
+
+def test_report_history_page_is_chinese(client: TestClient):
+    client.post("/projects", json={"slug": "rph-cn", "name": "报告历史"})
+
+    response = client.get("/projects/rph-cn/reports/history")
+    content = response.text
+
+    assert "报告历史" in content
+    assert "Path" not in content

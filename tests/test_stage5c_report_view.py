@@ -77,5 +77,5 @@ def test_report_latest_page_shows_content(client, project_with_report):
 
     assert response.status_code == 200
     html = response.text
-    assert "Report" in html
+    assert "研究报告" in html
     assert "report-content" in html or "narrative" in html.lower() or "Evidence" in html

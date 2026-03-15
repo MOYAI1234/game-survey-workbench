@@ -1,16 +1,16 @@
 {% extends "layout.html" %}
-{% block title %}Report — {{ project_slug }}{% endblock %}
+{% block title %}研究报告 — {{ project_slug }}{% endblock %}
 {% block content %}
 <header>
-  <p class="eyebrow"><a href="/projects/{{ project_slug }}">← {{ project_slug }}</a></p>
-  <h1>Report</h1>
-  <p><a href="/projects/{{ project_slug }}/reports/history">View Report History</a></p>
+  <p class="eyebrow"><a href="/projects/{{ project_slug }}">← 返回项目</a></p>
+  <h1>研究报告</h1>
+  <p><a href="/projects/{{ project_slug }}/reports/history">查看报告历史</a></p>
 </header>
 
 {% if report_content %}
 <section class="report-content">
   {% if report_display and report_display.generated_on %}
-  <p class="muted">{{ report_display.generated_on }}</p>
+  <p class="muted">生成时间：{{ report_display.generated_on }}</p>
   {% endif %}
   {% for section in report_display.sections if report_display %}
   <section class="report-section">
@@ -28,13 +28,10 @@
   </section>
   {% endfor %}
 </section>
-{% if report_path %}
-<p class="muted">Saved to: <code>{{ report_path }}</code></p>
-{% endif %}
 {% else %}
 <p class="empty-state">
-  No reports generated yet. Go to the <a href="/projects/{{ project_slug }}/analysis/latest">analysis dashboard</a>
-  to generate one.
+  尚未生成报告。请到<a href="/projects/{{ project_slug }}/analysis/latest">数据分析页</a>
+  完成分析后生成报告。
 </p>
 {% endif %}
 {% endblock %}

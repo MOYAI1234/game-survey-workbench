@@ -73,6 +73,6 @@ def test_report_history_page_lists_versions(tmp_path: Path, monkeypatch):
         response = client.get("/projects/proj-c/reports/history")
 
     assert response.status_code == 200
-    assert "Report History" in response.text
-    assert "run-1" in response.text
-    assert "run-2" in response.text
+    assert "报告历史" in response.text
+    assert "第 1 版" in response.text
+    assert "第 2 版" in response.text

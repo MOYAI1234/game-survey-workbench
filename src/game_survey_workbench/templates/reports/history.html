@@ -1,31 +1,29 @@
 {% extends "layout.html" %}
-{% block title %}Report History — {{ project_slug }}{% endblock %}
+{% block title %}报告历史 — {{ project_slug }}{% endblock %}
 {% block content %}
 <header>
-  <p class="eyebrow"><a href="/projects/{{ project_slug }}/reports/latest">← Latest report</a></p>
-  <h1>Report History</h1>
+  <p class="eyebrow"><a href="/projects/{{ project_slug }}/reports/latest">← 返回最新报告</a></p>
+  <h1>报告历史</h1>
 </header>
 
 {% if versions %}
 <table>
   <thead>
     <tr>
-      <th>Analysis Run</th>
-      <th>Created</th>
-      <th>Path</th>
+      <th>序号</th>
+      <th>生成时间</th>
     </tr>
   </thead>
   <tbody>
     {% for version in versions %}
     <tr>
-      <td>{{ version.analysis_run_id }}</td>
+      <td>第 {{ loop.index }} 版</td>
       <td>{{ version.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-      <td><code>{{ version.path }}</code></td>
     </tr>
     {% endfor %}
   </tbody>
 </table>
 {% else %}
-<p class="empty-state">No report versions have been generated yet.</p>
+<p class="empty-state">暂无报告历史记录。</p>
 {% endif %}
 {% endblock %}
