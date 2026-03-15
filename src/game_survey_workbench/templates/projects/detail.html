@@ -120,8 +120,10 @@
 </section>
 
 <section class="upload-section">
-  <h2>上传知识文档</h2>
-  <p class="help-text">上传 Markdown 格式的行业知识、竞品分析、历史研究报告等文档，系统会将其作为问卷设计和洞察生成的参考依据。</p>
+  <h2>共享知识库</h2>
+  <p class="help-text">当前项目会从共享知识库中检索相关知识。当前共享知识文档 {{ knowledge_count }} 篇，多个项目会共用这里的资料。</p>
+  <p class="help-text"><a href="/knowledge">查看或管理共享知识库</a></p>
+  <p class="help-text">你也可以在这里快捷上传 Markdown 文档，系统会将其加入共享知识库，供问卷设计、问卷分析和报告写作复用。</p>
   <form
     action="/projects/{{ project_slug }}/knowledge/upload"
     method="post"

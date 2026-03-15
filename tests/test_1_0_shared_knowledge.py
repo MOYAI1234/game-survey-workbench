@@ -121,3 +121,32 @@ def test_shared_knowledge_upload_supports_purpose_selection_without_front_matter
     assert "新手引导问卷建议" in page.text
     assert "问卷设计" in page.text
     assert "报告写作" in page.text
+
+
+def test_project_page_reframes_knowledge_as_shared_library(
+    client: TestClient,
+    tmp_path: Path,
+):
+    client.post("/projects", json={"slug": "shared-proj", "name": "共享测试项目"})
+    _ingest_markdown(
+        tmp_path,
+        filename="shared-doc.md",
+        content=(
+            "---\n"
+            "title: 共享文档\n"
+            "doc_type: guide\n"
+            "stage:\n"
+            "  - design\n"
+            "---\n\n"
+            "# 共享文档\n\n共享内容。"
+        ),
+    )
+
+    response = client.get("/projects/shared-proj")
+
+    assert response.status_code == 200
+    content = response.text
+    assert "当前项目会从共享知识库中检索相关知识" in content
+    assert "当前共享知识文档 1 篇" in content
+    assert "/knowledge" in content
+    assert "项目专属知识库" not in content

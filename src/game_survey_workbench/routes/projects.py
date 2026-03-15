@@ -3,8 +3,11 @@ from pathlib import Path
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from sqlmodel import Session, select
 
 from game_survey_workbench.config import get_settings
+from game_survey_workbench.db import get_engine
+from game_survey_workbench.models.knowledge import KnowledgeDocument
 from game_survey_workbench.models.project import ProjectCreate
 from game_survey_workbench.models.research_brief import ResearchBriefPayload
 from game_survey_workbench.models.task_plan import TaskPlanPayload
@@ -73,6 +76,11 @@ def project_detail(project_slug: str, request: Request):
         project_slug=project_slug,
         workspace_root=settings.workspace_root,
     )
+    engine = get_engine(settings.workspace_root)
+    with Session(engine) as session:
+        knowledge_count = session.exec(
+            select(KnowledgeDocument)
+        ).all()
     return templates.TemplateResponse(
         request,
         "projects/detail.html",
@@ -81,6 +89,7 @@ def project_detail(project_slug: str, request: Request):
             "project_slug": project_slug,
             "brief": brief,
             "plan": plan,
+            "knowledge_count": len(knowledge_count),
             "upload_success": request.query_params.get("upload_success"),
             "upload_error": request.query_params.get("upload_error"),
         },
