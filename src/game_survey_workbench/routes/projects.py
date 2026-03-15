@@ -78,6 +78,8 @@ def project_detail(project_slug: str, request: Request):
             "project_slug": project_slug,
             "brief": brief,
             "plan": plan,
+            "upload_success": request.query_params.get("upload_success"),
+            "upload_error": request.query_params.get("upload_error"),
         },
     )
 
@@ -91,9 +93,18 @@ async def upload_knowledge_form(project_slug: str, file: UploadFile = File(...))
     filename = Path(file.filename or "uploaded.md").name
     destination = knowledge_dir / filename
     destination.write_bytes(await file.read())
-    ingest_knowledge_file(destination, project_root=settings.workspace_root)
+    try:
+        ingest_knowledge_file(destination, project_root=settings.workspace_root)
+    except Exception:
+        return RedirectResponse(
+            url=f"/projects/{project_slug}?upload_error=知识文档解析失败，请检查文件格式",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
 
-    return RedirectResponse(url=f"/projects/{project_slug}", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(
+        url=f"/projects/{project_slug}?upload_success=知识文档「{filename}」已成功上传并入库",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
 
 
 @router.put("/projects/{project_slug}/brief")

@@ -2,23 +2,32 @@
 {% block title %}{{ project.name if project else project_slug }}{% endblock %}
 {% block content %}
 <header class="project-header">
-  <p class="eyebrow">Project Workspace</p>
+  <p class="eyebrow"><a href="/">← 返回项目列表</a></p>
   <h1>{{ project.name if project else project_slug }}</h1>
   {% if project and project.description %}
   <p class="project-description">{{ project.description }}</p>
   {% endif %}
-  {% if project and project.status %}
-  <p class="project-status">Status: {{ project.status }}</p>
-  {% endif %}
 </header>
 
+{% if upload_success %}
+<section class="workflow-alert alert-success">
+  <strong>{{ upload_success }}</strong>
+</section>
+{% endif %}
+
+{% if upload_error %}
+<section class="workflow-alert alert-error">
+  <strong>{{ upload_error }}</strong>
+</section>
+{% endif %}
+
 <section class="brief-section">
-  <h2>Research Brief / 研究简报</h2>
+  <h2>研究简报</h2>
   {% if brief %}
   <dl>
-    <dt>Background</dt>
+    <dt>研究背景</dt>
     <dd>{{ brief.background }}</dd>
-    <dt>Objectives</dt>
+    <dt>研究目标</dt>
     <dd>
       <ul>
         {% for objective in brief.objectives %}
@@ -27,7 +36,7 @@
       </ul>
     </dd>
     {% if brief.hypotheses %}
-    <dt>Hypotheses</dt>
+    <dt>研究假设</dt>
     <dd>
       <ul>
         {% for hypothesis in brief.hypotheses %}
@@ -37,46 +46,48 @@
     </dd>
     {% endif %}
     {% if brief.target_audience %}
-    <dt>Target Audience</dt>
+    <dt>目标受众</dt>
     <dd>{{ brief.target_audience }}</dd>
     {% endif %}
     {% if brief.success_criteria %}
-    <dt>Success Criteria</dt>
+    <dt>成功标准</dt>
     <dd>{{ brief.success_criteria }}</dd>
     {% endif %}
   </dl>
   <details>
-    <summary>Edit Brief</summary>
+    <summary>编辑简报</summary>
   {% else %}
-  <p class="empty-state">No brief yet. Fill in the form below.</p>
+  <p class="empty-state">尚未填写研究简报，请在下方表单中填写。</p>
   {% endif %}
   <form action="/projects/{{ project_slug }}/brief/save" method="post" class="brief-form">
-    <label for="background">Background</label>
-    <textarea id="background" name="background" rows="3">{{ brief.background if brief else '' }}</textarea>
+    <label for="background">研究背景</label>
+    <textarea id="background" name="background" rows="3" placeholder="描述研究的业务背景和动因">{{ brief.background if brief else '' }}</textarea>
 
-    <label for="objectives">Objectives (one per line)</label>
-    <textarea id="objectives" name="objectives" rows="3">{{ brief.objectives | join('\n') if brief and brief.objectives else '' }}</textarea>
+    <label for="objectives">研究目标（每行一条）</label>
+    <textarea id="objectives" name="objectives" rows="3" placeholder="如：了解玩家对新付费模式的接受度&#10;评估当前游戏内经济系统的满意度">{{ brief.objectives | join('\n') if brief and brief.objectives else '' }}</textarea>
 
-    <label for="hypotheses">Hypotheses (one per line, optional)</label>
-    <textarea id="hypotheses" name="hypotheses" rows="2">{{ brief.hypotheses | join('\n') if brief and brief.hypotheses else '' }}</textarea>
+    <label for="hypotheses">研究假设（每行一条，选填）</label>
+    <textarea id="hypotheses" name="hypotheses" rows="2" placeholder="如：高付费玩家对社交功能的需求高于免费玩家">{{ brief.hypotheses | join('\n') if brief and brief.hypotheses else '' }}</textarea>
 
-    <label for="target_audience">Target Audience</label>
+    <label for="target_audience">目标受众</label>
     <input
       type="text"
       id="target_audience"
       name="target_audience"
       value="{{ brief.target_audience if brief else '' }}"
+      placeholder="如：过去30天有活跃登录的玩家"
     >
 
-    <label for="success_criteria">Success Criteria</label>
+    <label for="success_criteria">成功标准</label>
     <input
       type="text"
       id="success_criteria"
       name="success_criteria"
       value="{{ brief.success_criteria if brief else '' }}"
+      placeholder="如：获得可支持产品决策的定量+定性洞察"
     >
 
-    <button type="submit">Save Brief</button>
+    <button type="submit">保存简报</button>
   </form>
   {% if brief %}
   </details>
@@ -84,7 +95,7 @@
 </section>
 
 <section class="plan-section">
-  <h2>Task Plan / 任务计划</h2>
+  <h2>任务计划</h2>
   {% if plan and plan.tasks %}
   <ul class="task-list">
     {% for task in plan.tasks %}
@@ -95,12 +106,12 @@
     {% endfor %}
   </ul>
   {% else %}
-  <p class="empty-state">No task plan yet. Use <code>PUT /projects/{{ project_slug }}/plan</code> to set one.</p>
+  <p class="empty-state">任务计划会在你完善研究简报后逐步明确，这里会显示当前的研究步骤。</p>
   {% endif %}
 </section>
 
 <section class="workflow-links">
-  <h2>Workflows</h2>
+  <h2>核心工作流</h2>
   <ul>
     <li><a href="/projects/{{ project_slug }}/questionnaires/latest">问卷设计</a></li>
     <li><a href="/projects/{{ project_slug }}/analysis/latest">数据分析</a></li>
@@ -109,27 +120,33 @@
 </section>
 
 <section class="upload-section">
-  <h2>Upload Knowledge Document</h2>
+  <h2>上传知识文档</h2>
+  <p class="help-text">上传 Markdown 格式的行业知识、竞品分析、历史研究报告等文档，系统会将其作为问卷设计和洞察生成的参考依据。</p>
   <form
     action="/projects/{{ project_slug }}/knowledge/upload"
     method="post"
     enctype="multipart/form-data"
   >
     <input type="file" name="file" accept=".md,.txt" required>
-    <button type="submit">Upload Knowledge</button>
+    <button type="submit">上传知识文档</button>
   </form>
 </section>
 
 <section class="upload-section">
-  <h2>Upload Dataset</h2>
-  <p>CSV or Excel with dual-header format (row 1 = column names, row 2 = type markers).</p>
+  <h2>上传问卷数据</h2>
+  <p class="help-text">
+    上传 CSV 或 Excel 文件。文件必须使用<strong>双层表头</strong>格式：
+    第 1 行为题目名称，第 2 行为类型标记（metadata / single_choice / multi_select / free_text / scale），
+    第 3 行起为答卷数据。
+    <a href="/static/survey_import_template.csv" download>下载模板</a>
+  </p>
   <form
     action="/projects/{{ project_slug }}/datasets/import-form"
     method="post"
     enctype="multipart/form-data"
   >
     <input type="file" name="file" accept=".csv,.xlsx,.xls" required>
-    <button type="submit">Import Dataset</button>
+    <button type="submit">导入数据</button>
   </form>
 </section>
 {% endblock %}
