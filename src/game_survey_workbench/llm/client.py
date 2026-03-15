@@ -44,7 +44,7 @@ class OpenAICompatibleLLMClient:
 
     def generate(self, prompt: str) -> str:
         base_url = self.base_url.rstrip("/")
-        timeout = 120.0
+        timeout = 600.0
         with httpx.Client() as client:
             response = client.post(
                 f"{base_url}/responses",

@@ -143,4 +143,4 @@ def test_openai_compatible_client_uses_extended_timeout_for_provider_requests(
     result = client.generate("Hello")
 
     assert result == "Generated answer"
-    assert captured_timeouts == [120.0]
+    assert captured_timeouts == [600.0]
