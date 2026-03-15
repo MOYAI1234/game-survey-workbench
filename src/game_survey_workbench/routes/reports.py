@@ -1,14 +1,14 @@
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Request, status
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Form, HTTPException, Request, status
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
 from game_survey_workbench.config import get_settings
 from game_survey_workbench.db import get_engine
 from game_survey_workbench.models.project import ProjectRecord
-from game_survey_workbench.models.reporting import ReportGenerateRequest
+from game_survey_workbench.models.reporting import ReportGenerateRequest, ReportRecord
 from game_survey_workbench.services.knowledge_feedback import (
     KnowledgeFeedbackPayload,
     save_report_findings_as_knowledge,
@@ -84,12 +84,44 @@ def generate_report(project_slug: str, payload: ReportGenerateRequest):
     return {"path": str(path), "analysis_run_id": payload.analysis_run_id}
 
 
+@router.post("/projects/{project_slug}/reports/generate-form")
+def generate_report_form(project_slug: str, analysis_run_id: str = Form(...)):
+    generate_report(
+        project_slug=project_slug,
+        payload=ReportGenerateRequest(analysis_run_id=analysis_run_id),
+    )
+    return RedirectResponse(
+        url=f"/projects/{project_slug}/reports/latest",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
+
+
 @router.get("/projects/{project_slug}/reports/latest", response_class=HTMLResponse)
 def report_detail(project_slug: str, request: Request):
+    settings = get_settings()
+    engine = get_engine(settings.workspace_root)
+    with Session(engine) as session:
+        records = session.exec(
+            select(ReportRecord).where(ReportRecord.project_slug == project_slug)
+        ).all()
+
+    report_content = None
+    report_path = None
+    if records:
+        latest = sorted(records, key=lambda item: item.created_at, reverse=True)[0]
+        report_path = latest.path
+        path_obj = Path(report_path)
+        if path_obj.exists():
+            report_content = path_obj.read_text(encoding="utf-8")
+
     return templates.TemplateResponse(
         request,
-        "analysis/detail.html",
-        {"project_slug": project_slug},
+        "reports/detail.html",
+        {
+            "project_slug": project_slug,
+            "report_content": report_content,
+            "report_path": report_path,
+        },
     )
 
 

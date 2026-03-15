@@ -1,13 +1,14 @@
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Request, status
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, status
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from game_survey_workbench.config import get_settings
 from game_survey_workbench.models.project import ProjectCreate
 from game_survey_workbench.models.research_brief import ResearchBriefPayload
 from game_survey_workbench.models.task_plan import TaskPlanPayload
+from game_survey_workbench.services.knowledge_ingest import ingest_knowledge_file
 from game_survey_workbench.services.projects import create_project, get_project
 from game_survey_workbench.services.research_brief import (
     get_research_brief,
@@ -44,6 +45,20 @@ def create_project_route(payload: ProjectCreate):
     }
 
 
+@router.post("/projects/create")
+def create_project_form(
+    slug: str = Form(...),
+    name: str = Form(...),
+    description: str = Form(""),
+):
+    settings = get_settings()
+    create_project(
+        ProjectCreate(slug=slug, name=name, description=description),
+        workspace_root=settings.workspace_root,
+    )
+    return RedirectResponse(url=f"/projects/{slug}", status_code=status.HTTP_303_SEE_OTHER)
+
+
 @router.get("/projects/{project_slug}", response_class=HTMLResponse)
 def project_detail(project_slug: str, request: Request):
     settings, project = require_project(project_slug=project_slug)
@@ -65,6 +80,20 @@ def project_detail(project_slug: str, request: Request):
             "plan": plan,
         },
     )
+
+
+@router.post("/projects/{project_slug}/knowledge/upload")
+async def upload_knowledge_form(project_slug: str, file: UploadFile = File(...)):
+    settings, _project = require_project(project_slug=project_slug)
+    knowledge_dir = settings.workspace_root / "knowledge"
+    knowledge_dir.mkdir(parents=True, exist_ok=True)
+
+    filename = Path(file.filename or "uploaded.md").name
+    destination = knowledge_dir / filename
+    destination.write_bytes(await file.read())
+    ingest_knowledge_file(destination, project_root=settings.workspace_root)
+
+    return RedirectResponse(url=f"/projects/{project_slug}", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.put("/projects/{project_slug}/brief")
@@ -102,6 +131,31 @@ def read_brief(project_slug: str):
         "target_audience": brief.target_audience,
         "success_criteria": brief.success_criteria,
     }
+
+
+@router.post("/projects/{project_slug}/brief/save")
+def save_brief_form(
+    project_slug: str,
+    background: str = Form(""),
+    objectives: str = Form(""),
+    hypotheses: str = Form(""),
+    target_audience: str = Form(""),
+    success_criteria: str = Form(""),
+):
+    settings, _project = require_project(project_slug=project_slug)
+    payload = ResearchBriefPayload(
+        background=background,
+        objectives=[line.strip() for line in objectives.splitlines() if line.strip()],
+        hypotheses=[line.strip() for line in hypotheses.splitlines() if line.strip()],
+        target_audience=target_audience,
+        success_criteria=success_criteria,
+    )
+    save_research_brief(
+        project_slug=project_slug,
+        payload=payload,
+        workspace_root=settings.workspace_root,
+    )
+    return RedirectResponse(url=f"/projects/{project_slug}", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.put("/projects/{project_slug}/plan")

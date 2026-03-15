@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Form, HTTPException, status
+from fastapi.responses import RedirectResponse
 
 from game_survey_workbench.config import get_settings
 from game_survey_workbench.errors import (
@@ -123,3 +124,60 @@ def generate_insights_route(
         "evidence_section": result.evidence_section,
         "citations": result.citations,
     }
+
+
+@router.post("/projects/{project_slug}/analysis/{analysis_run_id}/insights-generate")
+def generate_insights_form(
+    project_slug: str,
+    analysis_run_id: str,
+    research_goal: str = Form(...),
+):
+    settings = get_settings()
+    analysis_run = get_analysis_run(
+        analysis_run_id,
+        workspace_root=settings.workspace_root,
+    )
+    if analysis_run is None or analysis_run.project_slug != project_slug:
+        raise HTTPException(status_code=404, detail="Analysis run not found")
+
+    try:
+        client = build_llm_client(settings)
+        deterministic_findings = build_deterministic_findings_for_run(
+            analysis_run_id=analysis_run_id,
+            workspace_root=settings.workspace_root,
+        )
+        statistical_findings, matrix_findings, ranking_findings = _partition_findings(
+            deterministic_findings
+        )
+        crosstab_findings: list[str] = []
+        for segment_column in _infer_segment_columns(analysis_run_id):
+            crosstab_findings.extend(
+                build_crosstab_findings_for_run(
+                    analysis_run_id=analysis_run_id,
+                    workspace_root=settings.workspace_root,
+                    segment_column=segment_column,
+                )
+            )
+        coded_themes = load_saved_coding_themes(
+            analysis_run_id=analysis_run_id,
+            workspace_root=settings.workspace_root,
+        )
+        generate_analysis_insights(
+            project_slug=project_slug,
+            analysis_run_id=analysis_run_id,
+            research_goal=research_goal,
+            statistical_findings=statistical_findings,
+            coded_themes=coded_themes,
+            workspace_root=settings.workspace_root,
+            client=client,
+            crosstab_findings=crosstab_findings,
+            matrix_findings=matrix_findings,
+            ranking_findings=ranking_findings,
+        )
+    except Exception:
+        pass
+
+    return RedirectResponse(
+        url=f"/projects/{project_slug}/analysis/{analysis_run_id}",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )

@@ -292,6 +292,27 @@ As of 2026-03-15, the roadmap status within Stage 4 is:
 
 This status update records that Stage 4 advanced capability expansion has been executed end-to-end on `master`, including cross-tab analysis, matrix/ranking support, stronger recommendation context assembly, and report-to-knowledge persistence.
 
+### Stage 5: Interactive Workbench Shell
+
+Goal:
+
+- make the web workbench usable through the browser for the full core loop
+
+Scope:
+
+- browser-based project creation, knowledge upload, brief editing
+- dataset upload with schema preview
+- analysis findings dashboard with coding results and insight display
+- form-triggered text coding, insight generation, and report generation
+- rendered report view
+- navigation and workflow continuity across pages
+
+Important note:
+
+- this stage makes the existing backend value accessible, not a UX redesign
+- no frontend framework (stays with Jinja2 server-rendering)
+- no new dependencies
+
 ## Current Product State After Stage 2D Core Implementation
 
 The product now has these Stage 2 capabilities in place:
