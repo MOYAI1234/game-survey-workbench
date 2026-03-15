@@ -11,6 +11,7 @@ from game_survey_workbench.errors import LLM_CONFIG_ERROR_MESSAGE
 from game_survey_workbench.llm.client import MissingLLMConfigurationError
 from game_survey_workbench.models.project import ProjectRecord
 from game_survey_workbench.models.reporting import ReportGenerateRequest, ReportRecord
+from game_survey_workbench.routes.datasets import _find_latest_analysis_run_id
 from game_survey_workbench.services.analysis_context import (
     build_deterministic_findings_for_run,
     load_analysis_run_context,
@@ -144,33 +145,39 @@ def generate_report(project_slug: str, payload: ReportGenerateRequest):
 
 
 @router.post("/projects/{project_slug}/reports/generate-form")
-def generate_report_form(project_slug: str, analysis_run_id: str = Form(...)):
+def generate_report_form(project_slug: str, analysis_run_id: str | None = Form(None)):
     settings = get_settings()
+    resolved_run_id = analysis_run_id or _find_latest_analysis_run_id(
+        project_slug=project_slug,
+        workspace_root=settings.workspace_root,
+    )
+    if resolved_run_id is None:
+        raise HTTPException(status_code=404, detail="Analysis run not found")
     try:
         generate_report(
             project_slug=project_slug,
-            payload=ReportGenerateRequest(analysis_run_id=analysis_run_id),
+            payload=ReportGenerateRequest(analysis_run_id=resolved_run_id),
         )
     except MissingLLMConfigurationError:
         record_workflow_event(
             workspace_root=settings.workspace_root,
-            analysis_run_id=analysis_run_id,
+            analysis_run_id=resolved_run_id,
             event="report_failed",
             error=LLM_CONFIG_ERROR_MESSAGE,
         )
         return RedirectResponse(
-            url=f"/projects/{project_slug}/analysis/{analysis_run_id}",
+            url=f"/projects/{project_slug}/analysis/latest",
             status_code=status.HTTP_303_SEE_OTHER,
         )
     except Exception as exc:
         record_workflow_event(
             workspace_root=settings.workspace_root,
-            analysis_run_id=analysis_run_id,
+            analysis_run_id=resolved_run_id,
             event="report_failed",
             error=str(exc),
         )
         return RedirectResponse(
-            url=f"/projects/{project_slug}/analysis/{analysis_run_id}",
+            url=f"/projects/{project_slug}/analysis/latest",
             status_code=status.HTTP_303_SEE_OTHER,
         )
 

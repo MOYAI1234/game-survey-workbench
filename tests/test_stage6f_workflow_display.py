@@ -28,5 +28,5 @@ def test_analysis_page_shows_step_checklist(tmp_path: Path, monkeypatch):
 
     assert analysis_response.status_code == 200
     content = analysis_response.text.lower()
-    assert "research progress" in content
-    assert "dataset imported" in content or "imported" in content
+    assert "研究进度" in analysis_response.text
+    assert "数据已导入" in analysis_response.text

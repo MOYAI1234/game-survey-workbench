@@ -15,6 +15,7 @@ from game_survey_workbench.llm.client import (
 from game_survey_workbench.models.analysis_run import get_analysis_run
 from game_survey_workbench.models.dataset import QuestionColumnSchema
 from game_survey_workbench.models.insight import InsightGenerateRequest
+from game_survey_workbench.routes.datasets import _find_latest_analysis_run_id
 from game_survey_workbench.services.analysis_context import (
     build_crosstab_findings_for_run,
     build_deterministic_findings_for_run,
@@ -202,6 +203,25 @@ def generate_insights_form(
         )
 
     return RedirectResponse(
-        url=f"/projects/{project_slug}/analysis/{analysis_run_id}",
+        url=f"/projects/{project_slug}/analysis/latest",
         status_code=status.HTTP_303_SEE_OTHER,
+    )
+
+
+@router.post("/projects/{project_slug}/analysis/latest/insights-generate")
+def generate_insights_form_latest(
+    project_slug: str,
+    research_goal: str = Form(...),
+):
+    settings = get_settings()
+    latest_run_id = _find_latest_analysis_run_id(
+        project_slug=project_slug,
+        workspace_root=settings.workspace_root,
+    )
+    if latest_run_id is None:
+        raise HTTPException(status_code=404, detail="Analysis run not found")
+    return generate_insights_form(
+        project_slug=project_slug,
+        analysis_run_id=latest_run_id,
+        research_goal=research_goal,
     )

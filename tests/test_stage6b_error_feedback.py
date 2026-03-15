@@ -58,7 +58,7 @@ def test_error_message_shown_on_analysis_page(client: TestClient, tmp_path: Path
 
     assert response.status_code == 200
     assert "LLM provider unreachable" in response.text
-    assert "imported" in response.text
+    assert "数据已导入" in response.text
 
 
 def test_analysis_page_shows_completed_workflow_events(client: TestClient, tmp_path: Path):
@@ -81,6 +81,6 @@ def test_analysis_page_shows_completed_workflow_events(client: TestClient, tmp_p
     response = client.get(f"/projects/phase-proj/analysis/{run_id}")
 
     assert response.status_code == 200
-    assert "insights_ready" in response.text
-    assert "coding_complete" in response.text
-    assert "insights_complete" in response.text
+    assert "洞察合成" in response.text
+    assert "文本编码" in response.text
+    assert "报告生成" in response.text

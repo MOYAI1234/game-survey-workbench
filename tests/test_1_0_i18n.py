@@ -69,3 +69,31 @@ def test_knowledge_upload_has_feedback(client: TestClient, tmp_path: Path):
     assert response.status_code == 303
     location = response.headers["location"]
     assert "upload_success=" in location or "success" in location.lower()
+
+
+def test_analysis_page_is_chinese(client: TestClient, tmp_path: Path):
+    client.post("/projects", json={"slug": "ana-cn", "name": "分析测试"})
+    csv_path = tmp_path / "data.csv"
+    csv_path.write_text(
+        "Q1,Q2\nsingle_choice,free_text\n满意,很好玩\n一般,太贵了\n",
+        encoding="utf-8",
+    )
+
+    with csv_path.open("rb") as handle:
+        response = client.post(
+            "/projects/ana-cn/datasets/import",
+            files={"file": ("data.csv", handle, "text/csv")},
+        )
+
+    run_id = response.json()["analysis_run_id"]
+    response = client.get(f"/projects/ana-cn/analysis/{run_id}")
+    content = response.text
+
+    assert "数据分析" in content
+    assert "研究进度" in content
+    assert "数据概览" in content
+    assert run_id not in content
+    assert "数据已导入" in content
+    assert "文本编码" in content
+    assert "洞察合成" in content
+    assert "报告生成" in content

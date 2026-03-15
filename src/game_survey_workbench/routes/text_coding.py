@@ -15,6 +15,7 @@ from game_survey_workbench.llm.client import (
 from game_survey_workbench.models.analysis_run import get_analysis_run
 from game_survey_workbench.models.dataset import QuestionColumnSchema
 from game_survey_workbench.models.text_coding import TextCodingRequest
+from game_survey_workbench.routes.datasets import _find_latest_analysis_run_id
 from game_survey_workbench.services.analysis_context import (
     NoFreeTextResponsesFoundError,
     QuestionColumnNotFoundError,
@@ -143,6 +144,18 @@ def code_text_all(project_slug: str, analysis_run_id: str):
         )
 
     return RedirectResponse(
-        url=f"/projects/{project_slug}/analysis/{analysis_run_id}",
+        url=f"/projects/{project_slug}/analysis/latest",
         status_code=status.HTTP_303_SEE_OTHER,
     )
+
+
+@router.post("/projects/{project_slug}/analysis/latest/code-text-all")
+def code_text_all_latest(project_slug: str):
+    settings = get_settings()
+    latest_run_id = _find_latest_analysis_run_id(
+        project_slug=project_slug,
+        workspace_root=settings.workspace_root,
+    )
+    if latest_run_id is None:
+        raise HTTPException(status_code=404, detail="Analysis run not found")
+    return code_text_all(project_slug=project_slug, analysis_run_id=latest_run_id)
