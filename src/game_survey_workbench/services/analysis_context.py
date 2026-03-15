@@ -22,6 +22,11 @@ from game_survey_workbench.services.analytics import (
 )
 from game_survey_workbench.services.crosstab import compute_crosstab, describe_crosstab
 from game_survey_workbench.services.dataset_import import load_imported_dataset_dataframe
+from game_survey_workbench.services.matrix_analytics import (
+    describe_matrix_summary,
+    detect_matrix_group,
+    summarize_matrix_group,
+)
 
 
 class QuestionColumnNotFoundError(ValueError):
@@ -104,10 +109,26 @@ def build_deterministic_findings_for_run(
             finding = describe_single_choice_summary(question_column, series)
         elif question_schema.question_type == "multi_select":
             finding = describe_multi_select_summary(question_column, series)
+        elif question_schema.question_type == "matrix":
+            prefix = _derive_group_prefix(question_column)
+            group_columns = detect_matrix_group(list(context.dataframe.columns), prefix=prefix)
+            if group_columns and question_column == group_columns[0]:
+                matrix_summary = summarize_matrix_group(
+                    dataframe=context.dataframe,
+                    columns=group_columns,
+                    top_box_values={4, 5},
+                )
+                finding = describe_matrix_summary(prefix.rstrip("_"), matrix_summary)
 
         if finding:
             findings.append(finding)
     return findings
+
+
+def _derive_group_prefix(question_column: str) -> str:
+    if "_" not in question_column:
+        return f"{question_column}_"
+    return question_column.rsplit("_", 1)[0] + "_"
 
 
 def build_crosstab_findings_for_run(

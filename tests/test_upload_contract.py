@@ -36,9 +36,9 @@ def test_parse_dual_header_dataframe_rejects_missing_type_row(tmp_path: Path):
 def test_parse_dual_header_dataframe_rejects_unknown_type_marker(tmp_path: Path):
     csv_path = tmp_path / "survey.csv"
     csv_path.write_text(
-        "Q1,Q2\nsingle_choice,matrix\n满意,高\n",
+        "Q1,Q2\nsingle_choice,unknown_type\n满意,高\n",
         encoding="utf-8",
     )
 
-    with pytest.raises(ValueError, match="Unsupported type marker 'matrix'"):
+    with pytest.raises(ValueError, match="Unsupported type marker 'unknown_type'"):
         parse_dual_header_dataframe(csv_path)

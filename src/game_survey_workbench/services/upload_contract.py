@@ -13,6 +13,7 @@ ALLOWED_TYPE_MARKERS = {
     "multi_select",
     "free_text",
     "scale",
+    "matrix",
 }
 
 
