@@ -15,9 +15,10 @@ def test_run_bat_uses_python_module_uv_entrypoint():
     script_path = Path(__file__).resolve().parents[1] / "run.bat"
     script = script_path.read_text(encoding="utf-8")
 
-    assert "call python -m uv sync" in script
+    assert "call python -m uv sync --extra dev" in script
+    assert 'set "PYTHONPATH=%CD%\\src"' in script
     assert (
-        "call python -m uv run --with uvicorn uvicorn "
+        "call python -m uvicorn --app-dir src "
         "game_survey_workbench.app:create_app --factory --reload "
-        "--host 127.0.0.1 --port 8000"
+        "--reload-dir src --host 127.0.0.1 --port 8000"
     ) in script
