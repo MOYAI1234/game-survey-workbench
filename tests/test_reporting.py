@@ -159,7 +159,8 @@ def test_generate_report_renders_saved_insight_narrative_without_bullet_wrapping
     report_path = Path(report["path"])
     markdown = report_path.read_text(encoding="utf-8")
 
-    assert "## Key Findings" in markdown
+    assert "## Executive Summary" in markdown
+    assert "## Analysis" in markdown
     assert "\n- Boredom emerged" not in markdown
     assert markdown.count("## Evidence Basis") == 1
 
@@ -255,5 +256,6 @@ def test_generate_report_succeeds_without_stage_2d_artifacts(tmp_path: Path, mon
 
     assert response.status_code == 201
     markdown = Path(response.json()["path"]).read_text(encoding="utf-8")
-    assert "Initial automated summary." in markdown
+    assert "## Methodology" in markdown
+    assert "## Statistical Findings" in markdown
     assert "## Evidence Basis" not in markdown

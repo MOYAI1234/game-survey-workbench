@@ -9,16 +9,25 @@ from game_survey_workbench.config import get_settings
 from game_survey_workbench.db import get_engine
 from game_survey_workbench.models.project import ProjectRecord
 from game_survey_workbench.models.reporting import ReportGenerateRequest, ReportRecord
+from game_survey_workbench.services.analysis_context import (
+    build_deterministic_findings_for_run,
+    load_analysis_run_context,
+)
+from game_survey_workbench.services.dataset_meta import extract_dataset_meta
 from game_survey_workbench.services.knowledge_feedback import (
     KnowledgeFeedbackPayload,
     save_report_findings_as_knowledge,
 )
+from game_survey_workbench.services.research_brief import get_research_brief
 from game_survey_workbench.services.reporting import (
+    generate_structured_report,
     get_analysis_run_record,
     get_coding_results,
     get_latest_insight_record,
+    parse_report_markdown,
     save_report,
 )
+from game_survey_workbench.services.report_versions import list_report_versions
 from game_survey_workbench.services.workflow_state import record_workflow_event
 
 router = APIRouter()
@@ -51,6 +60,37 @@ def generate_report(project_slug: str, payload: ReportGenerateRequest):
         analysis_run_id=payload.analysis_run_id,
         workspace_root=settings.workspace_root,
     )
+    analysis_context = load_analysis_run_context(
+        analysis_run_id=payload.analysis_run_id,
+        workspace_root=settings.workspace_root,
+    )
+    brief_record = get_research_brief(
+        project_slug=project_slug,
+        workspace_root=settings.workspace_root,
+    )
+    statistical_findings = build_deterministic_findings_for_run(
+        analysis_run_id=payload.analysis_run_id,
+        workspace_root=settings.workspace_root,
+    )
+    coded_themes = [
+        theme
+        for result in coding_results
+        for theme in result.themes
+        if isinstance(theme, dict)
+    ]
+    dataset_meta = extract_dataset_meta(
+        schema={
+            "columns": {
+                column: {
+                    "type": payload.get("question_type", "unknown")
+                    if isinstance(payload, dict)
+                    else "unknown"
+                }
+                for column, payload in analysis_context.dataset_record.dataset_schema.items()
+            }
+        },
+        row_count=len(analysis_context.dataframe),
+    )
     summary_points = ["Initial automated summary."]
     sections = {"Key Findings": ["Analysis run completed."]}
     narrative = None
@@ -71,6 +111,16 @@ def generate_report(project_slug: str, payload: ReportGenerateRequest):
         if theme_names:
             summary_points = [f"Coded themes: {', '.join(theme_names)}"]
 
+    markdown = generate_structured_report(
+        project_name=project.name,
+        brief=brief_record.model_dump() if brief_record is not None else None,
+        dataset_meta=dataset_meta,
+        statistical_findings=statistical_findings,
+        coded_themes=coded_themes,
+        insight_narrative=narrative,
+        evidence_section=evidence_section,
+    )
+
     path = save_report(
         project_slug=project_slug,
         analysis_run_id=payload.analysis_run_id,
@@ -81,6 +131,7 @@ def generate_report(project_slug: str, payload: ReportGenerateRequest):
         narrative=narrative,
         evidence=evidence,
         evidence_section=evidence_section,
+        markdown=markdown,
     )
     record_workflow_event(
         workspace_root=settings.workspace_root,
@@ -126,6 +177,7 @@ def report_detail(project_slug: str, request: Request):
         ).all()
 
     report_content = None
+    report_display = None
     report_path = None
     if records:
         latest = sorted(records, key=lambda item: item.created_at, reverse=True)[0]
@@ -133,6 +185,7 @@ def report_detail(project_slug: str, request: Request):
         path_obj = Path(report_path)
         if path_obj.exists():
             report_content = path_obj.read_text(encoding="utf-8")
+            report_display = parse_report_markdown(report_content)
 
     return templates.TemplateResponse(
         request,
@@ -140,7 +193,25 @@ def report_detail(project_slug: str, request: Request):
         {
             "project_slug": project_slug,
             "report_content": report_content,
+            "report_display": report_display,
             "report_path": report_path,
+        },
+    )
+
+
+@router.get("/projects/{project_slug}/reports/history", response_class=HTMLResponse)
+def report_history(project_slug: str, request: Request):
+    settings = get_settings()
+    engine = get_engine(settings.workspace_root)
+    with Session(engine) as session:
+        versions = list_report_versions(session, project_slug)
+
+    return templates.TemplateResponse(
+        request,
+        "reports/history.html",
+        {
+            "project_slug": project_slug,
+            "versions": versions,
         },
     )
 
