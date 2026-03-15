@@ -62,8 +62,35 @@ def _ensure_analysisrunrecord_stage6a_columns(engine) -> None:
             )
 
 
+def _ensure_questionnairespecversion_stage7_columns(engine) -> None:
+    with engine.begin() as connection:
+        columns = {
+            row[1]
+            for row in connection.exec_driver_sql("PRAGMA table_info(questionnairespecversion)")
+        }
+        if not columns:
+            return
+
+        if "citations" not in columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE questionnairespecversion ADD COLUMN citations JSON DEFAULT '[]'"
+            )
+            connection.exec_driver_sql(
+                "UPDATE questionnairespecversion SET citations = '[]' WHERE citations IS NULL"
+            )
+
+        if "retrieved_snippets" not in columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE questionnairespecversion ADD COLUMN retrieved_snippets JSON DEFAULT '[]'"
+            )
+            connection.exec_driver_sql(
+                "UPDATE questionnairespecversion SET retrieved_snippets = '[]' WHERE retrieved_snippets IS NULL"
+            )
+
+
 def create_db_and_tables(workspace_root: Path) -> None:
     engine = get_engine(workspace_root)
     SQLModel.metadata.create_all(engine)
     _ensure_projectrecord_stage3a_columns(engine)
     _ensure_analysisrunrecord_stage6a_columns(engine)
+    _ensure_questionnairespecversion_stage7_columns(engine)

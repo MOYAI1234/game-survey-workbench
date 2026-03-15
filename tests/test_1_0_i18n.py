@@ -55,6 +55,8 @@ def test_project_detail_is_chinese(client: TestClient):
     assert "上传问卷数据" in content
     assert "PUT /projects/" not in content
     assert "双层表头" in content
+    assert "当前版本不会自动生成任务计划" in content
+    assert "任务计划会在你完善研究简报后逐步明确" not in content
 
 
 def test_knowledge_upload_has_feedback(client: TestClient, tmp_path: Path):

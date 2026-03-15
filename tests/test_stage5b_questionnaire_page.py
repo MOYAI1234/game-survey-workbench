@@ -1,4 +1,5 @@
 from pathlib import Path
+import sqlite3
 
 import pytest
 from fastapi.testclient import TestClient
@@ -62,3 +63,49 @@ def test_questionnaire_page_shows_latest_draft(client, project_slug):
         or "Knowledge Basis" in html
         or "Player" in html
     )
+
+
+def test_questionnaire_page_loads_with_legacy_db_schema(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT", str(tmp_path))
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_PROVIDER", "fake")
+    (tmp_path / "knowledge").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "projects").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "artifacts").mkdir(parents=True, exist_ok=True)
+
+    database_path = tmp_path / "app.db"
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE questionnairespecversion (
+                id INTEGER PRIMARY KEY,
+                project_slug VARCHAR NOT NULL,
+                version_id VARCHAR NOT NULL UNIQUE,
+                research_goal VARCHAR NOT NULL,
+                markdown_spec VARCHAR NOT NULL,
+                created_at TIMESTAMP
+            )
+            """
+        )
+        connection.execute(
+            """
+            INSERT INTO questionnairespecversion
+            (project_slug, version_id, research_goal, markdown_spec, created_at)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+            """,
+            (
+                "legacy-questionnaire",
+                "v1",
+                "Understand player motivation",
+                "# Legacy Draft\n\n1. Favorite mode?",
+            ),
+        )
+        connection.commit()
+
+    with TestClient(create_app()) as client:
+        response = client.get("/projects/legacy-questionnaire/questionnaires/latest")
+
+    assert response.status_code == 200
+    assert "Legacy Draft" in response.text
