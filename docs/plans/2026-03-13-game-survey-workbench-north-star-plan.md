@@ -281,6 +281,17 @@ As of 2026-03-15, the roadmap status within Stage 3 is:
 
 This status update records that Stage 3 planning is no longer pending. The context layer has been implemented end-to-end, including persistent project metadata, brief and plan storage, homepage and landing-page context views, and brief-aware downstream prompt assembly.
 
+As of 2026-03-15, the roadmap status within Stage 4 is:
+
+- Stage 4A `Cross-tabulation Analytics Engine`: completed on `master`
+- Stage 4B `Matrix Question Type Support`: completed on `master`
+- Stage 4C `Ranking Question Type Support`: completed on `master`
+- Stage 4D `Enhanced Recommendation Logic`: completed on `master`
+- Stage 4E `Report-to-Knowledge Feedback Loop`: completed on `master`
+- Stage 4F `North-star Update + Regression Verification`: completed on `master`
+
+This status update records that Stage 4 advanced capability expansion has been executed end-to-end on `master`, including cross-tab analysis, matrix/ranking support, stronger recommendation context assembly, and report-to-knowledge persistence.
+
 ## Current Product State After Stage 2D Core Implementation
 
 The product now has these Stage 2 capabilities in place:
@@ -320,15 +331,16 @@ After the 2026-03-15 provider-backed closeout validation, that readiness questio
 
 ## Next Planned Artifact
 
-The next concrete planning artifact should be a Stage 4 planning document focused on advanced research capability expansion, now that the Stage 3 context layer has been implemented on `codex/stage3a-project-enrichment`.
+The next concrete planning artifact should be a Stage 4 closeout assessment or a tightly scoped follow-up plan for post-Stage-4 polish, now that the advanced research capability expansion has been implemented on `master`.
 
-## After Stage 3
+## After Stage 4
 
-Now that Stage 3 context-layer execution has been completed, the next planned focus can move forward inside the north-star order:
+Now that Stage 4 advanced capability expansion has been completed, the next planned focus can move forward inside the north-star order:
 
-- begin Stage 4 planning for advanced research capability expansion
-- keep any remaining Stage 2 or Stage 3 shell-polish work narrowly scoped and subordinate to the Stage 4 planning sequence
+- run a Stage 4 closeout assessment against realistic research workflows
+- keep any remaining Stage 2 or Stage 3 shell-polish work narrowly scoped and subordinate to validated post-Stage-4 follow-up priorities
+- treat statistical significance testing, visualization, and broader analysis automation as future candidates rather than automatic next steps
 
-Future sessions should continue to respect the stage order:
+Future sessions should continue to respect the executed stage order:
 
 `Stage 2A/2B foundations -> Stage 2C questionnaire grounding -> Stage 2D coding and insight synthesis -> Stage 2D report/evidence hardening -> Stage 2 closeout assessment -> final Stage 2 refinement pass -> provider-backed closeout validation -> Stage 3 context work -> Stage 4 advanced capability expansion`
