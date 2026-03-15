@@ -35,6 +35,76 @@
 
 ## 快速开始
 
+### Quick Start
+
+1. clone 仓库并进入目录
+2. 复制并编辑 `.env`
+3. 运行 `run.bat`
+
+Windows 推荐启动方式：
+
+```bat
+copy .env.example .env
+notepad .env
+run.bat
+```
+
+`run.bat` 会做这些事情：
+
+- 如果 `.env` 不存在，自动从 `.env.example` 创建模板并停止，要求先完成真实配置
+- 执行 `uv sync`
+- 启动本地服务
+- 自动打开浏览器到 `http://127.0.0.1:8000`
+
+### LLM Configuration
+
+系统当前支持两种模式：
+
+- `openai_compatible`：用于真实验证，支持 OpenAI API 和 Ollama 的 OpenAI 兼容接口
+- `fake`：仅用于开发或测试，不代表真实研究体验
+
+推荐真实验证配置：
+
+```env
+GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT=workspace
+GAME_SURVEY_WORKBENCH_LLM_PROVIDER=openai_compatible
+GAME_SURVEY_WORKBENCH_LLM_MODEL=gpt-4.1
+GAME_SURVEY_WORKBENCH_LLM_API_KEY=sk-your-openai-key
+GAME_SURVEY_WORKBENCH_LLM_BASE_URL=https://api.openai.com/v1
+```
+
+本地 Ollama 示例：
+
+```env
+GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT=workspace
+GAME_SURVEY_WORKBENCH_LLM_PROVIDER=openai_compatible
+GAME_SURVEY_WORKBENCH_LLM_MODEL=qwen2.5:14b
+GAME_SURVEY_WORKBENCH_LLM_API_KEY=ollama
+GAME_SURVEY_WORKBENCH_LLM_BASE_URL=http://127.0.0.1:11434/v1
+```
+
+开发/测试用 fake 配置：
+
+```env
+GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT=workspace
+GAME_SURVEY_WORKBENCH_LLM_PROVIDER=fake
+GAME_SURVEY_WORKBENCH_LLM_MODEL=fake
+GAME_SURVEY_WORKBENCH_LLM_API_KEY=fake
+GAME_SURVEY_WORKBENCH_LLM_BASE_URL=http://localhost/fake
+```
+
+如果未完成 LLM 配置，浏览器中的问卷生成、文本编码、洞察生成等表单操作会回跳原页面，并提示：`LLM 未配置，请设置环境变量后重试`。
+
+### 首次使用流程
+
+首次启动后，推荐按这个顺序完成验证：
+
+1. 创建一个项目
+2. 导入一份符合双层表头规范的问卷数据
+3. 先验证问卷草案生成
+4. 再运行文本编码和洞察生成
+5. 最后生成并查看结构化 Markdown 报告
+
 安装依赖：
 
 ```bash

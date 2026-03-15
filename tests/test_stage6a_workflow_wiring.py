@@ -9,6 +9,7 @@ from sqlmodel import Session, select
 from game_survey_workbench.app import create_app
 from game_survey_workbench.db import get_engine
 from game_survey_workbench.models.analysis_run import AnalysisRunRecord
+from game_survey_workbench.errors import LLM_CONFIG_ERROR_MESSAGE
 from game_survey_workbench.services.knowledge_ingest import ingest_knowledge_file
 from game_survey_workbench.services.workflow_state import get_workflow_state
 
@@ -149,4 +150,4 @@ def test_code_text_all_records_workflow_error_on_failure(
 
     assert response.status_code == 303
     assert state.current_phase == "imported"
-    assert state.last_error == "LLM runtime is not configured."
+    assert state.last_error == LLM_CONFIG_ERROR_MESSAGE

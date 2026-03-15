@@ -7,6 +7,8 @@ from sqlmodel import Session, select
 
 from game_survey_workbench.config import get_settings
 from game_survey_workbench.db import get_engine
+from game_survey_workbench.errors import LLM_CONFIG_ERROR_MESSAGE
+from game_survey_workbench.llm.client import MissingLLMConfigurationError
 from game_survey_workbench.models.project import ProjectRecord
 from game_survey_workbench.models.reporting import ReportGenerateRequest, ReportRecord
 from game_survey_workbench.services.analysis_context import (
@@ -148,6 +150,17 @@ def generate_report_form(project_slug: str, analysis_run_id: str = Form(...)):
         generate_report(
             project_slug=project_slug,
             payload=ReportGenerateRequest(analysis_run_id=analysis_run_id),
+        )
+    except MissingLLMConfigurationError:
+        record_workflow_event(
+            workspace_root=settings.workspace_root,
+            analysis_run_id=analysis_run_id,
+            event="report_failed",
+            error=LLM_CONFIG_ERROR_MESSAGE,
+        )
+        return RedirectResponse(
+            url=f"/projects/{project_slug}/analysis/{analysis_run_id}",
+            status_code=status.HTTP_303_SEE_OTHER,
         )
     except Exception as exc:
         record_workflow_event(
