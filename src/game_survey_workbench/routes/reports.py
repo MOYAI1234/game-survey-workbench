@@ -9,6 +9,10 @@ from game_survey_workbench.config import get_settings
 from game_survey_workbench.db import get_engine
 from game_survey_workbench.models.project import ProjectRecord
 from game_survey_workbench.models.reporting import ReportGenerateRequest
+from game_survey_workbench.services.knowledge_feedback import (
+    KnowledgeFeedbackPayload,
+    save_report_findings_as_knowledge,
+)
 from game_survey_workbench.services.reporting import (
     get_analysis_run_record,
     get_coding_results,
@@ -87,3 +91,16 @@ def report_detail(project_slug: str, request: Request):
         "analysis/detail.html",
         {"project_slug": project_slug},
     )
+
+
+@router.post("/reports/feedback-to-knowledge")
+def feedback_to_knowledge(payload: KnowledgeFeedbackPayload):
+    settings = get_settings()
+    result = save_report_findings_as_knowledge(
+        payload=payload,
+        workspace_root=settings.workspace_root,
+    )
+    return {
+        "file_path": str(result.file_path),
+        "document_title": result.document_title,
+    }
