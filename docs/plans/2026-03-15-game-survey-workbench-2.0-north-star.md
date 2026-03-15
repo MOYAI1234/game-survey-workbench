@@ -95,6 +95,50 @@
 
 **价值：** 中文用户得到中文研究产出，减少翻译成本。
 
+### 方向七：知识来源格式扩展（PDF / Word 自动转换）
+
+**现状：** 知识库入库只支持 `.md` 文件。实际研究工作中，知识来源大量是 PDF 报告（行业白皮书、竞品分析、学术论文）和 Word 文档。
+
+**目标：**
+- 支持直接上传 `.pdf`、`.docx`、`.pptx` 格式文件
+- 上传时自动转换为 Markdown，再走现有入库流程（不改服务层）
+- 转换工具优先使用 `markitdown`（微软出品，Python 原生，支持 PDF/Word/PPT/Excel，无需 API）
+- 转换失败时给出明确提示和手动编辑入口
+
+**实现路径（最小改动）：**
+```python
+# 在 knowledge_ingest.py 上游加一个格式检测 + 转换步骤
+from markitdown import MarkItDown
+md = MarkItDown()
+result = md.convert(uploaded_file_path)
+markdown_text = result.text_content
+# 之后走现有 ingest 流程
+```
+
+**依赖：** `pip install markitdown`（新增一个 Python 依赖，可选安装）
+
+**价值：** 行业报告、白皮书不再需要手动转 Markdown，极大降低知识入库的准备成本。
+
+### 方向八：产品界面视觉升级
+
+**现状：** 1.0 使用手写 CSS（约 250 行 `app.css`），功能可用但视觉较为粗糙。
+
+**目标：**
+- 引入轻量 CSS 框架，不改变 Jinja2 模板结构，不增加构建步骤
+- 候选方案：
+  - **Pico CSS**（推荐首选）：CDN 引入，语义 HTML 自动美化，对 `<form>/<table>/<button>` 零改动即生效
+  - **Tailwind CSS CDN**：更精细可控，但需要替换大量 class
+- 界面层级、信息密度、中文排版优化
+- 移动端基本可读（不做响应式大改）
+
+**实现路径（Pico CSS 最小改动）：**
+```html
+<!-- 在 templates/layout.html 的 <head> 加一行 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+```
+
+**价值：** 产品从"可用"升级到"好用"，降低用户认知负担，提升汇报和演示时的可信度。
+
 ## 非目标（2.0 仍然不做）
 
 - 多用户协作
@@ -115,8 +159,10 @@
 | 2.0B | 语义检索升级 | 直接提升核心循环输出质量 |
 | 2.0C | 智能数据适配 | 降低用户门槛 |
 | 2.0D | 知识可视化 + 命中反馈 | 建立用户信任 |
-| 2.0E | 跨项目经验复用 | 长期价值积累 |
-| 2.0F | Prompt 中文化 | 跟随用户需求优先级 |
+| 2.0E | 知识来源格式扩展（PDF/Word） | 与 2.0A 知识管理页配套，降低知识入库门槛 |
+| 2.0F | 跨项目经验复用 | 长期价值积累 |
+| 2.0G | Prompt 中文化 | 跟随用户需求优先级 |
+| 2.0H | 界面视觉升级（Pico CSS） | 不阻塞核心功能，可随时并入任何阶段 |
 
 ## 与 1.0 north-star 的关系
 
