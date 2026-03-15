@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+{% block title %}Report — {{ project_slug }}{% endblock %}
+{% block content %}
+<header>
+  <p class="eyebrow"><a href="/projects/{{ project_slug }}">← {{ project_slug }}</a></p>
+  <h1>Report</h1>
+</header>
+
+{% if report_content %}
+<section class="report-content">
+  <pre class="report-markdown">{{ report_content }}</pre>
+</section>
+{% if report_path %}
+<p class="muted">Saved to: <code>{{ report_path }}</code></p>
+{% endif %}
+{% else %}
+<p class="empty-state">
+  No reports generated yet. Go to the <a href="/projects/{{ project_slug }}/analysis/latest">analysis dashboard</a>
+  to generate one.
+</p>
+{% endif %}
+{% endblock %}

@@ -1,7 +1,110 @@
 {% extends "layout.html" %}
-{% block title %}Analysis{% endblock %}
+{% block title %}Analysis — {{ project_slug }}{% endblock %}
 {% block content %}
-<h1>数据分析</h1>
-<p>项目：{{ project_slug }}</p>
-<p>这里展示数据导入状态、分析结果和报告导出入口。</p>
+<header>
+  <p class="eyebrow"><a href="/projects/{{ project_slug }}">← {{ project_slug }}</a></p>
+  <h1>Analysis Dashboard</h1>
+  {% if run_id %}
+  <p class="muted">Run: <code>{{ run_id }}</code></p>
+  {% endif %}
+</header>
+
+{% if not run_id %}
+<p class="empty-state">
+  No analysis runs yet. Upload a dataset from the <a href="/projects/{{ project_slug }}">project page</a>.
+</p>
+{% else %}
+<section class="schema-overview">
+  <h2>Dataset Schema</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Column</th>
+        <th>Type</th>
+        <th>In Analysis</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for col_name, col_info in schema.items() %}
+      <tr>
+        <td>{{ col_name }}</td>
+        <td>{{ col_info.question_type if col_info is mapping else col_info }}</td>
+        <td>{{ 'Yes' if col_info is mapping and col_info.include_in_analysis else 'No' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="findings-section">
+  <h2>Deterministic Findings</h2>
+  {% if findings %}
+  <ul class="findings-list">
+    {% for finding in findings %}
+    <li>{{ finding }}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty-state">No deterministic findings computed.</p>
+  {% endif %}
+</section>
+
+<section class="coding-section">
+  <h2>Text Coding Results</h2>
+  {% if coding_results %}
+    {% for result in coding_results %}
+    <article>
+      <h3>{{ result.question_column }}</h3>
+      <ul>
+        {% for theme in result.themes %}
+        <li>
+          <strong>{{ theme.theme_name if theme is mapping else theme }}</strong>
+          {% if theme is mapping and theme.count is defined %}
+          ({{ theme.count }} responses)
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </article>
+    {% endfor %}
+  {% else %}
+  <p class="empty-state">No text coding results yet.</p>
+  <form action="/projects/{{ project_slug }}/analysis/{{ run_id }}/code-text-all" method="post">
+    <button type="submit">Run Text Coding (all free-text columns)</button>
+  </form>
+  {% endif %}
+</section>
+
+<section class="insight-section">
+  <h2>Insight Synthesis</h2>
+  {% if insight %}
+  <div class="insight-narrative">{{ insight.narrative }}</div>
+  {% if insight.evidence_section %}
+  <div class="evidence">{{ insight.evidence_section }}</div>
+  {% endif %}
+  {% else %}
+  <p class="empty-state">No insights generated yet.</p>
+  <form action="/projects/{{ project_slug }}/analysis/{{ run_id }}/insights-generate" method="post">
+    <label for="research_goal">Research Goal</label>
+    <input
+      type="text"
+      id="research_goal"
+      name="research_goal"
+      required
+      placeholder="e.g. Understand player satisfaction drivers"
+    >
+    <button type="submit">Generate Insights</button>
+  </form>
+  {% endif %}
+</section>
+
+<section class="report-section">
+  <h2>Report</h2>
+  <form action="/projects/{{ project_slug }}/reports/generate-form" method="post">
+    <input type="hidden" name="analysis_run_id" value="{{ run_id }}">
+    <button type="submit">Generate Report</button>
+  </form>
+  <p class="muted"><a href="/projects/{{ project_slug }}/reports/latest">View latest report</a></p>
+</section>
+{% endif %}
 {% endblock %}

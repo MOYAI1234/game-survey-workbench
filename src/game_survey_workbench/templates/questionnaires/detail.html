@@ -1,7 +1,43 @@
 {% extends "layout.html" %}
-{% block title %}Questionnaire{% endblock %}
+{% block title %}Questionnaire — {{ project_slug }}{% endblock %}
 {% block content %}
-<h1>问卷设计</h1>
-<p>项目：{{ project_slug }}</p>
-<p>这里展示问卷草案预览与版本信息。</p>
+<header>
+  <p class="eyebrow"><a href="/projects/{{ project_slug }}">← {{ project_slug }}</a></p>
+  <h1>Questionnaire Design</h1>
+</header>
+
+{% if spec %}
+<section class="questionnaire-content">
+  <h2>Latest Draft</h2>
+  <p class="muted">Version: {{ spec.version_id }} | Goal: {{ spec.research_goal }}</p>
+  <pre class="questionnaire-markdown">{{ spec.markdown_spec }}</pre>
+  {% if spec.retrieved_snippets %}
+  <details>
+    <summary>Knowledge Basis ({{ spec.retrieved_snippets | length }} sources)</summary>
+    <ul>
+      {% for snippet in spec.retrieved_snippets %}
+      <li>{{ snippet.document_title if snippet is mapping else snippet }}</li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+</section>
+<hr>
+{% endif %}
+
+<section class="draft-form">
+  <h2>{% if spec %}Generate New Draft{% else %}Generate Questionnaire Draft{% endif %}</h2>
+  <form action="/projects/{{ project_slug }}/questionnaires/draft-form" method="post">
+    <label for="research_goal">Research Goal</label>
+    <input
+      type="text"
+      id="research_goal"
+      name="research_goal"
+      required
+      placeholder="e.g. Understand what drives player retention in our RPG"
+      value="{{ spec.research_goal if spec else '' }}"
+    >
+    <button type="submit">Generate Draft</button>
+  </form>
+</section>
 {% endblock %}

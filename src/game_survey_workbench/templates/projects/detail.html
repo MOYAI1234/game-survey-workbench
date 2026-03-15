@@ -45,8 +45,41 @@
     <dd>{{ brief.success_criteria }}</dd>
     {% endif %}
   </dl>
+  <details>
+    <summary>Edit Brief</summary>
   {% else %}
-  <p class="empty-state">No brief yet. Use <code>PUT /projects/{{ project_slug }}/brief</code> to set one.</p>
+  <p class="empty-state">No brief yet. Fill in the form below.</p>
+  {% endif %}
+  <form action="/projects/{{ project_slug }}/brief/save" method="post" class="brief-form">
+    <label for="background">Background</label>
+    <textarea id="background" name="background" rows="3">{{ brief.background if brief else '' }}</textarea>
+
+    <label for="objectives">Objectives (one per line)</label>
+    <textarea id="objectives" name="objectives" rows="3">{{ brief.objectives | join('\n') if brief and brief.objectives else '' }}</textarea>
+
+    <label for="hypotheses">Hypotheses (one per line, optional)</label>
+    <textarea id="hypotheses" name="hypotheses" rows="2">{{ brief.hypotheses | join('\n') if brief and brief.hypotheses else '' }}</textarea>
+
+    <label for="target_audience">Target Audience</label>
+    <input
+      type="text"
+      id="target_audience"
+      name="target_audience"
+      value="{{ brief.target_audience if brief else '' }}"
+    >
+
+    <label for="success_criteria">Success Criteria</label>
+    <input
+      type="text"
+      id="success_criteria"
+      name="success_criteria"
+      value="{{ brief.success_criteria if brief else '' }}"
+    >
+
+    <button type="submit">Save Brief</button>
+  </form>
+  {% if brief %}
+  </details>
   {% endif %}
 </section>
 
@@ -73,5 +106,30 @@
     <li><a href="/projects/{{ project_slug }}/analysis/latest">数据分析</a></li>
     <li><a href="/projects/{{ project_slug }}/reports/latest">报告生成</a></li>
   </ul>
+</section>
+
+<section class="upload-section">
+  <h2>Upload Knowledge Document</h2>
+  <form
+    action="/projects/{{ project_slug }}/knowledge/upload"
+    method="post"
+    enctype="multipart/form-data"
+  >
+    <input type="file" name="file" accept=".md,.txt" required>
+    <button type="submit">Upload Knowledge</button>
+  </form>
+</section>
+
+<section class="upload-section">
+  <h2>Upload Dataset</h2>
+  <p>CSV or Excel with dual-header format (row 1 = column names, row 2 = type markers).</p>
+  <form
+    action="/projects/{{ project_slug }}/datasets/import-form"
+    method="post"
+    enctype="multipart/form-data"
+  >
+    <input type="file" name="file" accept=".csv,.xlsx,.xls" required>
+    <button type="submit">Import Dataset</button>
+  </form>
 </section>
 {% endblock %}

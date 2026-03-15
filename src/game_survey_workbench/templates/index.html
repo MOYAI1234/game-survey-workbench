@@ -26,6 +26,40 @@
   {% endif %}
 </section>
 
+<section class="create-project">
+  <h2>Create New Project</h2>
+  <form action="/projects/create" method="post" class="project-form">
+    <label for="slug">Slug (URL identifier)</label>
+    <input
+      type="text"
+      id="slug"
+      name="slug"
+      required
+      pattern="[a-z0-9\-]+"
+      placeholder="my-research-project"
+    >
+
+    <label for="name">Project Name</label>
+    <input
+      type="text"
+      id="name"
+      name="name"
+      required
+      placeholder="My Research Project"
+    >
+
+    <label for="description">Description (optional)</label>
+    <textarea
+      id="description"
+      name="description"
+      rows="2"
+      placeholder="Brief project description..."
+    ></textarea>
+
+    <button type="submit">Create Project</button>
+  </form>
+</section>
+
 <section class="workflow-overview">
   <h3>Core Workflows</h3>
   <ul class="workflow-list">
