@@ -14,6 +14,7 @@ ALLOWED_TYPE_MARKERS = {
     "free_text",
     "scale",
     "matrix",
+    "ranking",
 }
 
 

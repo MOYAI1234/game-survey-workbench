@@ -27,6 +27,10 @@ from game_survey_workbench.services.matrix_analytics import (
     detect_matrix_group,
     summarize_matrix_group,
 )
+from game_survey_workbench.services.ranking_analytics import (
+    describe_ranking_summary,
+    summarize_ranking,
+)
 
 
 class QuestionColumnNotFoundError(ValueError):
@@ -119,6 +123,17 @@ def build_deterministic_findings_for_run(
                     top_box_values={4, 5},
                 )
                 finding = describe_matrix_summary(prefix.rstrip("_"), matrix_summary)
+        elif question_schema.question_type == "ranking":
+            prefix = _derive_group_prefix(question_column)
+            ranking_columns = [
+                column for column in context.dataframe.columns if column.startswith(prefix)
+            ]
+            if ranking_columns and question_column == ranking_columns[0]:
+                ranking_summary = summarize_ranking(
+                    dataframe=context.dataframe,
+                    columns=ranking_columns,
+                )
+                finding = describe_ranking_summary(prefix.rstrip("_"), ranking_summary)
 
         if finding:
             findings.append(finding)
