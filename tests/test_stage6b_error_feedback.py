@@ -118,3 +118,22 @@ def test_analysis_page_shows_fallback_notice_when_insights_generated_without_kno
 
     assert detail_response.status_code == 200
     assert "当前还没有知识文档，已先生成基础版本" in detail_response.text
+
+
+def test_analysis_page_shows_fallback_notice_when_coding_generated_without_knowledge(
+    client: TestClient,
+    tmp_path: Path,
+):
+    run_id = _seed_analysis_run(client, tmp_path, slug="fallback-coding")
+
+    response = client.post(
+        f"/projects/fallback-coding/analysis/{run_id}/code-text-all",
+        follow_redirects=False,
+    )
+
+    assert response.status_code in (302, 303)
+
+    detail_response = client.get(f"/projects/fallback-coding/analysis/{run_id}")
+
+    assert detail_response.status_code == 200
+    assert "当前还没有知识文档，已先基于开放题答案生成基础编码结果" in detail_response.text

@@ -199,3 +199,28 @@ def test_code_open_text_column_does_not_persist_invalid_llm_output(tmp_path: Pat
     engine = get_engine(tmp_path)
     with Session(engine) as session:
         assert session.exec(select(CodingResult)).all() == []
+
+
+def test_code_open_text_column_degrades_when_knowledge_is_missing(tmp_path: Path):
+    create_project(
+        ProjectCreate(
+            slug="empty-project",
+            name="Empty Project",
+            knowledge_pack={"doc_types": ["theory"], "scenarios": ["churn"]},
+        ),
+        workspace_root=tmp_path,
+    )
+
+    result = code_open_text_column(
+        project_slug="empty-project",
+        analysis_run_id="run-1",
+        question_column="Why did you leave?",
+        responses=["got bored", "nothing to do"],
+        workspace_root=tmp_path,
+        client=FakeLLMClient(
+            '{"themes": [{"theme_name": "Boredom", "count": 2, "example_responses": ["got bored", "nothing to do"]}], "uncoded_count": 0}'
+        ),
+    )
+
+    assert result.themes[0]["theme_name"] == "Boredom"
+    assert result.citations == []

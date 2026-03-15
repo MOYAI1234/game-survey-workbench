@@ -5,7 +5,6 @@ from game_survey_workbench.config import get_settings
 from game_survey_workbench.errors import (
     CodingResponseFormatError,
     LLM_CONFIG_ERROR_MESSAGE,
-    NoKnowledgeMatchedError,
     ProjectNotFoundError,
 )
 from game_survey_workbench.llm.client import (
@@ -70,8 +69,6 @@ def code_text_route(
     except ProjectNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Project not found") from exc
     except (NoFreeTextResponsesFoundError, QuestionColumnNotFoundError) as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except NoKnowledgeMatchedError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except CodingResponseFormatError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc

@@ -138,6 +138,13 @@ def _render_analysis_detail(*, project_slug: str, analysis_run_id: str | None, r
     engine = get_engine(settings.workspace_root)
     with Session(engine) as session:
         knowledge_count = len(list(session.exec(select(KnowledgeDocument)).all()))
+    context["coding_fallback_notice"] = None
+    if context["coding_results"] and all(not result.citations for result in context["coding_results"]):
+        context["coding_fallback_notice"] = (
+            "当前还没有知识文档，已先基于开放题答案生成基础编码结果。建议补充共享知识库以提升编码解释质量。"
+            if knowledge_count == 0
+            else "当前未匹配到相关知识，已仅基于开放题答案生成基础编码结果。建议补充共享知识库以提升质量。"
+        )
     context["insight_fallback_notice"] = None
     if context["insight"] is not None and not context["insight"].citations:
         context["insight_fallback_notice"] = (

@@ -77,6 +77,11 @@
 
 <section class="coding-section">
   <h2>文本编码结果</h2>
+  {% if coding_fallback_notice %}
+  <section class="workflow-alert alert-success">
+    <strong>{{ coding_fallback_notice }}</strong>
+  </section>
+  {% endif %}
   {% if coding_results %}
     {% for result in coding_results %}
     <article>

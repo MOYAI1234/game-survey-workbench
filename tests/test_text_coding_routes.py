@@ -203,3 +203,53 @@ def test_code_text_route_returns_500_for_invalid_coding_output(tmp_path: Path, m
     )
 
     assert response.status_code == 500
+
+
+def test_code_text_route_degrades_without_knowledge(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT", str(tmp_path))
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_PROVIDER", "openai_compatible")
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_MODEL", "demo-model")
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_API_KEY", "test-key")
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_BASE_URL", "https://example.com/v1")
+
+    monkeypatch.setattr(
+        OpenAICompatibleLLMClient,
+        "generate",
+        lambda self, prompt: (
+            '{"themes": [{"theme_name": "Boredom", "count": 2, '
+            '"example_responses": ["got bored", "nothing to do"]}], "uncoded_count": 1}'
+        ),
+    )
+
+    client = TestClient(create_app())
+    client.post(
+        "/projects",
+        json={
+            "slug": "no-kb-coding",
+            "name": "No KB Coding",
+            "knowledge_pack": {"doc_types": ["theory"], "scenarios": ["churn"]},
+        },
+    )
+
+    dataset = client.post(
+        "/projects/no-kb-coding/datasets/import",
+        files={
+            "file": (
+                "dataset.csv",
+                "Q1,Why did you leave?\nmetadata,free_text\n1,got bored\n2,nothing to do\n",
+                "text/csv",
+            )
+        },
+    ).json()
+
+    response = client.post(
+        f"/projects/no-kb-coding/analysis/{dataset['analysis_run_id']}/code-text",
+        json={
+            "question_column": "Why did you leave?",
+        },
+    )
+
+    assert response.status_code == 201
+    payload = response.json()
+    assert payload["themes"][0]["theme_name"] == "Boredom"
+    assert payload["citations"] == []

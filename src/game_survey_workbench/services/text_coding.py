@@ -8,7 +8,6 @@ from sqlmodel import Session
 from game_survey_workbench.db import create_db_and_tables, get_engine
 from game_survey_workbench.errors import (
     CodingResponseFormatError,
-    NoKnowledgeMatchedError,
     ProjectNotFoundError,
 )
 from game_survey_workbench.llm.client import LLMClient
@@ -140,8 +139,6 @@ def code_open_text_column(
             stages=["analysis"],
             top_k=top_k,
         )
-    if not snippets:
-        raise NoKnowledgeMatchedError("No knowledge matched this text coding request.")
 
     context = build_coding_context(
         question=question_column,
