@@ -62,3 +62,29 @@ def test_insights_generate_form_route_exists(client, project_with_analysis):
     )
 
     assert response.status_code in (201, 302, 303)
+
+
+def test_latest_code_text_all_route_uses_latest_analysis_run(client, project_with_analysis):
+    slug, _run_id = project_with_analysis
+
+    response = client.post(
+        f"/projects/{slug}/analysis/latest/code-text-all",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == f"/projects/{slug}/analysis/latest"
+
+
+def test_latest_insights_route_uses_latest_analysis_run(client, project_with_analysis):
+    slug, run_id = project_with_analysis
+    client.post(f"/projects/{slug}/analysis/{run_id}/code-text-all")
+
+    response = client.post(
+        f"/projects/{slug}/analysis/latest/insights-generate",
+        data={"research_goal": "Understand player satisfaction"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == f"/projects/{slug}/analysis/latest"
