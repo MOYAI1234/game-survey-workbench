@@ -8,7 +8,10 @@ from game_survey_workbench.config import get_settings
 from game_survey_workbench.models.project import ProjectCreate
 from game_survey_workbench.models.research_brief import ResearchBriefPayload
 from game_survey_workbench.models.task_plan import TaskPlanPayload
-from game_survey_workbench.services.knowledge_ingest import ingest_knowledge_file
+from game_survey_workbench.services.knowledge_ingest import (
+    build_ingest_ready_markdown,
+    ingest_knowledge_file,
+)
 from game_survey_workbench.services.projects import create_project, get_project
 from game_survey_workbench.services.research_brief import (
     get_research_brief,
@@ -85,15 +88,27 @@ def project_detail(project_slug: str, request: Request):
 
 
 @router.post("/projects/{project_slug}/knowledge/upload")
-async def upload_knowledge_form(project_slug: str, file: UploadFile = File(...)):
+async def upload_knowledge_form(
+    project_slug: str,
+    file: UploadFile = File(...),
+    purposes: list[str] = Form([]),
+):
     settings, _project = require_project(project_slug=project_slug)
     knowledge_dir = settings.workspace_root / "knowledge"
     knowledge_dir.mkdir(parents=True, exist_ok=True)
 
     filename = Path(file.filename or "uploaded.md").name
     destination = knowledge_dir / filename
-    destination.write_bytes(await file.read())
     try:
+        raw = (await file.read()).decode("utf-8")
+        destination.write_text(
+            build_ingest_ready_markdown(
+                raw=raw,
+                filename=filename,
+                purposes=purposes,
+            ),
+            encoding="utf-8",
+        )
         ingest_knowledge_file(destination, project_root=settings.workspace_root)
     except Exception:
         return RedirectResponse(

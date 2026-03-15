@@ -2,8 +2,11 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlmodel import Session, select
 
 from game_survey_workbench.app import create_app
+from game_survey_workbench.db import get_engine
+from game_survey_workbench.models.knowledge import KnowledgeDocument
 from game_survey_workbench.services.knowledge_ingest import ingest_knowledge_file
 
 
@@ -80,3 +83,41 @@ def test_shared_knowledge_page_lists_documents_and_upload_form(
     assert "问卷设计" in content
     assert "问卷分析" in content
     assert "报告写作" in content
+
+
+def test_shared_knowledge_upload_supports_purpose_selection_without_front_matter(
+    client: TestClient,
+    tmp_path: Path,
+):
+    markdown_path = tmp_path / "plain-knowledge.md"
+    markdown_path.write_text(
+        "# 新手引导问卷建议\n\n这里是没有 front matter 的知识正文。",
+        encoding="utf-8",
+    )
+
+    with markdown_path.open("rb") as handle:
+        response = client.post(
+            "/knowledge/upload",
+            files={"file": ("plain-knowledge.md", handle, "text/markdown")},
+            data={"purposes": ["questionnaire_design", "reporting"]},
+            follow_redirects=False,
+        )
+
+    assert response.status_code == 303
+    assert "upload_success=" in response.headers["location"]
+
+    engine = get_engine(tmp_path)
+    with Session(engine) as session:
+        document = session.exec(
+            select(KnowledgeDocument).where(
+                KnowledgeDocument.title == "新手引导问卷建议"
+            )
+        ).first()
+
+    assert document is not None
+    assert set(document.stages) == {"design", "report"}
+
+    page = client.get("/knowledge")
+    assert "新手引导问卷建议" in page.text
+    assert "问卷设计" in page.text
+    assert "报告写作" in page.text

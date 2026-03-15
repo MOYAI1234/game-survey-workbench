@@ -128,6 +128,12 @@
     enctype="multipart/form-data"
   >
     <input type="file" name="file" accept=".md,.txt" required>
+    <fieldset>
+      <legend>用途分类（可多选）</legend>
+      <label><input type="checkbox" name="purposes" value="questionnaire_design"> 问卷设计</label>
+      <label><input type="checkbox" name="purposes" value="analysis"> 问卷分析</label>
+      <label><input type="checkbox" name="purposes" value="reporting"> 报告写作</label>
+    </fieldset>
     <button type="submit">上传知识文档</button>
   </form>
 </section>

@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+import frontmatter
 from sqlmodel import Session
 
 from game_survey_workbench.db import create_db_and_tables, get_engine
@@ -18,6 +19,72 @@ from game_survey_workbench.services.workspace import bootstrap_workspace
 class IngestKnowledgeResult:
     document_title: str
     chunk_count: int
+
+
+PURPOSE_STAGE_MAP = {
+    "questionnaire_design": "design",
+    "analysis": "analysis",
+    "reporting": "report",
+}
+
+STAGE_LABEL_MAP = {
+    "design": "问卷设计",
+    "analysis": "问卷分析",
+    "report": "报告写作",
+}
+
+
+def _normalize_list(value: str | list[str] | None) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value] if value else []
+    return [item for item in value if item]
+
+
+def _infer_title_and_body(*, raw: str, fallback_name: str) -> tuple[str, str]:
+    post = frontmatter.loads(raw)
+    if post.get("title"):
+        return str(post["title"]), post.content.strip()
+
+    body = post.content.strip()
+    if body.startswith("# "):
+        first_line, _, rest = body.partition("\n")
+        heading_title = first_line.removeprefix("# ").strip()
+        if heading_title:
+            return heading_title, rest.strip()
+
+    return Path(fallback_name).stem or "Untitled", body
+
+
+def build_ingest_ready_markdown(
+    *,
+    raw: str,
+    filename: str,
+    purposes: list[str] | None = None,
+) -> str:
+    post = frontmatter.loads(raw)
+    selected_purposes = purposes or []
+    mapped_stages = [
+        PURPOSE_STAGE_MAP[purpose]
+        for purpose in selected_purposes
+        if purpose in PURPOSE_STAGE_MAP
+    ]
+    existing_stages = _normalize_list(post.get("stage"))
+    title, body = _infer_title_and_body(raw=raw, fallback_name=filename)
+    tags = _normalize_list(post.get("tags"))
+
+    metadata = {
+        "title": title,
+        "doc_type": post.get("doc_type", "guide"),
+        "stage": mapped_stages or existing_stages,
+        "tags": tags,
+        "priority": int(post.get("priority", 0)),
+    }
+    if post.get("scenario") is not None:
+        metadata["scenario"] = post.get("scenario")
+
+    return frontmatter.dumps(frontmatter.Post(body or title, **metadata))
 
 
 def ingest_knowledge_file(source: Path, *, project_root: Path) -> IngestKnowledgeResult:

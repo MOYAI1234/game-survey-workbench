@@ -42,7 +42,11 @@
     <li>
       <strong>{{ document.title }}</strong>
       {% if document.stages %}
-      <span>｜适用阶段：{{ document.stages | join("、") }}</span>
+      <span>｜适用阶段：
+        {% for stage in document.stages %}
+        {{ stage_label_map.get(stage, stage) }}{% if not loop.last %}、{% endif %}
+        {% endfor %}
+      </span>
       {% endif %}
       <div class="help-text">{{ document.source_path }}</div>
     </li>
