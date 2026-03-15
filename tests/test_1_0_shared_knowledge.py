@@ -48,3 +48,35 @@ def test_homepage_shows_shared_knowledge_entry(
     assert "已入库知识文档" in content
     assert "问卷设计参考" in content
     assert "/knowledge" in content
+
+
+def test_shared_knowledge_page_lists_documents_and_upload_form(
+    client: TestClient,
+    tmp_path: Path,
+):
+    _ingest_markdown(
+        tmp_path,
+        filename="knowledge-two.md",
+        content=(
+            "---\n"
+            "title: 分析方法库\n"
+            "doc_type: guide\n"
+            "stage:\n"
+            "  - analysis\n"
+            "priority: 1\n"
+            "---\n\n"
+            "# 分析方法库\n\n这里是分析内容。"
+        ),
+    )
+
+    response = client.get("/knowledge")
+
+    assert response.status_code == 200
+    content = response.text
+    assert "共享知识库" in content
+    assert "多个项目会共享使用这里的知识文档" in content
+    assert "分析方法库" in content
+    assert "上传知识文档" in content
+    assert "问卷设计" in content
+    assert "问卷分析" in content
+    assert "报告写作" in content

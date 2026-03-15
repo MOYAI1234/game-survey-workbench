@@ -1,0 +1,55 @@
+{% extends "layout.html" %}
+{% block title %}共享知识库{% endblock %}
+{% block content %}
+<header>
+  <p class="eyebrow"><a href="/">← 返回首页</a></p>
+  <h1>共享知识库</h1>
+  <p>多个项目会共享使用这里的知识文档。你可以先整理方法论、行业资料和历史报告，再在项目中复用。</p>
+</header>
+
+{% if upload_success %}
+<section class="workflow-alert alert-success">
+  <strong>{{ upload_success }}</strong>
+</section>
+{% endif %}
+
+{% if upload_error %}
+<section class="workflow-alert alert-error">
+  <strong>{{ upload_error }}</strong>
+</section>
+{% endif %}
+
+<section class="upload-section">
+  <h2>上传知识文档</h2>
+  <p class="help-text">支持 Markdown 文档。上传时请勾选这篇文档主要会用于哪些研究环节。</p>
+  <form action="/knowledge/upload" method="post" enctype="multipart/form-data">
+    <input type="file" name="file" accept=".md,.txt" required>
+    <fieldset>
+      <legend>用途分类（可多选）</legend>
+      <label><input type="checkbox" name="purposes" value="questionnaire_design"> 问卷设计</label>
+      <label><input type="checkbox" name="purposes" value="analysis"> 问卷分析</label>
+      <label><input type="checkbox" name="purposes" value="reporting"> 报告写作</label>
+    </fieldset>
+    <button type="submit">上传知识文档</button>
+  </form>
+</section>
+
+<section class="knowledge-list">
+  <h2>当前知识文档</h2>
+  {% if documents %}
+  <ul>
+    {% for document in documents %}
+    <li>
+      <strong>{{ document.title }}</strong>
+      {% if document.stages %}
+      <span>｜适用阶段：{{ document.stages | join("、") }}</span>
+      {% endif %}
+      <div class="help-text">{{ document.source_path }}</div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty-state">当前还没有知识文档，请先上传至少一篇研究资料。</p>
+  {% endif %}
+</section>
+{% endblock %}

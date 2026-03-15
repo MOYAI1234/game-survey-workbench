@@ -9,6 +9,7 @@ from game_survey_workbench.db import create_db_and_tables
 from game_survey_workbench.routes.crosstabs import router as crosstabs_router
 from game_survey_workbench.routes.datasets import router as datasets_router
 from game_survey_workbench.routes.insights import router as insights_router
+from game_survey_workbench.routes.knowledge import router as knowledge_router
 from game_survey_workbench.routes.projects import router as projects_router
 from game_survey_workbench.routes.questionnaires import router as questionnaires_router
 from game_survey_workbench.routes.reports import router as reports_router
@@ -33,6 +34,7 @@ def create_app() -> FastAPI:
         return {"status": "ok"}
 
     app.include_router(projects_router)
+    app.include_router(knowledge_router)
     app.include_router(questionnaires_router)
     app.include_router(datasets_router)
     app.include_router(crosstabs_router)
