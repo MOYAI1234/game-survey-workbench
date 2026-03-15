@@ -128,3 +128,90 @@ def test_fake_llm_workflow_smoke(fake_llm_client):
         assert session.exec(select(CodingResult)).first() is not None
         assert session.exec(select(InsightRecord)).first() is not None
         assert session.exec(select(ReportRecord)).first() is not None
+
+
+def test_fake_llm_insights_smoke_without_text_coding(fake_llm_client):
+    client, workspace_root = fake_llm_client
+
+    create_response = client.post(
+        "/projects/create",
+        data={
+            "slug": "closed-ended-proj",
+            "name": "Closed Ended Project",
+            "description": "closed-ended workflow smoke",
+        },
+        follow_redirects=False,
+    )
+    assert create_response.status_code == 303
+
+    brief_response = client.post(
+        "/projects/closed-ended-proj/brief/save",
+        data={
+            "background": "想了解玩家对新手引导满意度的看法。",
+            "objectives": "识别满意度水平\n总结主要问题",
+            "hypotheses": "单选题也能支持基础洞察",
+            "target_audience": "新注册玩家",
+            "success_criteria": "输出基础洞察",
+        },
+        follow_redirects=False,
+    )
+    assert brief_response.status_code == 303
+
+    knowledge_response = client.post(
+        "/projects/closed-ended-proj/knowledge/upload",
+        data={"purposes": ["questionnaire_analysis"]},
+        files={
+            "file": (
+                "onboarding-analysis.md",
+                io.BytesIO(
+                    "# 新手引导分析笔记\n\n关注流失节点、满意度分布与改进建议。".encode(
+                        "utf-8"
+                    )
+                ),
+                "text/markdown",
+            )
+        },
+        follow_redirects=False,
+    )
+    assert knowledge_response.status_code == 303
+
+    dataset_response = client.post(
+        "/projects/closed-ended-proj/datasets/import-form",
+        files={
+            "file": (
+                "closed-ended.csv",
+                io.BytesIO(
+                    (
+                        "Q1_Segment,Q2_Satisfaction,Q3_PrimaryIssue\n"
+                        "single_choice,scale,single_choice\n"
+                        "New,5,Controls\n"
+                        "New,4,Clarity\n"
+                        "Returning,2,Pacing\n"
+                    ).encode("utf-8")
+                ),
+                "text/csv",
+            )
+        },
+        follow_redirects=False,
+    )
+    assert dataset_response.status_code == 303
+
+    insights_response = client.post(
+        "/projects/closed-ended-proj/analysis/latest/insights-generate",
+        data={"research_goal": "总结新手引导满意度与主要问题"},
+        follow_redirects=False,
+    )
+    assert insights_response.status_code == 303
+    assert insights_response.headers["location"] == "/projects/closed-ended-proj/analysis/latest"
+
+    detail_response = client.get("/projects/closed-ended-proj/analysis/latest")
+    assert detail_response.status_code == 200
+    assert "No saved coding results found" not in detail_response.text
+
+    engine = get_engine(workspace_root)
+    with Session(engine) as session:
+        insight = session.exec(
+            select(InsightRecord).where(InsightRecord.analysis_run_id.is_not(None))
+        ).first()
+
+    assert insight is not None

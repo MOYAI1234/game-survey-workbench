@@ -1,10 +1,8 @@
-import pytest
 from pathlib import Path
 
 from sqlmodel import Session, select
 
 from game_survey_workbench.db import get_engine
-from game_survey_workbench.errors import NoSavedCodingResultsError
 from game_survey_workbench.llm.client import FakeLLMClient
 from game_survey_workbench.models.insight import InsightRecord
 from game_survey_workbench.models.project import ProjectCreate
@@ -139,7 +137,7 @@ def test_generate_analysis_insights_retrieves_knowledge_and_persists(tmp_path: P
     assert saved.evidence_section.startswith("## Evidence Basis")
 
 
-def test_generate_analysis_insights_rejects_missing_saved_coding_results(tmp_path: Path):
+def test_generate_analysis_insights_allows_missing_saved_coding_results(tmp_path: Path):
     source = tmp_path / "churn.md"
     source.write_text(
         "---\n"
@@ -162,16 +160,18 @@ def test_generate_analysis_insights_rejects_missing_saved_coding_results(tmp_pat
         workspace_root=tmp_path,
     )
 
-    with pytest.raises(NoSavedCodingResultsError):
-        generate_analysis_insights(
-            project_slug="churn-study",
-            analysis_run_id="run-1",
-            research_goal="Understand churn drivers",
-            statistical_findings=["Top box dropped to 32%"],
-            coded_themes=[],
-            workspace_root=tmp_path,
-            client=FakeLLMClient("Boredom emerged as the dominant churn factor."),
-        )
+    result = generate_analysis_insights(
+        project_slug="churn-study",
+        analysis_run_id="run-1",
+        research_goal="Understand churn drivers",
+        statistical_findings=["Top box dropped to 32%"],
+        coded_themes=[],
+        workspace_root=tmp_path,
+        client=FakeLLMClient("Top box sentiment softened despite a closed-ended questionnaire."),
+    )
+
+    assert result.narrative
+    assert result.citations[0]["document_title"] == "Churn Framework"
 
 
 def test_generate_analysis_insights_degrades_when_knowledge_is_missing(tmp_path: Path):

@@ -7,7 +7,6 @@ import pandas as pd
 from sqlmodel import Session, select
 
 from game_survey_workbench.db import get_engine
-from game_survey_workbench.errors import NoSavedCodingResultsError
 from game_survey_workbench.models.analysis_run import AnalysisRunRecord, require_analysis_run
 from game_survey_workbench.models.dataset import (
     DatasetRecord,
@@ -202,6 +201,4 @@ def load_saved_coding_themes(*, analysis_run_id: str, workspace_root: Path) -> l
         for theme in result.themes
         if isinstance(theme, dict)
     ]
-    if not themes:
-        raise NoSavedCodingResultsError("No saved coding results found for this analysis run.")
     return themes

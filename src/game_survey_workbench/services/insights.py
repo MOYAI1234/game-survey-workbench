@@ -7,7 +7,6 @@ from sqlmodel import Session
 
 from game_survey_workbench.db import create_db_and_tables, get_engine
 from game_survey_workbench.errors import (
-    NoSavedCodingResultsError,
     ProjectNotFoundError,
 )
 from game_survey_workbench.llm.client import LLMClient
@@ -141,9 +140,6 @@ def generate_analysis_insights(
     matrix_findings: list[str | dict] | None = None,
     ranking_findings: list[str | dict] | None = None,
 ) -> InsightRecord:
-    if not coded_themes:
-        raise NoSavedCodingResultsError("No saved coding results found for this analysis run.")
-
     project = get_project(workspace_root=workspace_root, project_slug=project_slug)
     if project is None:
         raise ProjectNotFoundError("Project not found.")

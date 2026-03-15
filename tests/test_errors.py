@@ -114,7 +114,7 @@ def test_code_text_route_returns_explicit_error_and_saves_no_result_on_invalid_o
         assert session.exec(select(CodingResult)).all() == []
 
 
-def test_generate_insights_route_rejects_missing_saved_coding_results(tmp_path: Path, monkeypatch):
+def test_generate_insights_route_allows_missing_saved_coding_results(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT", str(tmp_path))
     monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_PROVIDER", "openai_compatible")
     monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_MODEL", "demo-model")
@@ -171,8 +171,8 @@ def test_generate_insights_route_rejects_missing_saved_coding_results(tmp_path: 
         json={"research_goal": "Understand churn drivers"},
     )
 
-    assert response.status_code == 400
-    assert "No saved coding results" in response.json()["detail"]
+    assert response.status_code == 201
+    assert response.json()["narrative"]
 
 
 def test_brief_route_rejects_missing_project(tmp_path: Path, monkeypatch):
