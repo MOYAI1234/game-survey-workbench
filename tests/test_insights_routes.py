@@ -83,3 +83,82 @@ def test_generate_insights_route_returns_narrative(tmp_path: Path, monkeypatch):
     payload = response.json()
     assert "Top box" in payload["narrative"] or "Boredom" in payload["narrative"]
     assert payload["citations"][0]["document_title"] == "Churn Framework"
+
+
+def test_generate_insights_route_includes_stage4_findings_in_prompt(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT", str(tmp_path))
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_PROVIDER", "openai_compatible")
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_MODEL", "demo-model")
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_API_KEY", "test-key")
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_BASE_URL", "https://example.com/v1")
+
+    captured_prompts: list[str] = []
+
+    def fake_generate(self, prompt: str) -> str:
+        captured_prompts.append(prompt)
+        if "Open Text Coding Prompt" in prompt:
+            return (
+                '{"themes": [{"theme_name": "Boredom", "count": 2, '
+                '"example_responses": ["got bored", "nothing to do"]}], "uncoded_count": 0}'
+            )
+        return "Stage 4 signals were included in the prompt."
+
+    monkeypatch.setattr(OpenAICompatibleLLMClient, "generate", fake_generate)
+
+    source = tmp_path / "churn.md"
+    source.write_text(
+        "---\n"
+        "title: Churn Framework\n"
+        "doc_type: theory\n"
+        "stage:\n"
+        "  - analysis\n"
+        "scenario: churn\n"
+        "---\n"
+        "Boredom and difficulty are the top churn drivers.\n",
+        encoding="utf-8",
+    )
+    ingest_knowledge_file(source, project_root=tmp_path)
+
+    client = TestClient(create_app())
+    client.post(
+        "/projects",
+        json={
+            "slug": "stage4-study",
+            "name": "Stage 4 Study",
+            "knowledge_pack": {"doc_types": ["theory"], "scenarios": ["churn"]},
+        },
+    )
+
+    dataset = client.post(
+        "/projects/stage4-study/datasets/import",
+        files={
+            "file": (
+                "dataset.csv",
+                (
+                    "Segment,Satisfaction,Q5_Graphics,Q5_Sound,Q7_Rank1,Q7_Rank2,Why did you leave?,Why did you leave?_other\n"
+                    "metadata,scale,matrix,matrix,ranking,ranking,single_choice,free_text\n"
+                    "Whale,5,5,3,Rewards,Price,Other,got bored\n"
+                    "Whale,4,4,2,Price,Rewards,Other,nothing to do\n"
+                    "Minnow,2,3,4,Rewards,Clarity,Other,too hard\n"
+                ),
+                "text/csv",
+            )
+        },
+    ).json()
+
+    coding = client.post(
+        f"/projects/stage4-study/analysis/{dataset['analysis_run_id']}/code-text",
+        json={"question_column": "Why did you leave?"},
+    )
+    assert coding.status_code == 201
+
+    response = client.post(
+        f"/projects/stage4-study/analysis/{dataset['analysis_run_id']}/insights",
+        json={"research_goal": "Understand churn drivers"},
+    )
+
+    assert response.status_code == 201
+    insight_prompt = captured_prompts[-1]
+    assert "### Cross-tabulation Findings" in insight_prompt
+    assert "### Matrix Battery Findings" in insight_prompt
+    assert "### Ranking Findings" in insight_prompt

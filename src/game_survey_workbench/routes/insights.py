@@ -11,14 +11,50 @@ from game_survey_workbench.llm.client import (
     build_llm_client,
 )
 from game_survey_workbench.models.analysis_run import get_analysis_run
+from game_survey_workbench.models.dataset import QuestionColumnSchema
 from game_survey_workbench.models.insight import InsightGenerateRequest
 from game_survey_workbench.services.analysis_context import (
+    build_crosstab_findings_for_run,
     build_deterministic_findings_for_run,
+    load_analysis_run_context,
     load_saved_coding_themes,
 )
 from game_survey_workbench.services.insights import generate_analysis_insights
 
 router = APIRouter()
+
+
+def _partition_findings(findings: list[str]) -> tuple[list[str], list[str], list[str]]:
+    statistical_findings: list[str] = []
+    matrix_findings: list[str] = []
+    ranking_findings: list[str] = []
+    for finding in findings:
+        if finding.startswith("Matrix battery "):
+            matrix_findings.append(finding)
+        elif finding.startswith("Ranking '"):
+            ranking_findings.append(finding)
+        else:
+            statistical_findings.append(finding)
+    return statistical_findings, matrix_findings, ranking_findings
+
+
+def _infer_segment_columns(analysis_run_id: str) -> list[str]:
+    settings = get_settings()
+    context = load_analysis_run_context(
+        analysis_run_id=analysis_run_id,
+        workspace_root=settings.workspace_root,
+    )
+    question_columns = set(context.dataset_record.dataset_schema.keys())
+    other_text_columns = {
+        QuestionColumnSchema.model_validate(payload).other_text_column
+        for payload in context.dataset_record.dataset_schema.values()
+        if isinstance(payload, dict)
+    }
+    return [
+        column
+        for column in context.dataframe.columns
+        if column not in question_columns and column not in other_text_columns
+    ]
 
 
 @router.post(
@@ -40,10 +76,22 @@ def generate_insights_route(
 
     try:
         client = build_llm_client(settings)
-        statistical_findings = build_deterministic_findings_for_run(
+        deterministic_findings = build_deterministic_findings_for_run(
             analysis_run_id=analysis_run_id,
             workspace_root=settings.workspace_root,
         )
+        statistical_findings, matrix_findings, ranking_findings = _partition_findings(
+            deterministic_findings
+        )
+        crosstab_findings: list[str] = []
+        for segment_column in _infer_segment_columns(analysis_run_id):
+            crosstab_findings.extend(
+                build_crosstab_findings_for_run(
+                    analysis_run_id=analysis_run_id,
+                    workspace_root=settings.workspace_root,
+                    segment_column=segment_column,
+                )
+            )
         coded_themes = load_saved_coding_themes(
             analysis_run_id=analysis_run_id,
             workspace_root=settings.workspace_root,
@@ -56,6 +104,9 @@ def generate_insights_route(
             coded_themes=coded_themes,
             workspace_root=settings.workspace_root,
             client=client,
+            crosstab_findings=crosstab_findings,
+            matrix_findings=matrix_findings,
+            ranking_findings=ranking_findings,
         )
     except MissingLLMConfigurationError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
