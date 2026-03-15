@@ -37,29 +37,95 @@
 
 **价值：** 行业知识（如品类趋势、设计范式、竞品报告）不需要每个项目重复上传。研究者可以维护一个持续增长的知识库，每个新项目自动受益。
 
-### 方向二：语义检索升级
+### 方向二：检索策略分层升级
 
-**现状：** LocalVectorStore 使用 TF-IDF 关键字匹配，对同义词、上下文关联无感知。
+**现状：** LocalVectorStore 使用 TF-IDF 关键字匹配，所有知识文档混在同一个检索池里统一打分。这导致一个根本矛盾：
 
-**目标：**
-- 引入 embedding 模型（本地小模型或 API 调用）
-- 支持语义相似度检索
-- 保留 TF-IDF 作为 fallback（离线场景）
-- 提供检索命中预览：每次 LLM 调用前展示将使用的知识片段
+- **方法论知识**（问卷设计原则、编码方法论、李克特量表原理等）与当前业务场景 query 词汇交集很小，TF-IDF 永远得分低，但它们在每次执行对应任务时都应该被引用
+- **领域知识**（手游玩家行为报告、竞品分析、付费转化研究等）才应该根据业务场景内容做相似度检索
 
-**价值：** 更准确的知识检索直接提升问卷、编码、洞察的输出质量。
-
-### 方向三：智能数据适配
-
-**现状：** 数据上传必须严格遵循双层表头规范，格式不对直接 400。
+embedding 升级也无法解决这个问题，因为"手游内购转化"和"survey measurement validity"在语义空间里本就距离很远——这是领域跨度问题，不是词面匹配问题。
 
 **目标：**
+
+**第一步：双池检索（主要改动）**
+- Pool A（方法论池）：按任务类型强制拉取，不参与相似度打分
+  - `stages` 标签包含当前任务阶段的文档无条件进入 context
+  - 例：触发问卷设计 → 总是拉 `stages=questionnaire_design` 的文档
+  - 例：触发文本编码 → 总是拉 `stages=coding` 的文档
+- Pool B（领域知识池）：按内容相似度检索，走现有 TF-IDF
+  - `doc_type = experience / research / benchmark` 的文档
+  - 用项目 Brief 的业务描述作为 query
+- 最终 context = Pool A top-3 + Pool B top-5，合并去重
+- `priority >= 8` 的文档强制进入 context（无论得分）
+
+**第二步：Query 扩展（辅助改动）**
+- 用项目 Brief 的 research_goal 做检索前，扩展领域桥接词汇
+- 例：brief 含"手游玩家付费意愿" → 自动追加 "willingness to pay, in-app purchase, consumer behavior" 作为检索词
+- 桥接词典作为配置文件维护，不需要 AI
+
+**第三步：Embedding 升级（后续可选）**
+- 在双池检索稳定后，可将 Pool B 的 TF-IDF 替换为 embedding 相似度
+- 本地小模型（如 `sentence-transformers/paraphrase-multilingual`）或 API embedding
+- 保留 TF-IDF 作为无 embedding 环境的 fallback
+- 此步骤优先级低于前两步，待 2.0 验收后根据实际效果再决定
+
+**实现路径（最小改动，改 `retrieve_project_knowledge()` 函数）：**
+```python
+def retrieve_project_knowledge(session, project_slug, task_stage, query, top_k=8):
+    # Pool A：按 stage 强制拉取方法论文档
+    pool_a = [c for c in all_chunks
+              if task_stage in c.stages or c.priority >= 8][:3]
+
+    # Pool B：TF-IDF 检索领域知识
+    domain_chunks = [c for c in all_chunks
+                     if c.doc_type in ("experience", "research", "benchmark")]
+    pool_b = tfidf_query(domain_chunks, query, top_k=5)
+
+    return deduplicate(pool_a + pool_b)
+```
+
+`stages`、`doc_type`、`priority` 字段均已存在，不改存储层，只改检索逻辑。
+
+**价值：** 方法论文献不再因词汇跨度问题被排除，领域知识仍按内容相关性检索，两类知识各得其所，直接提升问卷、编码、洞察的输出质量。
+
+### 方向三：智能数据适配与大规模文本处理
+
+**现状一：数据格式** 数据上传必须严格遵循双层表头规范，格式不对直接 400。
+
+**现状二：开放文本编码规模限制** 文本编码将某列的所有响应拼成一个 prompt 发给 LLM。数据量较大时（如 3000 条 × 平均 50 字 = 15 万字）会超出模型 context window，导致截断或报错。
+
+**目标一：数据格式宽容化**
 - 上传后自动检测格式，给出修复建议（而非直接拒绝）
 - 支持常见问卷平台导出格式的自动识别（问卷星、SurveyMonkey 等）
 - 支持单层表头 + 启发式题型推断（作为 fallback）
 - 上传后展示数据预览和题型确认界面
 
-**价值：** 降低数据准备成本，让非技术用户也能顺利导入数据。
+**目标二：分批文本编码**
+- 超过阈值（如 500 条响应）时自动切换为分批模式
+- 每批独立提取主题，再做二次归并去重
+- 进度反馈：显示"第 2/6 批处理中…"
+
+**分批编码实现路径（改 `text_coding.py` 服务层）：**
+```python
+BATCH_SIZE = 300  # 每批最多 N 条响应
+
+def code_open_text_column(responses, ...):
+    if len(responses) <= BATCH_SIZE:
+        return _code_single_batch(responses, ...)  # 现有逻辑不变
+
+    # 分批编码
+    batches = [responses[i:i+BATCH_SIZE]
+               for i in range(0, len(responses), BATCH_SIZE)]
+    batch_themes = [_code_single_batch(b, ...) for b in batches]
+
+    # 二次归并：把各批主题合并，让 LLM 去重并统一命名
+    return _merge_themes(batch_themes, ...)
+```
+
+路由层和模型层不变，只改服务层函数内部逻辑。
+
+**价值：** 数据格式宽容化降低入门门槛；分批编码解除数据规模瓶颈，支持千级别以上的开放题数据集。
 
 ### 方向四：知识可视化与命中反馈
 
@@ -240,8 +306,8 @@ SECTION_REGISTRY = {
 | 阶段 | 方向 | 理由 |
 |------|------|------|
 | 2.0A | 全局知识库 + 知识管理页 | 基础设施，后续方向都依赖它。存储层已就绪，主要工作是 UI 和路由 |
-| 2.0B | 语义检索升级 | 直接提升核心循环输出质量 |
-| 2.0C | 智能数据适配 | 降低用户门槛 |
+| 2.0B | 检索策略分层（双池 + query 扩展，embedding 可选后续） | 解决方法论知识和领域知识混池问题，直接提升输出质量 |
+| 2.0C | 智能数据适配 + 分批文本编码 | 降低格式门槛；解除大规模开放文本的处理瓶颈 |
 | 2.0D | 知识可视化 + 命中反馈 | 建立用户信任 |
 | 2.0E | 知识来源格式扩展（PDF/Word） | 与 2.0A 知识管理页配套，降低知识入库门槛 |
 | 2.0F | 跨项目经验复用 | 长期价值积累 |
