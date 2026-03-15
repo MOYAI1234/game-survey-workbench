@@ -346,6 +346,37 @@ Status:
 - Stage 6E `Retrieval Relevance Improvement`: completed on `codex/stage6-research-iteration`
 - Stage 6 overall execution: completed on `codex/stage6-research-iteration`
 
+### Stage 7: Report Intelligence and Structured Research Output
+
+Goal:
+
+- make the Markdown report structured, brief-aware, version-tracked, and actionable
+
+Scope:
+
+- section-based report assembly replacing monolithic template
+- brief-aware methodology section with research context
+- deterministic recommendation extraction from insight narrative
+- structured findings sections covering deterministic and qualitative outputs
+- report version history and diff comparison
+- dataset metadata injection into report context
+- report detail navigation into history views
+
+Important note:
+
+- this stage strengthens the core loop endpoint without changing output format
+- Markdown remains the final output artifact
+- no new dependencies
+
+Status:
+
+- Stage 7A `Report Section Registry + Builder`: completed on `codex/stage7-task1-report-sections`
+- Stage 7B `Recommendation Extraction + Dataset Meta`: completed on `codex/stage7-task1-report-sections`
+- Stage 7C `Structured Report Wiring`: completed on `codex/stage7-task1-report-sections`
+- Stage 7D `Report Versioning`: completed on `codex/stage7-task1-report-sections`
+- Stage 7E `Report Detail Enhancement`: completed on `codex/stage7-task1-report-sections`
+- Stage 7 overall execution: completed on `codex/stage7-task1-report-sections`
+
 ## Current Product State After Stage 2D Core Implementation
 
 The product now has these Stage 2 capabilities in place:
@@ -385,16 +416,16 @@ After the 2026-03-15 provider-backed closeout validation, that readiness questio
 
 ## Next Planned Artifact
 
-The next concrete planning artifact should be a Stage 6 closeout assessment or a tightly scoped Stage 7 plan focused on post-iteration research quality improvements.
+The next concrete planning artifact should be a Stage 7 closeout assessment or a tightly scoped follow-up plan focused on post-report-intelligence research quality improvements.
 
-## After Stage 6
+## After Stage 7
 
-Now that Stages 5 and 6 have been executed, the next planned focus can move forward inside the north-star order:
+Now that Stages 5, 6, and 7 have been executed, the next planned focus can move forward inside the north-star order:
 
-- run a Stage 6 closeout assessment against realistic iterative research workflows
+- run a Stage 7 closeout assessment against realistic stakeholder-facing reporting workflows
 - keep any remaining shell-polish work narrowly scoped and subordinate to core-loop quality improvements
-- treat statistical significance testing, visualization, and broader analysis automation as future candidates rather than automatic next steps
+- treat statistical significance testing, richer visualization, export automation, and broader analysis automation as future candidates rather than automatic next steps
 
 Future sessions should continue to respect the executed stage order:
 
-`Stage 2A/2B foundations -> Stage 2C questionnaire grounding -> Stage 2D coding and insight synthesis -> Stage 2D report/evidence hardening -> Stage 2 closeout assessment -> final Stage 2 refinement pass -> provider-backed closeout validation -> Stage 3 context work -> Stage 4 advanced capability expansion -> Stage 5 interactive workbench shell -> Stage 6 research iteration and workflow intelligence`
+`Stage 2A/2B foundations -> Stage 2C questionnaire grounding -> Stage 2D coding and insight synthesis -> Stage 2D report/evidence hardening -> Stage 2 closeout assessment -> final Stage 2 refinement pass -> provider-backed closeout validation -> Stage 3 context work -> Stage 4 advanced capability expansion -> Stage 5 interactive workbench shell -> Stage 6 research iteration and workflow intelligence -> Stage 7 report intelligence and structured research output`
