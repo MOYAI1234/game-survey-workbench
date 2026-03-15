@@ -6,7 +6,11 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
 from game_survey_workbench.config import get_settings
-from game_survey_workbench.errors import NoKnowledgeMatchedError, ProjectNotFoundError
+from game_survey_workbench.errors import (
+    LLM_CONFIG_ERROR_MESSAGE,
+    NoKnowledgeMatchedError,
+    ProjectNotFoundError,
+)
 from game_survey_workbench.llm.client import (
     MissingLLMConfigurationError,
     build_llm_client,
@@ -40,8 +44,6 @@ def _generate_questionnaire_version(
             workspace_root=settings.workspace_root,
             client=client,
         )
-    except MissingLLMConfigurationError as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
     except ProjectNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Project not found") from exc
     except NoKnowledgeMatchedError as exc:
@@ -50,7 +52,10 @@ def _generate_questionnaire_version(
 
 @router.post("/projects/{project_slug}/questionnaires/draft", status_code=status.HTTP_201_CREATED)
 def create_questionnaire_draft(project_slug: str, payload: QuestionnaireDraftRequest):
-    version = _generate_questionnaire_version(project_slug=project_slug, payload=payload)
+    try:
+        version = _generate_questionnaire_version(project_slug=project_slug, payload=payload)
+    except MissingLLMConfigurationError as exc:
+        raise HTTPException(status_code=500, detail=LLM_CONFIG_ERROR_MESSAGE) from exc
     return {
         "version_id": version.version_id,
         "markdown_spec": version.markdown_spec,
@@ -63,10 +68,16 @@ def draft_questionnaire_form(
     project_slug: str,
     research_goal: str = Form(...),
 ):
-    _generate_questionnaire_version(
-        project_slug=project_slug,
-        payload=QuestionnaireDraftRequest(research_goal=research_goal),
-    )
+    try:
+        _generate_questionnaire_version(
+            project_slug=project_slug,
+            payload=QuestionnaireDraftRequest(research_goal=research_goal),
+        )
+    except MissingLLMConfigurationError:
+        return RedirectResponse(
+            url=f"/projects/{project_slug}/questionnaires/latest?error=llm_missing",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
     return RedirectResponse(
         url=f"/projects/{project_slug}/questionnaires/latest",
         status_code=status.HTTP_303_SEE_OTHER,
@@ -105,8 +116,11 @@ def refine_questionnaire_form(
             knowledge_snippets=current_version.retrieved_snippets,
             parent_version_id=current_version.version_id,
         )
-    except MissingLLMConfigurationError as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except MissingLLMConfigurationError:
+        return RedirectResponse(
+            url=f"/projects/{project_slug}/questionnaires/latest?error=llm_missing",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
 
     save_payload = QuestionnaireDraftRequest(
         research_goal=refined.research_goal,
@@ -148,6 +162,11 @@ def questionnaire_detail(project_slug: str, request: Request):
             "project_slug": project_slug,
             "spec": latest,
             "version_count": len(versions),
+            "error_message": (
+                LLM_CONFIG_ERROR_MESSAGE
+                if request.query_params.get("error") == "llm_missing"
+                else None
+            ),
         },
     )
 

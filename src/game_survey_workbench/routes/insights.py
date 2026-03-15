@@ -3,6 +3,7 @@ from fastapi.responses import RedirectResponse
 
 from game_survey_workbench.config import get_settings
 from game_survey_workbench.errors import (
+    LLM_CONFIG_ERROR_MESSAGE,
     NoKnowledgeMatchedError,
     NoSavedCodingResultsError,
     ProjectNotFoundError,
@@ -116,7 +117,7 @@ def generate_insights_route(
             event="insights_complete",
         )
     except MissingLLMConfigurationError as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(status_code=500, detail=LLM_CONFIG_ERROR_MESSAGE) from exc
     except ProjectNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Project not found") from exc
     except NoKnowledgeMatchedError as exc:
@@ -184,6 +185,13 @@ def generate_insights_form(
             workspace_root=settings.workspace_root,
             analysis_run_id=analysis_run_id,
             event="insights_complete",
+        )
+    except MissingLLMConfigurationError:
+        record_workflow_event(
+            workspace_root=settings.workspace_root,
+            analysis_run_id=analysis_run_id,
+            event="insights_failed",
+            error=LLM_CONFIG_ERROR_MESSAGE,
         )
     except Exception as exc:
         record_workflow_event(

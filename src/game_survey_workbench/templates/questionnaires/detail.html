@@ -6,6 +6,12 @@
   <h1>Questionnaire Design</h1>
 </header>
 
+{% if error_message %}
+<section class="workflow-alert alert-error">
+  <strong>Last operation failed:</strong> {{ error_message }}
+</section>
+{% endif %}
+
 {% if spec %}
 <section class="questionnaire-content">
   <h2>Latest Draft</h2>

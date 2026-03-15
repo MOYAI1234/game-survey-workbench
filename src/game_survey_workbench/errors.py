@@ -16,3 +16,6 @@ class CodingResponseFormatError(ValueError):
 
 class NoSavedCodingResultsError(ValueError):
     pass
+
+
+LLM_CONFIG_ERROR_MESSAGE = "LLM 未配置，请设置环境变量后重试"
