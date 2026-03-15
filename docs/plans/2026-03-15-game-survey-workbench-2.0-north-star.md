@@ -186,6 +186,43 @@ the complete Chinese translation of the same questionnaire below.
 
 **价值：** 游戏调研问卷通常需要同时面向国内外玩家，双语版直接可用，省去翻译和排版工作；下载功能让问卷能进入实际分发流程。
 
+### 方向十一：报告中文化与下载
+
+**现状：** 报告由 `report_builder.py` 的章节注册表驱动，章节标题为英文，输出 Markdown；报告详情页只能浏览，无下载入口。
+
+**目标：**
+- **报告中文化**：
+  - 章节标题改为中文（如 `## Research Methodology` → `## 研究方法`）
+  - Prompt 追加中文输出指令，确保叙述文本为中文而非跟随模型默认行为
+  - 项目级配置语言偏好（中文/英文），默认中文
+- **报告下载功能**：
+  - 下载 `.md` 文件（现有报告内容直接输出）
+  - 下载 `.txt` 纯文本版
+  - 可选：下载 `.docx`（与问卷 `.docx` 共用 `python-docx` 依赖）
+- 报告详情页增加下载按钮区域，与问卷下载区域保持一致的交互设计
+
+**实现路径（最小改动）：**
+```python
+# routes/reports.py 增加下载路由
+@router.get("/projects/{slug}/reports/{report_id}/download")
+def download_report(slug: str, report_id: int, fmt: str = "md"):
+    # 从 ReportRecord 读取 path（已持久化的 .md 文件），按格式处理后返回 FileResponse
+```
+
+```python
+# services/report_sections.py 章节标题中文化示例：
+SECTION_REGISTRY = {
+    "methodology": {"title": "研究方法", "order": 1},
+    "findings": {"title": "核心发现", "order": 2},
+    "recommendations": {"title": "行动建议", "order": 3},
+    "evidence": {"title": "证据基础", "order": 4},
+}
+```
+
+**与方向十的关系：** 问卷下载（方向十）和报告下载（方向十一）共用相同的下载路由模式和可选 `.docx` 依赖，建议同一个 stage 一起实现，复用下载基础设施。
+
+**价值：** 中文报告直接可用于内部汇报和归档，下载功能让报告脱离工具本身独立流通，不依赖研究者手动复制。
+
 ## 非目标（2.0 仍然不做）
 
 - 多用户协作
@@ -212,6 +249,7 @@ the complete Chinese translation of the same questionnaire below.
 | 2.0H | 界面视觉升级（Pico CSS） | 不阻塞核心功能，可随时并入任何阶段 |
 | 2.0I | LLM 生成流式反馈 | 最小改动可先做 spinner，完整方案做 SSE 流式输出 |
 | 2.0J | 问卷双语版 + 下载 | 直接提升问卷可用性，Prompt 改动极小，下载路由新增即可 |
+| 2.0K | 报告中文化 + 下载 | 与 2.0J 共用下载基础设施，建议同阶段实现；章节标题中文化改动极小 |
 
 ## 与 1.0 north-star 的关系
 
