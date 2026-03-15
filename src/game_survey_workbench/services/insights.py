@@ -15,6 +15,7 @@ from game_survey_workbench.llm.client import LLMClient
 from game_survey_workbench.models.insight import InsightRecord
 from game_survey_workbench.services.knowledge_ingest import retrieve_project_knowledge
 from game_survey_workbench.services.projects import get_project
+from game_survey_workbench.services.recommendation import build_recommendation_context
 from game_survey_workbench.services.research_brief import get_research_brief
 
 
@@ -41,28 +42,20 @@ def build_insight_context(
     coded_themes: list[str | dict],
     knowledge_snippets: list[str | dict],
     brief_objectives: list[str] | None = None,
+    crosstab_findings: list[str | dict] | None = None,
+    matrix_findings: list[str | dict] | None = None,
+    ranking_findings: list[str | dict] | None = None,
 ) -> str:
-    sections = [
-        f"Goal: {research_goal}",
-    ]
-    if brief_objectives:
-        sections.extend(
-            [
-                "Brief Objectives:",
-                *[f"- {objective}" for objective in brief_objectives],
-            ]
-        )
-    sections.extend(
-        [
-        "Stats:",
-        *[f"- {format_context_item(item)}" for item in statistical_findings],
-        "Themes:",
-        *[f"- {format_context_item(item)}" for item in coded_themes],
-        "Knowledge:",
-        *[f"- {format_context_item(item)}" for item in knowledge_snippets],
-        ]
+    return build_recommendation_context(
+        research_goal=research_goal,
+        statistical_findings=[format_context_item(item) for item in statistical_findings],
+        crosstab_findings=[format_context_item(item) for item in crosstab_findings or []],
+        coded_themes=[format_context_item(item) for item in coded_themes],
+        matrix_findings=[format_context_item(item) for item in matrix_findings or []],
+        ranking_findings=[format_context_item(item) for item in ranking_findings or []],
+        brief_objectives=brief_objectives,
+        knowledge_snippets=[format_context_item(item) for item in knowledge_snippets],
     )
-    return "\n".join(sections)
 
 
 def build_evidence_section(*, citations: list[dict]) -> str:
@@ -98,6 +91,9 @@ def synthesize_insights(
     coded_themes: list[str | dict],
     knowledge_snippets: list[dict],
     brief_objectives: list[str] | None = None,
+    crosstab_findings: list[str | dict] | None = None,
+    matrix_findings: list[str | dict] | None = None,
+    ranking_findings: list[str | dict] | None = None,
 ) -> InsightSynthesisResult:
     context = build_insight_context(
         research_goal=research_goal,
@@ -105,6 +101,9 @@ def synthesize_insights(
         coded_themes=coded_themes,
         knowledge_snippets=knowledge_snippets,
         brief_objectives=brief_objectives,
+        crosstab_findings=crosstab_findings,
+        matrix_findings=matrix_findings,
+        ranking_findings=ranking_findings,
     )
     prompt = load_insight_prompt()
     llm_output = client.generate(f"{prompt}\n\n{context}")
@@ -137,6 +136,9 @@ def generate_analysis_insights(
     workspace_root: Path,
     client: LLMClient,
     top_k: int = 10,
+    crosstab_findings: list[str | dict] | None = None,
+    matrix_findings: list[str | dict] | None = None,
+    ranking_findings: list[str | dict] | None = None,
 ) -> InsightRecord:
     if not coded_themes:
         raise NoSavedCodingResultsError("No saved coding results found for this analysis run.")
@@ -174,6 +176,9 @@ def generate_analysis_insights(
         coded_themes=coded_themes,
         knowledge_snippets=snippets,
         brief_objectives=brief.objectives if brief else None,
+        crosstab_findings=crosstab_findings,
+        matrix_findings=matrix_findings,
+        ranking_findings=ranking_findings,
     )
     record = InsightRecord(
         analysis_run_id=analysis_run_id,
