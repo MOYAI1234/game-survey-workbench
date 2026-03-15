@@ -131,7 +131,7 @@ GAME_SURVEY_WORKBENCH_LLM_BASE_URL=http://localhost/fake
 6. 如果有开放题，执行文本编码；如果只有单选题/量表题，可以直接生成洞察
 7. 生成并查看报告
 
-如果某个流程没有匹配到知识，系统会尽量降级生成基础版本，而不是直接中断主流程。
+如果某个流程没有匹配到知识，系统通常仍会先生成一个基础结果，而不是直接中断主流程。
 
 安装依赖：
 
@@ -222,9 +222,11 @@ python -m uv run --with uvicorn --with httpx python scripts/verify_local_http.py
 数据导入接口使用 multipart 文件上传：
 
 ```bash
-curl -X POST "http://127.0.0.1:8000/projects/demo/datasets/import" \
+curl -X POST "http://127.0.0.1:<端口>/projects/demo/datasets/import" \
   -F "file=@workspace/projects/demo/data/raw/dataset.csv"
 ```
+
+其中 `<端口>` 请替换成启动窗口打印出来的实际端口。
 
 当前支持上传的文件格式：
 
