@@ -1,7 +1,8 @@
 # 游戏问卷研究工作台
 
-一个面向游戏行业研究者的本地优先研究工作台，用知识库驱动问卷设计、问卷数据分析与 Markdown 报告生成。
+一个面向中文研究者的本地优先研究工作台，用共享知识库驱动问卷设计、问卷数据分析与 Markdown 报告生成。
 
+- 共享知识库
 - 问卷设计
 - 数据分析
 - Markdown 报告生成
@@ -10,17 +11,18 @@
 
 ## 当前能力
 
-当前 MVP 已支持：
+当前 1.0 已支持：
 
 - 健康检查接口 `/health`
-- 项目创建与 Knowledge Pack 配置
-- Markdown 知识文档解析与本地入库
+- 项目创建与项目级研究简报
+- 共享知识库页面 `/knowledge`
+- Markdown 知识文档解析、本地入库和用途多选上传
 - 问卷设计上下文拼装与草案版本保存
 - 问卷数据导入、metadata 过滤、基础题型识别与 schema 导出
-- 基础确定性统计能力
-- 基于 LLM 接口抽象的洞察上下文拼装
+- 基础确定性统计能力、文本编码、洞察合成
+- 问卷、编码、洞察在无知识或无匹配时的降级生成
 - Markdown 报告渲染与版本化保存
-- 本地首页与三大工作入口页面
+- 中文化的本地首页、项目页、分析页、问卷页、报告页
 - 端到端 smoke test
 
 ## 技术栈
@@ -38,7 +40,7 @@
 ### Quick Start
 
 1. clone 仓库并进入目录
-2. 复制并编辑 `.env`
+2. 配置 `.env`
 3. 运行 `run.bat`
 
 Windows 推荐启动方式：
@@ -51,10 +53,15 @@ run.bat
 
 `run.bat` 会做这些事情：
 
-- 如果 `.env` 不存在，自动从 `.env.example` 创建模板并停止，要求先完成真实配置
-- 执行 `uv sync`
-- 启动本地服务
-- 自动打开浏览器到 `http://127.0.0.1:8000`
+- 如果 `.env` 不存在，自动从 `.env.example` 创建模板并停止，要求先完成真实 LLM 配置
+- 执行 `python -m uv sync --extra dev`
+- 选择可用端口启动本地服务，优先尝试 `8000`，被占用时自动回退到 `8014-8018`
+- 自动打开浏览器到实际启动地址
+
+注意：
+
+- 不要假设端口永远是 `8000`
+- 以 `run.bat` 窗口中打印的 `Starting server on http://127.0.0.1:<端口>/` 为准
 
 ### LLM Configuration
 
@@ -95,15 +102,36 @@ GAME_SURVEY_WORKBENCH_LLM_BASE_URL=http://localhost/fake
 
 如果未完成 LLM 配置，浏览器中的问卷生成、文本编码、洞察生成等表单操作会回跳原页面，并提示：`LLM 未配置，请设置环境变量后重试`。
 
+### 共享知识库
+
+知识库是 `workspace` 级共享资产，不是项目私有文件夹。
+
+- 统一入口：`/knowledge`
+- 上传后文档会进入 `workspace/knowledge/`
+- 多个项目共用同一套知识库
+- 上传时可以直接勾选用途，无需手写 Markdown front matter
+
+当前用途分类：
+
+- `问卷设计`
+- `问卷分析`
+- `报告写作`
+
+如果文档本身带 front matter，系统会继续兼容；但普通使用者直接在界面里勾选用途就可以。
+
 ### 首次使用流程
 
-首次启动后，推荐按这个顺序完成验证：
+首次启动后，推荐按这个顺序完成验收：
 
-1. 创建一个项目
-2. 导入一份符合双层表头规范的问卷数据
-3. 先验证问卷草案生成
-4. 再运行文本编码和洞察生成
-5. 最后生成并查看结构化 Markdown 报告
+1. 打开首页，确认服务已启动，并进入 `共享知识库`
+2. 上传 1-3 篇 Markdown 知识文档，分别覆盖问卷设计、问卷分析或报告写作
+3. 创建一个项目并填写研究简报
+4. 生成问卷草案
+5. 导入一份符合双层表头规范的问卷数据
+6. 如果有开放题，执行文本编码；如果只有单选题/量表题，可以直接生成洞察
+7. 生成并查看报告
+
+如果某个流程没有匹配到知识，系统会尽量降级生成基础版本，而不是直接中断主流程。
 
 安装依赖：
 
@@ -114,25 +142,30 @@ python -m uv sync --extra dev
 运行测试：
 
 ```bash
-python -m uv run pytest -v
+python -m pytest --tb=short -q
 ```
 
 编译检查：
 
 ```bash
-python -m uv run python -m compileall src
+python -m compileall src
 ```
 
-启动本地服务：
+手动启动本地服务：
 
 ```bash
-python -m uv run --with uvicorn uvicorn game_survey_workbench.app:create_app --factory --reload
+python -m uv sync --extra dev
+set PYTHONPATH=%CD%\src
+python -m uvicorn --app-dir src game_survey_workbench.app:create_app --factory --host 127.0.0.1 --port 8000
 ```
 
 启动后可访问：
 
-- `http://127.0.0.1:8000/`
-- `http://127.0.0.1:8000/health`
+- `http://127.0.0.1:<端口>/`
+- `http://127.0.0.1:<端口>/health`
+- `http://127.0.0.1:<端口>/knowledge`
+
+其中 `<端口>` 以 `run.bat` 或你手动启动时指定的端口为准。
 
 ## 初始化示例工作区
 
