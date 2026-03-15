@@ -139,6 +139,53 @@ markdown_text = result.text_content
 
 **价值：** 产品从"可用"升级到"好用"，降低用户认知负担，提升汇报和演示时的可信度。
 
+### 方向九：LLM 生成过程流式反馈
+
+**现状：** 问卷生成、洞察合成、文本编码等操作触发后，页面无任何进度提示，用户只能等待静默重定向，不清楚系统是否在正常运行。
+
+**目标：**
+- LLM 调用期间展示加载状态（进度条或 spinner）
+- 理想状态：支持流式输出（SSE / Server-Sent Events），逐字显示生成内容
+- 最小可行状态：按钮变为"生成中…"禁用态 + 超时提示
+- 优先在问卷生成页实现，其次是洞察生成
+
+**实现路径建议：**
+- **最小改动**：表单提交后用 JS 禁用按钮并显示 spinner，等待重定向
+- **完整方案**：后端 LLM 路由改为 `StreamingResponse`（FastAPI 原生支持），前端用 `EventSource` 接收并实时渲染
+- 不引入 WebSocket，保持 HTTP-only
+
+**价值：** 解决"生成黑盒"体验，用户知道系统在工作，减少误操作（重复点击/刷新）。
+
+### 方向十：问卷中英双语版本与下载
+
+**现状：** 问卷只生成单语言 Markdown，无下载入口，研究者需手动复制后在外部工具处理。
+
+**目标：**
+- **双语问卷**：单次生成输出上半部分英文、下半部分中文（两套完整问卷，分隔线隔开），不做题目级别的中英穿插
+- **下载功能**：
+  - 下载 `.md` 文件（现有内容直接输出）
+  - 下载 `.txt` 纯文本（去除 Markdown 格式符号）
+  - 可选：下载 `.docx`（使用 `python-docx`，新增依赖）
+- 问卷详情页增加下载按钮区域
+
+**实现路径（最小改动）：**
+```python
+# routes/questionnaires.py 增加下载路由
+@router.get("/projects/{slug}/questionnaires/{version_id}/download")
+def download_questionnaire(slug: str, version_id: str, fmt: str = "md"):
+    # fmt = "md" | "txt"
+    # 从 DB 读取 markdown_spec，按格式处理后返回 FileResponse
+```
+
+**双语 Prompt 策略：**
+```
+# 在 questionnaire_design prompt 末尾追加：
+After the English questionnaire, add a horizontal divider (---), then provide
+the complete Chinese translation of the same questionnaire below.
+```
+
+**价值：** 游戏调研问卷通常需要同时面向国内外玩家，双语版直接可用，省去翻译和排版工作；下载功能让问卷能进入实际分发流程。
+
 ## 非目标（2.0 仍然不做）
 
 - 多用户协作
@@ -163,6 +210,8 @@ markdown_text = result.text_content
 | 2.0F | 跨项目经验复用 | 长期价值积累 |
 | 2.0G | Prompt 中文化 | 跟随用户需求优先级 |
 | 2.0H | 界面视觉升级（Pico CSS） | 不阻塞核心功能，可随时并入任何阶段 |
+| 2.0I | LLM 生成流式反馈 | 最小改动可先做 spinner，完整方案做 SSE 流式输出 |
+| 2.0J | 问卷双语版 + 下载 | 直接提升问卷可用性，Prompt 改动极小，下载路由新增即可 |
 
 ## 与 1.0 north-star 的关系
 
