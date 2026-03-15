@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import math
+import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -35,6 +37,35 @@ class LocalVectorStore:
             return []
         return json.loads(self.index_path.read_text(encoding="utf-8"))
 
+    def _tokenize(self, text: str) -> list[str]:
+        lowered = text.lower()
+        latin_tokens = re.findall(r"[a-z0-9]+(?:-[a-z0-9]+)*", lowered)
+        cjk_tokens = re.findall(r"[\u4e00-\u9fff]", text)
+        return latin_tokens + cjk_tokens
+
+    def _compute_idf(self, term: str, chunks: list[dict]) -> float:
+        document_frequency = sum(
+            1
+            for chunk in chunks
+            if term in self._tokenize(
+                f"{chunk.get('document_title', '')} {chunk.get('content', '')}"
+            )
+        )
+        return math.log((1 + len(chunks)) / (1 + document_frequency)) + 1.0
+
+    def _tfidf_score(self, query_terms: list[str], chunk: dict, all_chunks: list[dict]) -> float:
+        tokens = self._tokenize(
+            f"{chunk.get('document_title', '')} {chunk.get('content', '')}"
+        )
+        total_terms = max(len(tokens), 1)
+        score = 0.0
+        for term in query_terms:
+            term_frequency = tokens.count(term) / total_terms
+            if term_frequency == 0:
+                continue
+            score += term_frequency * self._compute_idf(term, all_chunks)
+        return score
+
     def query(
         self,
         query: str,
@@ -44,8 +75,8 @@ class LocalVectorStore:
         scenarios: list[str] | None = None,
         top_k: int | None = None,
     ) -> list[dict]:
-        terms = [item.lower() for item in query.split() if item.strip()]
-        matches: list[tuple[tuple[int, int], dict]] = []
+        terms = self._tokenize(query)
+        filtered_chunks: list[dict] = []
 
         for item in self.load_chunks():
             if stages and not set(stages).intersection(item.get("stages", [])):
@@ -54,10 +85,12 @@ class LocalVectorStore:
                 continue
             if scenarios and item.get("scenario") not in scenarios:
                 continue
+            filtered_chunks.append(item)
 
-            haystack = f"{item.get('document_title', '')} {item.get('content', '')}".lower()
-            score = sum(term in haystack for term in terms)
-            if score or not terms:
+        matches: list[tuple[tuple[float, int], dict]] = []
+        for item in filtered_chunks:
+            score = self._tfidf_score(terms, item, filtered_chunks) if terms else 0.0
+            if score > 0 or not terms:
                 priority = int(item.get("priority", 0))
                 matches.append(((score, priority), item))
 

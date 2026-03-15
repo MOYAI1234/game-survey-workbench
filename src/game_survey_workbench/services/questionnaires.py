@@ -70,6 +70,11 @@ def load_questionnaire_prompt() -> str:
     return prompt_path.read_text(encoding="utf-8").strip()
 
 
+def load_questionnaire_refine_prompt() -> str:
+    prompt_path = Path(__file__).resolve().parent.parent / "prompts" / "questionnaire_refine.txt"
+    return prompt_path.read_text(encoding="utf-8").strip()
+
+
 def save_questionnaire_draft(
     *,
     project_slug: str,
@@ -158,4 +163,71 @@ def generate_questionnaire_draft(
         markdown_spec=markdown,
         citations=snippets,
         retrieved_snippets=snippets,
+    )
+
+
+def _build_refinement_prompt(
+    *,
+    previous_markdown: str,
+    feedback: str,
+    research_goal: str,
+    knowledge_snippets: list[dict],
+) -> str:
+    sections = [
+        load_questionnaire_refine_prompt(),
+        "",
+        f"Research Goal: {research_goal}",
+        "",
+        "Current Draft:",
+        previous_markdown,
+        "",
+        "Researcher Feedback:",
+        feedback,
+    ]
+    if knowledge_snippets:
+        sections.extend(
+            [
+                "",
+                "Knowledge Context:",
+                *[
+                    f"- {format_knowledge_item(snippet)}"
+                    for snippet in knowledge_snippets
+                ],
+            ]
+        )
+    return "\n".join(sections).strip()
+
+
+def refine_questionnaire_draft(
+    *,
+    llm_client: LLMClient,
+    previous_markdown: str,
+    feedback: str,
+    research_goal: str,
+    knowledge_snippets: list[dict],
+    parent_version_id: str | None = None,
+) -> QuestionnaireSpecVersion:
+    """Generate a refined questionnaire draft based on user feedback."""
+    prompt = _build_refinement_prompt(
+        previous_markdown=previous_markdown,
+        feedback=feedback,
+        research_goal=research_goal,
+        knowledge_snippets=knowledge_snippets,
+    )
+    response = llm_client.generate(prompt)
+
+    refined_goal = research_goal
+    if feedback:
+        refined_goal = f"{research_goal} [refined: {feedback}]"
+
+    if parent_version_id:
+        refined_goal = refined_goal
+
+    return QuestionnaireSpecVersion(
+        project_slug="",
+        version_id=str(uuid4()),
+        research_goal=refined_goal,
+        markdown_spec=response,
+        citations=[],
+        retrieved_snippets=knowledge_snippets,
     )

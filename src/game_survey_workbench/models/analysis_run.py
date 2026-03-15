@@ -4,6 +4,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Optional
 
+from sqlalchemy import Column
+from sqlalchemy.types import JSON
 from sqlmodel import Field, Session, SQLModel, select
 
 from game_survey_workbench.errors import AnalysisRunNotFoundError
@@ -15,6 +17,7 @@ class AnalysisRunRecord(SQLModel, table=True):
     project_slug: str = Field(index=True)
     dataset_id: str = Field(index=True)
     status: str = "ready"
+    workflow_state: dict = Field(default_factory=dict, sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 

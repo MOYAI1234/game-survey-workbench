@@ -17,6 +17,12 @@ from game_survey_workbench.models.questionnaire import (
     QuestionnaireSpecVersion,
 )
 from game_survey_workbench.services.questionnaires import generate_questionnaire_draft
+from game_survey_workbench.services.questionnaires import refine_questionnaire_draft
+from game_survey_workbench.services.questionnaire_versions import (
+    diff_versions,
+    list_versions,
+)
+from game_survey_workbench.services.projects import get_project
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
@@ -67,20 +73,73 @@ def draft_questionnaire_form(
     )
 
 
+@router.post("/projects/{project_slug}/questionnaires/refine-form")
+def refine_questionnaire_form(
+    project_slug: str,
+    version_id: str = Form(...),
+    feedback: str = Form(...),
+):
+    settings = get_settings()
+    engine = get_engine(settings.workspace_root)
+    with Session(engine) as session:
+        current_version = session.exec(
+            select(QuestionnaireSpecVersion).where(
+                QuestionnaireSpecVersion.project_slug == project_slug,
+                QuestionnaireSpecVersion.version_id == version_id,
+            )
+        ).first()
+    if current_version is None:
+        raise HTTPException(status_code=404, detail="Questionnaire version not found")
+
+    project = get_project(workspace_root=settings.workspace_root, project_slug=project_slug)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    try:
+        client = build_llm_client(settings)
+        refined = refine_questionnaire_draft(
+            llm_client=client,
+            previous_markdown=current_version.markdown_spec,
+            feedback=feedback,
+            research_goal=current_version.research_goal,
+            knowledge_snippets=current_version.retrieved_snippets,
+            parent_version_id=current_version.version_id,
+        )
+    except MissingLLMConfigurationError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    save_payload = QuestionnaireDraftRequest(
+        research_goal=refined.research_goal,
+        hypotheses=[],
+        knowledge_snippets=[],
+    )
+    from game_survey_workbench.services.questionnaires import save_questionnaire_draft
+
+    save_questionnaire_draft(
+        project_slug=project_slug,
+        project_name=project.name,
+        payload=save_payload,
+        workspace_root=settings.workspace_root,
+        markdown_spec=refined.markdown_spec,
+        citations=current_version.citations,
+        retrieved_snippets=current_version.retrieved_snippets,
+    )
+    return RedirectResponse(
+        url=f"/projects/{project_slug}/questionnaires/latest",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
+
+
 @router.get("/projects/{project_slug}/questionnaires/latest", response_class=HTMLResponse)
 def questionnaire_detail(project_slug: str, request: Request):
     settings = get_settings()
     engine = get_engine(settings.workspace_root)
     with Session(engine) as session:
-        versions = session.exec(
-            select(QuestionnaireSpecVersion).where(
-                QuestionnaireSpecVersion.project_slug == project_slug
-            )
-        ).all()
+        versions = list_versions(session, project_slug)
 
     latest = None
     if versions:
-        latest = sorted(versions, key=lambda item: item.created_at, reverse=True)[0]
+        latest = versions[0]
 
     return templates.TemplateResponse(
         request,
@@ -88,5 +147,39 @@ def questionnaire_detail(project_slug: str, request: Request):
         {
             "project_slug": project_slug,
             "spec": latest,
+            "version_count": len(versions),
+        },
+    )
+
+
+@router.get("/projects/{project_slug}/questionnaires/history", response_class=HTMLResponse)
+def questionnaire_history(
+    project_slug: str,
+    request: Request,
+    from_version: str | None = None,
+    to_version: str | None = None,
+):
+    settings = get_settings()
+    engine = get_engine(settings.workspace_root)
+    with Session(engine) as session:
+        versions = list_versions(session, project_slug)
+        version_diff = None
+        if from_version and to_version:
+            version_diff = diff_versions(
+                session,
+                project_slug,
+                from_version,
+                to_version,
+            )
+
+    return templates.TemplateResponse(
+        request,
+        "questionnaires/history.html",
+        {
+            "project_slug": project_slug,
+            "versions": versions,
+            "version_diff": version_diff,
+            "from_version": from_version,
+            "to_version": to_version,
         },
     )

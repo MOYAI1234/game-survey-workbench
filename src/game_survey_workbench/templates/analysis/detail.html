@@ -14,6 +14,45 @@
   No analysis runs yet. Upload a dataset from the <a href="/projects/{{ project_slug }}">project page</a>.
 </p>
 {% else %}
+{% if workflow_error %}
+<section class="workflow-alert alert-error">
+  <strong>Last operation failed:</strong> {{ workflow_error }}
+  <p>You can retry the workflow step using the actions below.</p>
+</section>
+{% endif %}
+
+<section class="workflow-status">
+  <h2>Workflow Status</h2>
+  <p><strong>Current phase:</strong> {{ workflow_phase }}</p>
+  {% if workflow_completed %}
+  <div class="workflow-badges">
+    {% for phase in workflow_completed %}
+    <span class="status-badge workflow-badge">{{ phase }}</span>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted">No workflow steps completed yet.</p>
+  {% endif %}
+</section>
+
+<section class="workflow-steps">
+  <h2>Research Progress</h2>
+  <ol>
+    <li class="step-item done">
+      Dataset Imported
+    </li>
+    <li class="step-item {% if 'coding_complete' in workflow_completed %}done{% elif workflow_phase == 'imported' %}pending{% else %}current{% endif %}">
+      Text Coding
+    </li>
+    <li class="step-item {% if 'insights_complete' in workflow_completed %}done{% elif workflow_phase == 'coded' %}current{% else %}pending{% endif %}">
+      Insight Synthesis
+    </li>
+    <li class="step-item {% if 'report_complete' in workflow_completed %}done{% elif workflow_phase == 'insights_ready' %}current{% else %}pending{% endif %}">
+      Report Generated
+    </li>
+  </ol>
+</section>
+
 <section class="schema-overview">
   <h2>Dataset Schema</h2>
   <table>
@@ -82,8 +121,19 @@
   {% if insight.evidence_section %}
   <div class="evidence">{{ insight.evidence_section }}</div>
   {% endif %}
+  {% if insight_history and insight_history|length > 1 %}
+  <details>
+    <summary>Previous Insight Drafts ({{ insight_history|length - 1 }})</summary>
+    <ul>
+      {% for previous_insight in insight_history[1:] %}
+      <li>{{ previous_insight.created_at }} — {{ previous_insight.narrative[:120] }}</li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
   {% else %}
   <p class="empty-state">No insights generated yet.</p>
+  {% endif %}
   <form action="/projects/{{ project_slug }}/analysis/{{ run_id }}/insights-generate" method="post">
     <label for="research_goal">Research Goal</label>
     <input
@@ -93,9 +143,8 @@
       required
       placeholder="e.g. Understand player satisfaction drivers"
     >
-    <button type="submit">Generate Insights</button>
+    <button type="submit">{% if insight %}Generate Another Insight Draft{% else %}Generate Insights{% endif %}</button>
   </form>
-  {% endif %}
 </section>
 
 <section class="report-section">

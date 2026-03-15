@@ -19,7 +19,9 @@ from game_survey_workbench.services.dataset_import import import_dataset, store_
 from game_survey_workbench.services.reporting import (
     get_coding_results,
     get_latest_insight_record,
+    list_insight_records,
 )
+from game_survey_workbench.services.workflow_state import get_workflow_state
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
@@ -118,6 +120,14 @@ def _render_analysis_detail(*, project_slug: str, analysis_run_id: str | None, r
         analysis_run_id=analysis_run_id,
         workspace_root=settings.workspace_root,
     )
+    context["insight_history"] = list_insight_records(
+        analysis_run_id=analysis_run_id,
+        workspace_root=settings.workspace_root,
+    )
+    workflow = get_workflow_state(loaded_context.analysis_run.workflow_state)
+    context["workflow_phase"] = workflow.current_phase
+    context["workflow_error"] = workflow.last_error
+    context["workflow_completed"] = workflow.completed_phases
     return templates.TemplateResponse(request, "analysis/detail.html", context)
 
 

@@ -10,6 +10,9 @@
 <section class="questionnaire-content">
   <h2>Latest Draft</h2>
   <p class="muted">Version: {{ spec.version_id }} | Goal: {{ spec.research_goal }}</p>
+  <p class="muted">
+    <a href="/projects/{{ project_slug }}/questionnaires/history">View version history{% if version_count %} ({{ version_count }}){% endif %}</a>
+  </p>
   <pre class="questionnaire-markdown">{{ spec.markdown_spec }}</pre>
   {% if spec.retrieved_snippets %}
   <details>
@@ -40,4 +43,22 @@
     <button type="submit">Generate Draft</button>
   </form>
 </section>
+
+{% if spec %}
+<section class="draft-form">
+  <h2>Refine This Draft</h2>
+  <form action="/projects/{{ project_slug }}/questionnaires/refine-form" method="post">
+    <input type="hidden" name="version_id" value="{{ spec.version_id }}">
+    <label for="feedback">What would you like to change?</label>
+    <textarea
+      id="feedback"
+      name="feedback"
+      rows="4"
+      required
+      placeholder="e.g. Add a question about spending habits, simplify question 3."
+    ></textarea>
+    <button type="submit">Refine Draft</button>
+  </form>
+</section>
+{% endif %}
 {% endblock %}

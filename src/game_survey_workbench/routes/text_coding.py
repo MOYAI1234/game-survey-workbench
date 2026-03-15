@@ -21,6 +21,7 @@ from game_survey_workbench.services.analysis_context import (
     load_free_text_responses_for_question,
 )
 from game_survey_workbench.services.text_coding import code_open_text_column
+from game_survey_workbench.services.workflow_state import record_workflow_event
 
 router = APIRouter()
 
@@ -56,6 +57,11 @@ def code_text_route(
             responses=responses,
             workspace_root=settings.workspace_root,
             client=client,
+        )
+        record_workflow_event(
+            workspace_root=settings.workspace_root,
+            analysis_run_id=analysis_run_id,
+            event="coding_complete",
         )
     except MissingLLMConfigurationError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -93,30 +99,40 @@ def code_text_all(project_slug: str, analysis_run_id: str):
             analysis_run_id=analysis_run_id,
             workspace_root=settings.workspace_root,
         )
+        had_free_text = False
         for question_column, payload in context.dataset_record.dataset_schema.items():
             if not isinstance(payload, dict):
                 continue
             schema = QuestionColumnSchema.model_validate(payload)
             if schema.question_type != "free_text":
                 continue
-            try:
-                responses = load_free_text_responses_for_question(
-                    analysis_run_id=analysis_run_id,
-                    question_column=question_column,
-                    workspace_root=settings.workspace_root,
-                )
-                code_open_text_column(
-                    project_slug=project_slug,
-                    analysis_run_id=analysis_run_id,
-                    question_column=question_column,
-                    responses=responses,
-                    workspace_root=settings.workspace_root,
-                    client=client,
-                )
-            except Exception:
-                continue
-    except Exception:
-        pass
+            had_free_text = True
+            responses = load_free_text_responses_for_question(
+                analysis_run_id=analysis_run_id,
+                question_column=question_column,
+                workspace_root=settings.workspace_root,
+            )
+            code_open_text_column(
+                project_slug=project_slug,
+                analysis_run_id=analysis_run_id,
+                question_column=question_column,
+                responses=responses,
+                workspace_root=settings.workspace_root,
+                client=client,
+            )
+        if had_free_text:
+            record_workflow_event(
+                workspace_root=settings.workspace_root,
+                analysis_run_id=analysis_run_id,
+                event="coding_complete",
+            )
+    except Exception as exc:
+        record_workflow_event(
+            workspace_root=settings.workspace_root,
+            analysis_run_id=analysis_run_id,
+            event="coding_failed",
+            error=str(exc),
+        )
 
     return RedirectResponse(
         url=f"/projects/{project_slug}/analysis/{analysis_run_id}",

@@ -1,0 +1,56 @@
+{% extends "layout.html" %}
+{% block title %}Questionnaire History — {{ project_slug }}{% endblock %}
+{% block content %}
+<header>
+  <p class="eyebrow"><a href="/projects/{{ project_slug }}/questionnaires/latest">← {{ project_slug }}</a></p>
+  <h1>Questionnaire Version History</h1>
+</header>
+
+<section>
+  <h2>Saved Versions</h2>
+  {% if versions %}
+  <table>
+    <thead>
+      <tr>
+        <th>Version</th>
+        <th>Goal</th>
+        <th>Created</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for version in versions %}
+      <tr>
+        <td>{{ version.version_id }}</td>
+        <td>{{ version.research_goal }}</td>
+        <td>{{ version.created_at }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty-state">No questionnaire versions saved yet.</p>
+  {% endif %}
+</section>
+
+{% if version_diff %}
+<section>
+  <h2>Version Diff</h2>
+  <p class="muted">
+    Comparing {{ version_diff.version_a }} → {{ version_diff.version_b }}
+    | +{{ version_diff.added_lines }} / -{{ version_diff.removed_lines }}
+  </p>
+  <pre class="questionnaire-markdown">{{ version_diff.unified_diff }}</pre>
+</section>
+{% elif versions|length >= 2 %}
+<section>
+  <h2>Compare Two Versions</h2>
+  <form method="get" action="/projects/{{ project_slug }}/questionnaires/history">
+    <label for="from_version">From Version</label>
+    <input type="text" id="from_version" name="from_version" required value="{{ from_version or versions[-1].version_id }}">
+    <label for="to_version">To Version</label>
+    <input type="text" id="to_version" name="to_version" required value="{{ to_version or versions[0].version_id }}">
+    <button type="submit">Show Diff</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

@@ -45,7 +45,25 @@ def _ensure_projectrecord_stage3a_columns(engine) -> None:
             )
 
 
+def _ensure_analysisrunrecord_stage6a_columns(engine) -> None:
+    with engine.begin() as connection:
+        columns = {
+            row[1] for row in connection.exec_driver_sql("PRAGMA table_info(analysisrunrecord)")
+        }
+        if not columns:
+            return
+
+        if "workflow_state" not in columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE analysisrunrecord ADD COLUMN workflow_state JSON DEFAULT '{}'"
+            )
+            connection.exec_driver_sql(
+                "UPDATE analysisrunrecord SET workflow_state = '{}' WHERE workflow_state IS NULL"
+            )
+
+
 def create_db_and_tables(workspace_root: Path) -> None:
     engine = get_engine(workspace_root)
     SQLModel.metadata.create_all(engine)
     _ensure_projectrecord_stage3a_columns(engine)
+    _ensure_analysisrunrecord_stage6a_columns(engine)

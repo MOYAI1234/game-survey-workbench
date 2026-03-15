@@ -201,6 +201,51 @@ tr:last-child td {
   font-weight: 700;
 }
 
+.workflow-alert {
+  border-left: 4px solid #c94c3b;
+}
+
+.alert-error {
+  background: rgba(201, 76, 59, 0.1);
+}
+
+.workflow-status p {
+  margin-top: 0;
+}
+
+.workflow-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.workflow-badge {
+  margin-left: 0;
+}
+
+.workflow-steps ol {
+  padding-left: 20px;
+}
+
+.step-item {
+  padding-left: 4px;
+}
+
+.step-item.done {
+  color: #2f6b2f;
+  font-weight: 700;
+}
+
+.step-item.current {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.step-item.pending {
+  color: var(--muted);
+}
+
 .report-markdown,
 .questionnaire-markdown,
 .insight-narrative,

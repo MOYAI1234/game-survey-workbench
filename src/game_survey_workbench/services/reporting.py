@@ -48,14 +48,22 @@ def get_analysis_run_record(*, analysis_run_id: str, workspace_root: Path) -> An
 
 
 def get_latest_insight_record(*, analysis_run_id: str, workspace_root: Path) -> InsightRecord | None:
+    records = list_insight_records(
+        analysis_run_id=analysis_run_id,
+        workspace_root=workspace_root,
+    )
+    if not records:
+        return None
+    return records[0]
+
+
+def list_insight_records(*, analysis_run_id: str, workspace_root: Path) -> list[InsightRecord]:
     engine = get_engine(workspace_root)
     with Session(engine) as session:
         records = session.exec(
             select(InsightRecord).where(InsightRecord.analysis_run_id == analysis_run_id)
         ).all()
-    if not records:
-        return None
-    return sorted(records, key=lambda item: item.created_at, reverse=True)[0]
+    return sorted(records, key=lambda item: item.created_at, reverse=True)
 
 
 def get_coding_results(*, analysis_run_id: str, workspace_root: Path) -> list[CodingResult]:

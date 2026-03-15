@@ -21,6 +21,7 @@ from game_survey_workbench.services.analysis_context import (
     load_saved_coding_themes,
 )
 from game_survey_workbench.services.insights import generate_analysis_insights
+from game_survey_workbench.services.workflow_state import record_workflow_event
 
 router = APIRouter()
 
@@ -109,6 +110,11 @@ def generate_insights_route(
             matrix_findings=matrix_findings,
             ranking_findings=ranking_findings,
         )
+        record_workflow_event(
+            workspace_root=settings.workspace_root,
+            analysis_run_id=analysis_run_id,
+            event="insights_complete",
+        )
     except MissingLLMConfigurationError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     except ProjectNotFoundError as exc:
@@ -174,8 +180,18 @@ def generate_insights_form(
             matrix_findings=matrix_findings,
             ranking_findings=ranking_findings,
         )
-    except Exception:
-        pass
+        record_workflow_event(
+            workspace_root=settings.workspace_root,
+            analysis_run_id=analysis_run_id,
+            event="insights_complete",
+        )
+    except Exception as exc:
+        record_workflow_event(
+            workspace_root=settings.workspace_root,
+            analysis_run_id=analysis_run_id,
+            event="insights_failed",
+            error=str(exc),
+        )
 
     return RedirectResponse(
         url=f"/projects/{project_slug}/analysis/{analysis_run_id}",

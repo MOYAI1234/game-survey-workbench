@@ -19,6 +19,7 @@ from game_survey_workbench.services.reporting import (
     get_latest_insight_record,
     save_report,
 )
+from game_survey_workbench.services.workflow_state import record_workflow_event
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
@@ -81,15 +82,34 @@ def generate_report(project_slug: str, payload: ReportGenerateRequest):
         evidence=evidence,
         evidence_section=evidence_section,
     )
+    record_workflow_event(
+        workspace_root=settings.workspace_root,
+        analysis_run_id=payload.analysis_run_id,
+        event="report_complete",
+    )
     return {"path": str(path), "analysis_run_id": payload.analysis_run_id}
 
 
 @router.post("/projects/{project_slug}/reports/generate-form")
 def generate_report_form(project_slug: str, analysis_run_id: str = Form(...)):
-    generate_report(
-        project_slug=project_slug,
-        payload=ReportGenerateRequest(analysis_run_id=analysis_run_id),
-    )
+    settings = get_settings()
+    try:
+        generate_report(
+            project_slug=project_slug,
+            payload=ReportGenerateRequest(analysis_run_id=analysis_run_id),
+        )
+    except Exception as exc:
+        record_workflow_event(
+            workspace_root=settings.workspace_root,
+            analysis_run_id=analysis_run_id,
+            event="report_failed",
+            error=str(exc),
+        )
+        return RedirectResponse(
+            url=f"/projects/{project_slug}/analysis/{analysis_run_id}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+
     return RedirectResponse(
         url=f"/projects/{project_slug}/reports/latest",
         status_code=status.HTTP_303_SEE_OTHER,

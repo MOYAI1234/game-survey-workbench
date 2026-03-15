@@ -313,6 +313,39 @@ Important note:
 - no frontend framework (stays with Jinja2 server-rendering)
 - no new dependencies
 
+Status:
+
+- completed on `master`
+
+### Stage 6: Research Iteration and Workflow Intelligence
+
+Goal:
+
+- make the core research loop repeatable, debuggable, and comparable across iterations
+
+Scope:
+
+- workflow state tracking across coding, insight synthesis, and report generation
+- explicit browser error feedback instead of silent failures
+- questionnaire version history and diff comparison
+- iterative questionnaire refinement with researcher feedback
+- repeatable insight generation with visible history
+- retrieval relevance improvement and workflow progress visibility
+
+Important note:
+
+- this stage strengthens the core loop rather than adding shell polish
+- no new dependencies
+
+Status:
+
+- Stage 6A `Workflow State Machine`: completed on `codex/stage6-research-iteration`
+- Stage 6B `Error Feedback + Progress Visibility`: completed on `codex/stage6-research-iteration`
+- Stage 6C `Questionnaire Versioning + Refinement`: completed on `codex/stage6-research-iteration`
+- Stage 6D `Insight Re-generation`: completed on `codex/stage6-research-iteration`
+- Stage 6E `Retrieval Relevance Improvement`: completed on `codex/stage6-research-iteration`
+- Stage 6 overall execution: completed on `codex/stage6-research-iteration`
+
 ## Current Product State After Stage 2D Core Implementation
 
 The product now has these Stage 2 capabilities in place:
@@ -352,16 +385,16 @@ After the 2026-03-15 provider-backed closeout validation, that readiness questio
 
 ## Next Planned Artifact
 
-The next concrete planning artifact should be a Stage 4 closeout assessment or a tightly scoped follow-up plan for post-Stage-4 polish, now that the advanced research capability expansion has been implemented on `master`.
+The next concrete planning artifact should be a Stage 6 closeout assessment or a tightly scoped Stage 7 plan focused on post-iteration research quality improvements.
 
-## After Stage 4
+## After Stage 6
 
-Now that Stage 4 advanced capability expansion has been completed, the next planned focus can move forward inside the north-star order:
+Now that Stages 5 and 6 have been executed, the next planned focus can move forward inside the north-star order:
 
-- run a Stage 4 closeout assessment against realistic research workflows
-- keep any remaining Stage 2 or Stage 3 shell-polish work narrowly scoped and subordinate to validated post-Stage-4 follow-up priorities
+- run a Stage 6 closeout assessment against realistic iterative research workflows
+- keep any remaining shell-polish work narrowly scoped and subordinate to core-loop quality improvements
 - treat statistical significance testing, visualization, and broader analysis automation as future candidates rather than automatic next steps
 
 Future sessions should continue to respect the executed stage order:
 
-`Stage 2A/2B foundations -> Stage 2C questionnaire grounding -> Stage 2D coding and insight synthesis -> Stage 2D report/evidence hardening -> Stage 2 closeout assessment -> final Stage 2 refinement pass -> provider-backed closeout validation -> Stage 3 context work -> Stage 4 advanced capability expansion`
+`Stage 2A/2B foundations -> Stage 2C questionnaire grounding -> Stage 2D coding and insight synthesis -> Stage 2D report/evidence hardening -> Stage 2 closeout assessment -> final Stage 2 refinement pass -> provider-backed closeout validation -> Stage 3 context work -> Stage 4 advanced capability expansion -> Stage 5 interactive workbench shell -> Stage 6 research iteration and workflow intelligence`
