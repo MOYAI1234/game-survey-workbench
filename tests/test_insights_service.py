@@ -174,6 +174,31 @@ def test_generate_analysis_insights_rejects_missing_saved_coding_results(tmp_pat
         )
 
 
+def test_generate_analysis_insights_degrades_when_knowledge_is_missing(tmp_path: Path):
+    create_project(
+        ProjectCreate(
+            slug="empty-project",
+            name="Empty Project",
+            knowledge_pack={"doc_types": ["theory"], "scenarios": ["churn"]},
+        ),
+        workspace_root=tmp_path,
+    )
+
+    result = generate_analysis_insights(
+        project_slug="empty-project",
+        analysis_run_id="run-1",
+        research_goal="Understand churn drivers",
+        statistical_findings=["Top box dropped to 32%"],
+        coded_themes=[{"theme_name": "Boredom", "count": 12}],
+        workspace_root=tmp_path,
+        client=FakeLLMClient("Boredom emerged as the dominant churn factor."),
+    )
+
+    assert result.narrative
+    assert result.citations == []
+    assert result.evidence_section == ""
+
+
 def test_generate_analysis_insights_with_realistic_fixture_persists_visible_evidence(tmp_path: Path):
     for source in (STAGE2_CLOSEOUT_FIXTURE_ROOT / "knowledge").glob("*.md"):
         ingest_knowledge_file(source, project_root=tmp_path)

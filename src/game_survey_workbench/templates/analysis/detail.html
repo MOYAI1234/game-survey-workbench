@@ -104,6 +104,11 @@
 
 <section class="insight-section">
   <h2>洞察合成</h2>
+  {% if insight_fallback_notice %}
+  <section class="workflow-alert alert-success">
+    <strong>{{ insight_fallback_notice }}</strong>
+  </section>
+  {% endif %}
   {% if insight %}
   <div class="insight-narrative">{{ insight.narrative }}</div>
   {% if insight.evidence_section %}

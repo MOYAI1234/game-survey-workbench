@@ -9,6 +9,7 @@ from sqlmodel import Session, select
 from game_survey_workbench.app import create_app
 from game_survey_workbench.db import get_engine
 from game_survey_workbench.models.analysis_run import AnalysisRunRecord
+from game_survey_workbench.models.text_coding import CodingResult
 from game_survey_workbench.services.workflow_state import WorkflowState, advance_workflow
 
 
@@ -84,3 +85,36 @@ def test_analysis_page_shows_completed_workflow_events(client: TestClient, tmp_p
     assert "洞察合成" in response.text
     assert "文本编码" in response.text
     assert "报告生成" in response.text
+
+
+def test_analysis_page_shows_fallback_notice_when_insights_generated_without_knowledge(
+    client: TestClient,
+    tmp_path: Path,
+):
+    run_id = _seed_analysis_run(client, tmp_path, slug="fallback-insight")
+    engine = get_engine(tmp_path)
+
+    with Session(engine) as session:
+        session.add(
+            CodingResult(
+                analysis_run_id=run_id,
+                question_column="Q2_Feedback",
+                themes=[{"theme_name": "广告干扰", "count": 1, "example_responses": ["Too many ads"]}],
+                uncoded_count=0,
+                citations=[],
+            )
+        )
+        session.commit()
+
+    response = client.post(
+        f"/projects/fallback-insight/analysis/{run_id}/insights-generate",
+        data={"research_goal": "Understand satisfaction drivers"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code in (302, 303)
+
+    detail_response = client.get(f"/projects/fallback-insight/analysis/{run_id}")
+
+    assert detail_response.status_code == 200
+    assert "当前还没有知识文档，已先生成基础版本" in detail_response.text

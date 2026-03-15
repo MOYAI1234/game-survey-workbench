@@ -10,6 +10,7 @@ from sqlmodel import Session, select
 from game_survey_workbench.config import get_settings
 from game_survey_workbench.db import get_engine
 from game_survey_workbench.models.analysis_run import AnalysisRunRecord
+from game_survey_workbench.models.knowledge import KnowledgeDocument
 from game_survey_workbench.models.project import ProjectRecord
 from game_survey_workbench.services.analysis_context import (
     build_deterministic_findings_for_run,
@@ -134,6 +135,16 @@ def _render_analysis_detail(*, project_slug: str, analysis_run_id: str | None, r
     context["workflow_phase"] = workflow.current_phase
     context["workflow_error"] = workflow.last_error
     context["workflow_completed"] = workflow.completed_phases
+    engine = get_engine(settings.workspace_root)
+    with Session(engine) as session:
+        knowledge_count = len(list(session.exec(select(KnowledgeDocument)).all()))
+    context["insight_fallback_notice"] = None
+    if context["insight"] is not None and not context["insight"].citations:
+        context["insight_fallback_notice"] = (
+            "当前还没有知识文档，已先生成基础版本。建议补充共享知识库以提升问卷、洞察和报告质量。"
+            if knowledge_count == 0
+            else "当前未匹配到相关知识，已仅基于研究目标、数据结果和编码主题生成基础版本。建议补充共享知识库以提升质量。"
+        )
     return templates.TemplateResponse(request, "analysis/detail.html", context)
 
 

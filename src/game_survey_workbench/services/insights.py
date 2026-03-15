@@ -7,7 +7,6 @@ from sqlmodel import Session
 
 from game_survey_workbench.db import create_db_and_tables, get_engine
 from game_survey_workbench.errors import (
-    NoKnowledgeMatchedError,
     NoSavedCodingResultsError,
     ProjectNotFoundError,
 )
@@ -59,6 +58,8 @@ def build_insight_context(
 
 
 def build_evidence_section(*, citations: list[dict]) -> str:
+    if not citations:
+        return ""
     lines = ["## Evidence Basis"]
     for citation in citations:
         title = citation.get("document_title", "Unknown Source")
@@ -162,8 +163,6 @@ def generate_analysis_insights(
             stages=["analysis"],
             top_k=top_k,
         )
-    if not snippets:
-        raise NoKnowledgeMatchedError("No knowledge matched this insight request.")
 
     brief = get_research_brief(
         project_slug=project_slug,

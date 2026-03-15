@@ -6,7 +6,7 @@ from sqlmodel import Session, select
 
 from game_survey_workbench.app import create_app
 from game_survey_workbench.db import get_engine
-from game_survey_workbench.errors import NoKnowledgeMatchedError, ProjectNotFoundError
+from game_survey_workbench.errors import ProjectNotFoundError
 from game_survey_workbench.llm.client import FakeLLMClient, OpenAICompatibleLLMClient
 from game_survey_workbench.models.project import ProjectCreate
 from game_survey_workbench.models.text_coding import CodingResult
@@ -28,7 +28,7 @@ def test_code_open_text_rejects_missing_project(tmp_path: Path):
         )
 
 
-def test_generate_insights_rejects_missing_knowledge(tmp_path: Path):
+def test_generate_insights_degrades_when_knowledge_is_missing(tmp_path: Path):
     create_project(
         ProjectCreate(
             slug="empty-project",
@@ -38,16 +38,17 @@ def test_generate_insights_rejects_missing_knowledge(tmp_path: Path):
         workspace_root=tmp_path,
     )
 
-    with pytest.raises(NoKnowledgeMatchedError):
-        generate_analysis_insights(
-            project_slug="empty-project",
-            analysis_run_id="run-1",
-            research_goal="Understand churn drivers",
-            statistical_findings=["Top box dropped to 32%"],
-            coded_themes=[{"theme_name": "Boredom", "count": 12}],
-            workspace_root=tmp_path,
-            client=FakeLLMClient("Boredom emerged as the dominant churn factor."),
-        )
+    result = generate_analysis_insights(
+        project_slug="empty-project",
+        analysis_run_id="run-1",
+        research_goal="Understand churn drivers",
+        statistical_findings=["Top box dropped to 32%"],
+        coded_themes=[{"theme_name": "Boredom", "count": 12}],
+        workspace_root=tmp_path,
+        client=FakeLLMClient("Boredom emerged as the dominant churn factor."),
+    )
+
+    assert result.citations == []
 
 
 def test_code_text_route_returns_explicit_error_and_saves_no_result_on_invalid_output(
