@@ -9,3 +9,15 @@ def test_bootstrap_workspace_creates_expected_directories(tmp_path: Path):
     assert (tmp_path / "knowledge").exists()
     assert (tmp_path / "projects").exists()
     assert (tmp_path / "artifacts").exists()
+
+
+def test_run_bat_uses_python_module_uv_entrypoint():
+    script_path = Path(__file__).resolve().parents[1] / "run.bat"
+    script = script_path.read_text(encoding="utf-8")
+
+    assert "call python -m uv sync" in script
+    assert (
+        "call python -m uv run --with uvicorn uvicorn "
+        "game_survey_workbench.app:create_app --factory --reload "
+        "--host 127.0.0.1 --port 8000"
+    ) in script
