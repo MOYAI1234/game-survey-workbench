@@ -17,8 +17,12 @@ def test_run_bat_uses_python_module_uv_entrypoint():
 
     assert "call python -m uv sync --extra dev" in script
     assert 'set "PYTHONPATH=%CD%\\src"' in script
+    assert "netstat -ano" in script
+    assert "findstr :8000" in script
+    assert "Port 8000 is already in use." in script
     assert (
         "call python -m uvicorn --app-dir src "
-        "game_survey_workbench.app:create_app --factory --reload "
-        "--reload-dir src --host 127.0.0.1 --port 8000"
+        "game_survey_workbench.app:create_app --factory "
+        "--host 127.0.0.1 --port 8000"
     ) in script
+    assert "--reload" not in script
