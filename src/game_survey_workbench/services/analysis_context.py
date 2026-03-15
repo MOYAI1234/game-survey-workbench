@@ -20,6 +20,7 @@ from game_survey_workbench.services.analytics import (
     describe_scale_summary,
     describe_single_choice_summary,
 )
+from game_survey_workbench.services.crosstab import compute_crosstab, describe_crosstab
 from game_survey_workbench.services.dataset_import import load_imported_dataset_dataframe
 
 
@@ -106,6 +107,44 @@ def build_deterministic_findings_for_run(
 
         if finding:
             findings.append(finding)
+    return findings
+
+
+def build_crosstab_findings_for_run(
+    *,
+    analysis_run_id: str,
+    workspace_root: Path,
+    segment_column: str,
+) -> list[str]:
+    context = load_analysis_run_context(
+        analysis_run_id=analysis_run_id,
+        workspace_root=workspace_root,
+    )
+    if segment_column not in context.dataframe.columns:
+        raise QuestionColumnNotFoundError(f"Question column '{segment_column}' not found.")
+
+    findings: list[str] = []
+    for question_column, question_payload in context.dataset_record.dataset_schema.items():
+        if not isinstance(question_payload, dict):
+            continue
+        schema = QuestionColumnSchema.model_validate(question_payload)
+        if not schema.include_in_analysis or question_column not in context.dataframe.columns:
+            continue
+        if schema.question_type not in ("scale", "single_choice"):
+            continue
+        if question_column == segment_column:
+            continue
+
+        try:
+            result = compute_crosstab(
+                dataframe=context.dataframe,
+                row_column=question_column,
+                col_column=segment_column,
+                row_type=schema.question_type,
+            )
+        except ValueError:
+            continue
+        findings.append(describe_crosstab(result))
     return findings
 
 
