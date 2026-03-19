@@ -4,6 +4,7 @@ from sqlmodel import SQLModel, create_engine
 
 from game_survey_workbench.models import knowledge as _knowledge_models
 from game_survey_workbench.models import project as _project_models
+from game_survey_workbench.models import project_knowledge_selection as _project_knowledge_selection_models
 from game_survey_workbench.models import questionnaire as _questionnaire_models
 from game_survey_workbench.models import dataset as _dataset_models
 from game_survey_workbench.models import analysis_run as _analysis_run_models
