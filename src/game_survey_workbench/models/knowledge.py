@@ -16,3 +16,4 @@ class KnowledgeDocument(SQLModel, table=True):
     tags: list[str] = Field(default_factory=list, sa_column=Column(JSON))
     scenario: Optional[str] = None
     priority: int = 0
+    source_format: Optional[str] = None
