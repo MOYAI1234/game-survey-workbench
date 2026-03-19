@@ -60,13 +60,12 @@ def test_project_detail_is_chinese(client: TestClient):
 
 
 def test_knowledge_upload_has_feedback(client: TestClient, tmp_path: Path):
-    client.post("/projects", json={"slug": "kb-test", "name": "KB Test"})
     md_file = tmp_path / "test_knowledge.md"
     md_file.write_text("# Test Knowledge\n\nSome content here.", encoding="utf-8")
 
     with md_file.open("rb") as handle:
         response = client.post(
-            "/projects/kb-test/knowledge/upload",
+            "/knowledge/upload",
             files={"file": ("test.md", handle, "text/markdown")},
             follow_redirects=False,
         )

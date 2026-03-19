@@ -5,6 +5,9 @@ from fastapi.testclient import TestClient
 from game_survey_workbench.app import create_app
 from game_survey_workbench.llm.client import OpenAICompatibleLLMClient
 from game_survey_workbench.services.knowledge_ingest import ingest_knowledge_file
+from game_survey_workbench.services.project_knowledge import (
+    replace_project_knowledge_selection,
+)
 
 
 def test_code_text_route_returns_themes(tmp_path: Path, monkeypatch):
@@ -45,6 +48,11 @@ def test_code_text_route_returns_themes(tmp_path: Path, monkeypatch):
             "name": "Churn Study",
             "knowledge_pack": {"doc_types": ["theory"], "scenarios": ["churn"]},
         },
+    )
+    replace_project_knowledge_selection(
+        workspace_root=tmp_path,
+        project_slug="churn-study",
+        knowledge_document_ids=[1],
     )
 
     dataset = client.post(

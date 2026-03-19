@@ -6,12 +6,15 @@ from sqlmodel import Session, select
 
 from game_survey_workbench.app import create_app
 from game_survey_workbench.db import get_engine
-from game_survey_workbench.errors import ProjectNotFoundError
+from game_survey_workbench.errors import NoKnowledgeSelectedError, ProjectNotFoundError
 from game_survey_workbench.llm.client import FakeLLMClient, OpenAICompatibleLLMClient
 from game_survey_workbench.models.project import ProjectCreate
 from game_survey_workbench.models.text_coding import CodingResult
 from game_survey_workbench.services.insights import generate_analysis_insights
 from game_survey_workbench.services.knowledge_ingest import ingest_knowledge_file
+from game_survey_workbench.services.project_knowledge import (
+    replace_project_knowledge_selection,
+)
 from game_survey_workbench.services.projects import create_project
 from game_survey_workbench.services.text_coding import code_open_text_column
 
@@ -38,17 +41,16 @@ def test_generate_insights_degrades_when_knowledge_is_missing(tmp_path: Path):
         workspace_root=tmp_path,
     )
 
-    result = generate_analysis_insights(
-        project_slug="empty-project",
-        analysis_run_id="run-1",
-        research_goal="Understand churn drivers",
-        statistical_findings=["Top box dropped to 32%"],
-        coded_themes=[{"theme_name": "Boredom", "count": 12}],
-        workspace_root=tmp_path,
-        client=FakeLLMClient("Boredom emerged as the dominant churn factor."),
-    )
-
-    assert result.citations == []
+    with pytest.raises(NoKnowledgeSelectedError):
+        generate_analysis_insights(
+            project_slug="empty-project",
+            analysis_run_id="run-1",
+            research_goal="Understand churn drivers",
+            statistical_findings=["Top box dropped to 32%"],
+            coded_themes=[{"theme_name": "Boredom", "count": 12}],
+            workspace_root=tmp_path,
+            client=FakeLLMClient("Boredom emerged as the dominant churn factor."),
+        )
 
 
 def test_code_text_route_returns_explicit_error_and_saves_no_result_on_invalid_output(
@@ -84,6 +86,11 @@ def test_code_text_route_returns_explicit_error_and_saves_no_result_on_invalid_o
             "name": "Demo",
             "knowledge_pack": {"doc_types": ["theory"], "scenarios": ["churn"]},
         },
+    )
+    replace_project_knowledge_selection(
+        workspace_root=tmp_path,
+        project_slug="demo",
+        knowledge_document_ids=[1],
     )
     dataset = client.post(
         "/projects/demo/datasets/import",
@@ -148,6 +155,11 @@ def test_generate_insights_route_allows_missing_saved_coding_results(tmp_path: P
             "name": "Demo",
             "knowledge_pack": {"doc_types": ["theory"], "scenarios": ["churn"]},
         },
+    )
+    replace_project_knowledge_selection(
+        workspace_root=tmp_path,
+        project_slug="demo",
+        knowledge_document_ids=[1],
     )
     dataset = client.post(
         "/projects/demo/datasets/import",

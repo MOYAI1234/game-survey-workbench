@@ -8,9 +8,13 @@ from sqlmodel import Session, select
 from game_survey_workbench.app import create_app
 from game_survey_workbench.db import get_engine
 from game_survey_workbench.models.insight import InsightRecord
+from game_survey_workbench.models.knowledge import KnowledgeDocument
 from game_survey_workbench.models.questionnaire import QuestionnaireSpecVersion
 from game_survey_workbench.models.reporting import ReportRecord
 from game_survey_workbench.models.text_coding import CodingResult
+from game_survey_workbench.services.project_knowledge import (
+    replace_project_knowledge_selection,
+)
 
 
 def test_healthcheck_returns_ok():
@@ -28,6 +32,19 @@ def fake_llm_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_PROVIDER", "fake")
     with TestClient(create_app()) as client:
         yield client, tmp_path
+
+
+def _select_all_knowledge_documents(*, workspace_root: Path, project_slug: str) -> None:
+    engine = get_engine(workspace_root)
+    with Session(engine) as session:
+        document_ids = list(
+            session.exec(select(KnowledgeDocument.id).order_by(KnowledgeDocument.id)).all()
+        )
+    replace_project_knowledge_selection(
+        workspace_root=workspace_root,
+        project_slug=project_slug,
+        knowledge_document_ids=document_ids,
+    )
 
 
 def test_fake_llm_workflow_smoke(fake_llm_client):
@@ -58,11 +75,11 @@ def test_fake_llm_workflow_smoke(fake_llm_client):
     assert brief_response.status_code == 303
 
     knowledge_response = client.post(
-        "/projects/smoke-proj/knowledge/upload",
+        "/knowledge/upload",
         data={
             "purposes": [
                 "questionnaire_design",
-                "questionnaire_analysis",
+                "analysis",
                 "reporting",
             ]
         },
@@ -81,6 +98,10 @@ def test_fake_llm_workflow_smoke(fake_llm_client):
     )
     assert knowledge_response.status_code == 303
     assert "upload_success=" in knowledge_response.headers["location"]
+    _select_all_knowledge_documents(
+        workspace_root=workspace_root,
+        project_slug="smoke-proj",
+    )
 
     questionnaire_response = client.post(
         "/projects/smoke-proj/questionnaires/draft-form",
@@ -158,8 +179,8 @@ def test_fake_llm_insights_smoke_without_text_coding(fake_llm_client):
     assert brief_response.status_code == 303
 
     knowledge_response = client.post(
-        "/projects/closed-ended-proj/knowledge/upload",
-        data={"purposes": ["questionnaire_analysis"]},
+        "/knowledge/upload",
+        data={"purposes": ["analysis"]},
         files={
             "file": (
                 "onboarding-analysis.md",
@@ -174,6 +195,10 @@ def test_fake_llm_insights_smoke_without_text_coding(fake_llm_client):
         follow_redirects=False,
     )
     assert knowledge_response.status_code == 303
+    _select_all_knowledge_documents(
+        workspace_root=workspace_root,
+        project_slug="closed-ended-proj",
+    )
 
     dataset_response = client.post(
         "/projects/closed-ended-proj/datasets/import-form",

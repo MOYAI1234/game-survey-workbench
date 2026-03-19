@@ -1,6 +1,6 @@
 ---
 title: Version Feedback
-doc_type: industry
+doc_type: research
 stage:
   - design
   - analysis

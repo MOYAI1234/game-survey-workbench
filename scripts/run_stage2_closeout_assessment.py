@@ -6,9 +6,15 @@ import tempfile
 from pathlib import Path
 
 import httpx
+from sqlmodel import Session, select
 
+from game_survey_workbench.db import create_db_and_tables, get_engine
 from game_survey_workbench.llm.client import OpenAICompatibleLLMClient
+from game_survey_workbench.models.knowledge import KnowledgeDocument
 from game_survey_workbench.services.knowledge_ingest import ingest_knowledge_file
+from game_survey_workbench.services.project_knowledge import (
+    replace_project_knowledge_selection,
+)
 
 try:
     from scripts.verify_local_http import run_local_server, seed_fixture_workspace
@@ -89,6 +95,22 @@ def ingest_closeout_knowledge(workspace_root: Path) -> None:
         ingest_knowledge_file(source, project_root=workspace_root)
 
 
+def select_all_ingested_knowledge_for_project(*, workspace_root: Path, project_slug: str) -> None:
+    create_db_and_tables(workspace_root)
+    engine = get_engine(workspace_root)
+    with Session(engine) as session:
+        document_ids = list(
+            session.exec(select(KnowledgeDocument.id).order_by(KnowledgeDocument.id)).all()
+        )
+    if not document_ids:
+        return
+    replace_project_knowledge_selection(
+        workspace_root=workspace_root,
+        project_slug=project_slug,
+        knowledge_document_ids=document_ids,
+    )
+
+
 def create_workspace_root() -> Path:
     return Path(tempfile.mkdtemp(prefix="gsw-stage2-closeout-"))
 
@@ -137,6 +159,10 @@ def run_stage2_closeout_assessment(mode: str = "scripted") -> dict[str, str | bo
                 json={"slug": PROJECT_SLUG, "name": PROJECT_NAME, "knowledge_pack": {}},
                 timeout=5.0,
             ).raise_for_status()
+            select_all_ingested_knowledge_for_project(
+                workspace_root=workspace_root,
+                project_slug=PROJECT_SLUG,
+            )
 
             draft = httpx.post(
                 f"{base_url}/projects/{PROJECT_SLUG}/questionnaires/draft",
