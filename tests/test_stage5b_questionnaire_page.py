@@ -6,6 +6,9 @@ from fastapi.testclient import TestClient
 
 from game_survey_workbench.app import create_app
 from game_survey_workbench.services.knowledge_ingest import ingest_knowledge_file
+from game_survey_workbench.services.project_knowledge import (
+    replace_project_knowledge_selection,
+)
 
 
 @pytest.fixture()
@@ -26,6 +29,11 @@ def project_slug(client, tmp_path):
         encoding="utf-8",
     )
     ingest_knowledge_file(source, project_root=tmp_path)
+    replace_project_knowledge_selection(
+        workspace_root=tmp_path,
+        project_slug=slug,
+        knowledge_document_ids=[1],
+    )
     return slug
 
 
@@ -63,6 +71,23 @@ def test_questionnaire_page_shows_latest_draft(client, project_slug):
         or "Knowledge Basis" in html
         or "Player" in html
     )
+
+
+def test_questionnaire_page_shows_retrieval_pool_metadata_for_used_knowledge(
+    client,
+    project_slug,
+):
+    client.post(
+        f"/projects/{project_slug}/questionnaires/draft",
+        json={"research_goal": "Player satisfaction"},
+    )
+
+    response = client.get(f"/projects/{project_slug}/questionnaires/latest")
+
+    assert response.status_code == 200
+    html = response.text
+    assert "Survey Guide" in html
+    assert "方法论池" in html
 
 
 def test_questionnaire_page_loads_with_legacy_db_schema(
@@ -111,7 +136,7 @@ def test_questionnaire_page_loads_with_legacy_db_schema(
     assert "Legacy Draft" in response.text
 
 
-def test_questionnaire_draft_form_degrades_without_any_knowledge(
+def test_questionnaire_draft_form_reports_missing_selected_knowledge(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
@@ -131,14 +156,13 @@ def test_questionnaire_draft_form_degrades_without_any_knowledge(
         )
         assert response.status_code == 303
 
-        latest_page = client.get("/projects/no-kb/questionnaires/latest")
+        latest_page = client.get(response.headers["location"])
 
     assert latest_page.status_code == 200
-    assert "已先基于研究简报和输入生成基础版本" in latest_page.text
-    assert "Understand new user onboarding" in latest_page.text
+    assert "项目尚未选择任何知识文档" in latest_page.text
 
 
-def test_questionnaire_draft_form_degrades_when_no_design_knowledge_matches(
+def test_questionnaire_draft_form_reports_no_design_knowledge_hits(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
@@ -162,6 +186,11 @@ def test_questionnaire_draft_form_degrades_when_no_design_knowledge_matches(
             "/projects",
             json={"slug": "analysis-only", "name": "Analysis Only"},
         )
+        replace_project_knowledge_selection(
+            workspace_root=tmp_path,
+            project_slug="analysis-only",
+            knowledge_document_ids=[1],
+        )
 
         response = client.post(
             "/projects/analysis-only/questionnaires/draft-form",
@@ -170,8 +199,7 @@ def test_questionnaire_draft_form_degrades_when_no_design_knowledge_matches(
         )
         assert response.status_code == 303
 
-        latest_page = client.get("/projects/analysis-only/questionnaires/latest")
+        latest_page = client.get(response.headers["location"])
 
     assert latest_page.status_code == 200
-    assert "当前未匹配到相关知识" in latest_page.text
-    assert "Evaluate monetization sentiment" in latest_page.text
+    assert "已选知识中没有命中当前问卷任务所需的内容" in latest_page.text

@@ -1,8 +1,13 @@
+import pytest
 from pathlib import Path
 
 from sqlmodel import Session, select
 
 from game_survey_workbench.db import get_engine
+from game_survey_workbench.errors import (
+    NoKnowledgeMatchedError,
+    NoKnowledgeSelectedError,
+)
 from game_survey_workbench.llm.client import FakeLLMClient
 from game_survey_workbench.models.insight import InsightRecord
 from game_survey_workbench.models.project import ProjectCreate
@@ -13,6 +18,9 @@ from game_survey_workbench.services.insights import (
     synthesize_insights,
 )
 from game_survey_workbench.services.knowledge_ingest import ingest_knowledge_file
+from game_survey_workbench.services.project_knowledge import (
+    replace_project_knowledge_selection,
+)
 from game_survey_workbench.services.projects import create_project
 
 STAGE2_CLOSEOUT_FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "stage2_closeout"
@@ -113,6 +121,11 @@ def test_generate_analysis_insights_retrieves_knowledge_and_persists(tmp_path: P
         ),
         workspace_root=tmp_path,
     )
+    replace_project_knowledge_selection(
+        workspace_root=tmp_path,
+        project_slug="churn-study",
+        knowledge_document_ids=[1],
+    )
 
     result = generate_analysis_insights(
         project_slug="churn-study",
@@ -159,6 +172,11 @@ def test_generate_analysis_insights_allows_missing_saved_coding_results(tmp_path
         ),
         workspace_root=tmp_path,
     )
+    replace_project_knowledge_selection(
+        workspace_root=tmp_path,
+        project_slug="churn-study",
+        knowledge_document_ids=[1],
+    )
 
     result = generate_analysis_insights(
         project_slug="churn-study",
@@ -174,7 +192,7 @@ def test_generate_analysis_insights_allows_missing_saved_coding_results(tmp_path
     assert result.citations[0]["document_title"] == "Churn Framework"
 
 
-def test_generate_analysis_insights_degrades_when_knowledge_is_missing(tmp_path: Path):
+def test_generate_analysis_insights_rejects_when_no_knowledge_is_selected(tmp_path: Path):
     create_project(
         ProjectCreate(
             slug="empty-project",
@@ -184,19 +202,51 @@ def test_generate_analysis_insights_degrades_when_knowledge_is_missing(tmp_path:
         workspace_root=tmp_path,
     )
 
-    result = generate_analysis_insights(
-        project_slug="empty-project",
-        analysis_run_id="run-1",
-        research_goal="Understand churn drivers",
-        statistical_findings=["Top box dropped to 32%"],
-        coded_themes=[{"theme_name": "Boredom", "count": 12}],
+    with pytest.raises(NoKnowledgeSelectedError):
+        generate_analysis_insights(
+            project_slug="empty-project",
+            analysis_run_id="run-1",
+            research_goal="Understand churn drivers",
+            statistical_findings=["Top box dropped to 32%"],
+            coded_themes=[{"theme_name": "Boredom", "count": 12}],
+            workspace_root=tmp_path,
+            client=FakeLLMClient("Boredom emerged as the dominant churn factor."),
+        )
+
+
+def test_generate_analysis_insights_rejects_when_selected_knowledge_has_no_hits(tmp_path: Path):
+    source = tmp_path / "domain.md"
+    source.write_text(
+        "---\n"
+        "title: Domain Research\n"
+        "doc_type: research\n"
+        "stage:\n"
+        "  - design\n"
+        "---\n"
+        "Domain content only.\n",
+        encoding="utf-8",
+    )
+    ingest_knowledge_file(source, project_root=tmp_path)
+    create_project(
+        ProjectCreate(slug="no-hit-project", name="No Hit Project"),
         workspace_root=tmp_path,
-        client=FakeLLMClient("Boredom emerged as the dominant churn factor."),
+    )
+    replace_project_knowledge_selection(
+        workspace_root=tmp_path,
+        project_slug="no-hit-project",
+        knowledge_document_ids=[1],
     )
 
-    assert result.narrative
-    assert result.citations == []
-    assert result.evidence_section == ""
+    with pytest.raises(NoKnowledgeMatchedError):
+        generate_analysis_insights(
+            project_slug="no-hit-project",
+            analysis_run_id="run-1",
+            research_goal="Understand churn drivers",
+            statistical_findings=["Top box dropped to 32%"],
+            coded_themes=[{"theme_name": "Boredom", "count": 12}],
+            workspace_root=tmp_path,
+            client=FakeLLMClient("Boredom emerged as the dominant churn factor."),
+        )
 
 
 def test_generate_analysis_insights_with_realistic_fixture_persists_visible_evidence(tmp_path: Path):
@@ -209,6 +259,11 @@ def test_generate_analysis_insights_with_realistic_fixture_persists_visible_evid
             knowledge_pack={},
         ),
         workspace_root=tmp_path,
+    )
+    replace_project_knowledge_selection(
+        workspace_root=tmp_path,
+        project_slug="stage2-closeout",
+        knowledge_document_ids=[1, 2],
     )
 
     result = generate_analysis_insights(

@@ -11,6 +11,9 @@ from game_survey_workbench.models.knowledge import KnowledgeDocument
 from game_survey_workbench.retrieval.chunking import split_markdown
 from game_survey_workbench.retrieval.store import LocalVectorStore, StoredChunk
 from game_survey_workbench.services.knowledge_parser import parse_markdown_document
+from game_survey_workbench.services.project_knowledge import (
+    list_selected_knowledge_documents,
+)
 from game_survey_workbench.services.projects import get_project
 from game_survey_workbench.services.workspace import bootstrap_workspace
 
@@ -164,12 +167,18 @@ def retrieve_project_knowledge(
     if project is None:
         return []
 
-    knowledge_pack = project.knowledge_pack or {}
-    return retrieve_knowledge(
-        workspace_root,
-        query=query,
-        stages=stages,
-        doc_types=knowledge_pack.get("doc_types", []),
-        scenarios=knowledge_pack.get("scenarios", []),
-        top_k=top_k,
+    selected_documents = list_selected_knowledge_documents(
+        workspace_root=workspace_root,
+        project_slug=project_slug,
     )
+    if not selected_documents:
+        return []
+
+    store = LocalVectorStore(workspace_root / "artifacts" / "vector_store")
+    results = store.query_layered(
+        query=query,
+        selected_document_titles=[document.title for document in selected_documents],
+        task_stages=stages or [],
+        top_domain_k=top_k or 5,
+    )
+    return results[:top_k] if top_k is not None else results

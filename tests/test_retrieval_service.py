@@ -7,6 +7,9 @@ from game_survey_workbench.services.knowledge_ingest import (
     retrieve_knowledge,
     retrieve_project_knowledge,
 )
+from game_survey_workbench.services.project_knowledge import (
+    replace_project_knowledge_selection,
+)
 from game_survey_workbench.services.projects import create_project
 
 
@@ -30,39 +33,55 @@ def test_query_respects_top_k_limit(tmp_path: Path):
     assert len(results) == 5
 
 
-def test_retrieve_project_knowledge_uses_project_knowledge_pack_filters(tmp_path: Path):
-    source = tmp_path / "doc.md"
-    source.write_text(
+def test_retrieve_project_knowledge_only_uses_selected_documents(tmp_path: Path):
+    selected_source = tmp_path / "selected-doc.md"
+    selected_source.write_text(
         "---\n"
         "title: Retention Framework\n"
-        "doc_type: theory\n"
+        "doc_type: guide\n"
         "stage:\n"
         "  - design\n"
-        "scenario: onboarding\n"
         "---\n"
         "Use behavior and attitude questions together.\n",
         encoding="utf-8",
     )
+    unselected_source = tmp_path / "unselected-doc.md"
+    unselected_source.write_text(
+        "---\n"
+        "title: Unselected Doc\n"
+        "doc_type: research\n"
+        "stage:\n"
+        "  - design\n"
+        "---\n"
+        "Pricing clarity matters for season pass conversion.\n",
+        encoding="utf-8",
+    )
 
-    ingest_knowledge_file(source, project_root=tmp_path)
+    ingest_knowledge_file(selected_source, project_root=tmp_path)
+    ingest_knowledge_file(unselected_source, project_root=tmp_path)
     create_project(
         ProjectCreate(
             slug="demo",
             name="Demo",
-            knowledge_pack={"doc_types": ["theory"], "scenarios": ["onboarding"]},
         ),
         workspace_root=tmp_path,
+    )
+    replace_project_knowledge_selection(
+        workspace_root=tmp_path,
+        project_slug="demo",
+        knowledge_document_ids=[1],
     )
 
     results = retrieve_project_knowledge(
         workspace_root=tmp_path,
         project_slug="demo",
-        query="behavior attitude questions",
+        query="pricing clarity",
         stages=["design"],
     )
 
     assert len(results) == 1
     assert results[0]["document_title"] == "Retention Framework"
+    assert all(item["document_title"] != "Unselected Doc" for item in results)
 
 
 def test_retrieve_project_knowledge_forwards_top_k_limit(tmp_path: Path):
@@ -85,9 +104,13 @@ def test_retrieve_project_knowledge_forwards_top_k_limit(tmp_path: Path):
         ProjectCreate(
             slug="demo",
             name="Demo",
-            knowledge_pack={"doc_types": ["theory"], "scenarios": ["churn"]},
         ),
         workspace_root=tmp_path,
+    )
+    replace_project_knowledge_selection(
+        workspace_root=tmp_path,
+        project_slug="demo",
+        knowledge_document_ids=[1, 2, 3],
     )
 
     results = retrieve_project_knowledge(

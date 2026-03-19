@@ -6,6 +6,10 @@ class NoKnowledgeMatchedError(ValueError):
     pass
 
 
+class NoKnowledgeSelectedError(ValueError):
+    pass
+
+
 class AnalysisRunNotFoundError(ValueError):
     pass
 

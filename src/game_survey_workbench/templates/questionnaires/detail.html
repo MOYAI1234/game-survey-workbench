@@ -33,7 +33,15 @@
     <summary>参考知识来源（{{ spec.retrieved_snippets | length }} 篇）</summary>
     <ul>
       {% for snippet in spec.retrieved_snippets %}
-      <li>{{ snippet.document_title if snippet is mapping else snippet }}</li>
+      <li>
+        <strong>{{ snippet.document_title if snippet is mapping else snippet }}</strong>
+        {% if snippet is mapping and snippet.retrieval_pool %}
+        ｜{{ "方法论池" if snippet.retrieval_pool == "method" else "领域知识池" }}
+        {% endif %}
+        {% if snippet is mapping and snippet.content %}
+        <div class="help-text">{{ snippet.content }}</div>
+        {% endif %}
+      </li>
       {% endfor %}
     </ul>
   </details>

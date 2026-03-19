@@ -7,11 +7,16 @@ from sqlmodel import Session
 
 from game_survey_workbench.db import create_db_and_tables, get_engine
 from game_survey_workbench.errors import (
+    NoKnowledgeMatchedError,
+    NoKnowledgeSelectedError,
     ProjectNotFoundError,
 )
 from game_survey_workbench.llm.client import LLMClient
 from game_survey_workbench.models.insight import InsightRecord
 from game_survey_workbench.services.knowledge_ingest import retrieve_project_knowledge
+from game_survey_workbench.services.project_knowledge import (
+    list_selected_knowledge_document_ids,
+)
 from game_survey_workbench.services.projects import get_project
 from game_survey_workbench.services.recommendation import build_recommendation_context
 from game_survey_workbench.services.research_brief import get_research_brief
@@ -143,6 +148,11 @@ def generate_analysis_insights(
     project = get_project(workspace_root=workspace_root, project_slug=project_slug)
     if project is None:
         raise ProjectNotFoundError("Project not found.")
+    if not list_selected_knowledge_document_ids(
+        workspace_root=workspace_root,
+        project_slug=project_slug,
+    ):
+        raise NoKnowledgeSelectedError("项目尚未选择任何知识文档，请先到项目页完成知识选择。")
 
     snippets = retrieve_project_knowledge(
         workspace_root=workspace_root,
@@ -152,13 +162,7 @@ def generate_analysis_insights(
         top_k=top_k,
     )
     if not snippets:
-        snippets = retrieve_project_knowledge(
-            workspace_root=workspace_root,
-            project_slug=project_slug,
-            query="",
-            stages=["analysis"],
-            top_k=top_k,
-        )
+        raise NoKnowledgeMatchedError("已选知识中没有命中当前洞察任务所需的内容，请调整项目知识选择。")
 
     brief = get_research_brief(
         project_slug=project_slug,
