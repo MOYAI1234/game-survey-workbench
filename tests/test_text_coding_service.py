@@ -1,4 +1,5 @@
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 from sqlmodel import Session, select
@@ -232,3 +233,61 @@ def test_code_open_text_column_degrades_when_knowledge_is_missing(tmp_path: Path
 
     assert result.themes[0]["theme_name"] == "Boredom"
     assert result.citations == []
+
+
+def test_code_open_text_column_uses_batched_path_for_large_datasets(tmp_path: Path):
+    create_project(
+        ProjectCreate(
+            slug="demo",
+            name="Demo",
+            knowledge_pack={"doc_types": ["theory"], "scenarios": ["churn"]},
+        ),
+        workspace_root=tmp_path,
+    )
+
+    mock_client = MagicMock()
+    mock_client.generate.return_value = (
+        '{"themes": [{"theme_name": "Positive", "count": 5, "example_responses": ["good"]}], "uncoded_count": 0}'
+    )
+    responses = [f"response {index}" for index in range(200)]
+
+    result = code_open_text_column(
+        project_slug="demo",
+        analysis_run_id="run-1",
+        question_column="Q1",
+        responses=responses,
+        workspace_root=tmp_path,
+        client=mock_client,
+    )
+
+    assert mock_client.generate.call_count > 1
+    assert result.themes
+
+
+def test_code_open_text_column_uses_single_call_for_small_datasets(tmp_path: Path):
+    create_project(
+        ProjectCreate(
+            slug="demo",
+            name="Demo",
+            knowledge_pack={"doc_types": ["theory"], "scenarios": ["churn"]},
+        ),
+        workspace_root=tmp_path,
+    )
+
+    mock_client = MagicMock()
+    mock_client.generate.return_value = (
+        '{"themes": [{"theme_name": "Positive", "count": 5, "example_responses": ["good"]}], "uncoded_count": 0}'
+    )
+    responses = ["response 1", "response 2", "response 3"]
+
+    result = code_open_text_column(
+        project_slug="demo",
+        analysis_run_id="run-1",
+        question_column="Q1",
+        responses=responses,
+        workspace_root=tmp_path,
+        client=mock_client,
+    )
+
+    assert mock_client.generate.call_count == 1
+    assert result.themes

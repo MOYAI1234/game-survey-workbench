@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from game_survey_workbench.db import create_db_and_tables, get_engine
 from game_survey_workbench.errors import (
@@ -124,6 +124,78 @@ def code_open_text_column(
     if project is None:
         raise ProjectNotFoundError("Project not found.")
 
+    from game_survey_workbench.services.batched_coding import (
+        DEFAULT_BATCH_SIZE,
+        create_coding_job,
+        get_coding_job_status,
+        run_coding_job,
+    )
+
+    if len(clean_responses) <= DEFAULT_BATCH_SIZE:
+        return _code_single_batch(
+            project_slug=project_slug,
+            analysis_run_id=analysis_run_id,
+            question_column=question_column,
+            responses=clean_responses,
+            workspace_root=workspace_root,
+            client=client,
+            top_k=top_k,
+        )
+
+    job, _batches = create_coding_job(
+        workspace_root=workspace_root,
+        project_slug=project_slug,
+        analysis_run_id=analysis_run_id,
+        question_column=question_column,
+        responses=clean_responses,
+    )
+    run_coding_job(
+        workspace_root=workspace_root,
+        job_id=job.id,
+        client=client,
+        top_k=top_k,
+    )
+    status = get_coding_job_status(workspace_root=workspace_root, job_id=job.id)
+    codebook = status.get("final_codebook_json") or {}
+    snippets = retrieve_project_knowledge(
+        workspace_root=workspace_root,
+        project_slug=project_slug,
+        query=question_column,
+        stages=["analysis"],
+        top_k=top_k,
+    )
+    if not snippets:
+        snippets = retrieve_project_knowledge(
+            workspace_root=workspace_root,
+            project_slug=project_slug,
+            query="",
+            stages=["analysis"],
+            top_k=top_k,
+        )
+
+    result = CodingResult(
+        analysis_run_id=analysis_run_id,
+        question_column=question_column,
+        themes=codebook.get("themes", []),
+        uncoded_count=sum(
+            batch_output.get("uncoded_count", 0)
+            for batch_output in _get_batch_outputs(workspace_root=workspace_root, job_id=job.id)
+        ),
+        citations=snippets,
+    )
+    return save_coding_result(workspace_root=workspace_root, result=result)
+
+
+def _code_single_batch(
+    *,
+    project_slug: str,
+    analysis_run_id: str,
+    question_column: str,
+    responses: list[str],
+    workspace_root: Path,
+    client: LLMClient,
+    top_k: int = 10,
+) -> CodingResult:
     snippets = retrieve_project_knowledge(
         workspace_root=workspace_root,
         project_slug=project_slug,
@@ -142,7 +214,7 @@ def code_open_text_column(
 
     context = build_coding_context(
         question=question_column,
-        responses=clean_responses,
+        responses=responses,
         knowledge_snippets=snippets,
     )
     prompt = load_coding_prompt()
@@ -156,3 +228,14 @@ def code_open_text_column(
         citations=snippets,
     )
     return save_coding_result(workspace_root=workspace_root, result=result)
+
+
+def _get_batch_outputs(*, workspace_root: Path, job_id: int) -> list[dict]:
+    from game_survey_workbench.models.coding_job import CodingBatch
+
+    engine = get_engine(workspace_root)
+    with Session(engine) as session:
+        batches = session.exec(
+            select(CodingBatch).where(CodingBatch.job_id == job_id)
+        ).all()
+    return [batch.output_codes_json for batch in batches if batch.output_codes_json]
