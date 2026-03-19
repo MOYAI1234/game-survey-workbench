@@ -76,10 +76,11 @@ def test_shared_knowledge_page_lists_documents_and_upload_form(
 
     assert response.status_code == 200
     content = response.text
-    assert "共享知识库" in content
+    assert "共享知识库管理" in content
     assert "多个项目会共享使用这里的知识文档" in content
     assert "分析方法库" in content
     assert "上传知识文档" in content
+    assert "筛选知识文档" in content
     assert "问卷设计" in content
     assert "问卷分析" in content
     assert "报告写作" in content

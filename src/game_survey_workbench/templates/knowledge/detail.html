@@ -1,9 +1,9 @@
 {% extends "layout.html" %}
-{% block title %}共享知识库{% endblock %}
+{% block title %}共享知识库管理{% endblock %}
 {% block content %}
 <header>
   <p class="eyebrow"><a href="/">← 返回首页</a></p>
-  <h1>共享知识库</h1>
+  <h1>共享知识库管理</h1>
   <p>多个项目会共享使用这里的知识文档。你可以先整理方法论、行业资料和历史报告，再在项目中复用。</p>
 </header>
 
@@ -18,6 +18,30 @@
   <strong>{{ upload_error }}</strong>
 </section>
 {% endif %}
+
+<section class="upload-section">
+  <h2>筛选知识文档</h2>
+  <form action="/knowledge" method="get">
+    <label for="search">标题或路径关键词</label>
+    <input type="text" id="search" name="search" value="{{ filters.search }}" placeholder="如：方法论 / season pass">
+
+    <label for="stage">适用阶段</label>
+    <select id="stage" name="stage">
+      <option value="">全部阶段</option>
+      <option value="design" {% if filters.stage == "design" %}selected{% endif %}>问卷设计</option>
+      <option value="analysis" {% if filters.stage == "analysis" %}selected{% endif %}>问卷分析</option>
+      <option value="report" {% if filters.stage == "report" %}selected{% endif %}>报告写作</option>
+    </select>
+
+    <label for="doc_type">文档类型</label>
+    <input type="text" id="doc_type" name="doc_type" value="{{ filters.doc_type }}" placeholder="如：guide / research">
+
+    <label for="tag">标签</label>
+    <input type="text" id="tag" name="tag" value="{{ filters.tag }}" placeholder="如：retention / method">
+
+    <button type="submit">应用筛选</button>
+  </form>
+</section>
 
 <section class="upload-section">
   <h2>上传知识文档</h2>
@@ -41,6 +65,7 @@
     {% for document in documents %}
     <li>
       <strong>{{ document.title }}</strong>
+      <div class="help-text">文档类型：{{ document.doc_type }} ｜ 优先级：{{ document.priority }}</div>
       {% if document.stages %}
       <span>｜适用阶段：
         {% for stage in document.stages %}
@@ -48,12 +73,15 @@
         {% endfor %}
       </span>
       {% endif %}
+      {% if document.tags %}
+      <div class="help-text">标签：{{ document.tags | join('、') }}</div>
+      {% endif %}
       <div class="help-text">{{ document.source_path }}</div>
     </li>
     {% endfor %}
   </ul>
   {% else %}
-  <p class="empty-state">当前还没有知识文档，请先上传至少一篇研究资料。</p>
+  <p class="empty-state">当前没有符合筛选条件的知识文档，请调整筛选条件或先上传至少一篇研究资料。</p>
   {% endif %}
 </section>
 {% endblock %}
