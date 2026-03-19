@@ -122,6 +122,24 @@
     <div class="evidence">{{ insight.evidence_section }}</div>
   </details>
   {% endif %}
+  {% if insight.citations %}
+  <details>
+    <summary>本次知识依据</summary>
+    <ul>
+      {% for citation in insight.citations %}
+      <li>
+        <strong>{{ citation.document_title if citation is mapping else citation }}</strong>
+        {% if citation is mapping and citation.retrieval_pool %}
+        ｜{{ "方法论池" if citation.retrieval_pool == "method" else "领域知识池" }}
+        {% endif %}
+        {% if citation is mapping and citation.content %}
+        <div class="help-text">{{ citation.content }}</div>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
   {% if insight_history and insight_history|length > 1 %}
   <details>
     <summary>历史洞察草稿（{{ insight_history|length - 1 }} 份）</summary>

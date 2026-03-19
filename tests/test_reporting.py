@@ -8,6 +8,9 @@ from game_survey_workbench.db import get_engine
 from game_survey_workbench.models.dataset import DatasetRecord
 from game_survey_workbench.services.dataset_import import import_dataset
 from game_survey_workbench.services.knowledge_ingest import ingest_knowledge_file
+from game_survey_workbench.services.project_knowledge import (
+    replace_project_knowledge_selection,
+)
 from game_survey_workbench.services.reporting import render_report_markdown
 from game_survey_workbench.services.workspace import bootstrap_workspace
 
@@ -126,6 +129,11 @@ def test_generate_report_renders_saved_insight_narrative_without_bullet_wrapping
             "name": "Demo",
             "knowledge_pack": {"doc_types": ["theory"], "scenarios": ["churn"]},
         },
+    )
+    replace_project_knowledge_selection(
+        workspace_root=tmp_path,
+        project_slug="demo",
+        knowledge_document_ids=[1],
     )
     dataset = client.post(
         "/projects/demo/datasets/import",

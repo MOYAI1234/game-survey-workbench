@@ -10,6 +10,9 @@ from game_survey_workbench.db import get_engine
 from game_survey_workbench.llm.client import FakeLLMClient
 from game_survey_workbench.models.insight import InsightRecord
 from game_survey_workbench.services.knowledge_ingest import ingest_knowledge_file
+from game_survey_workbench.services.project_knowledge import (
+    replace_project_knowledge_selection,
+)
 
 
 def test_regenerate_insights_with_different_goal(tmp_path: Path, monkeypatch):
@@ -55,6 +58,11 @@ def test_regenerate_insights_with_different_goal(tmp_path: Path, monkeypatch):
                     "scenarios": ["monetization"],
                 },
             },
+        )
+        replace_project_knowledge_selection(
+            workspace_root=tmp_path,
+            project_slug="iter-proj",
+            knowledge_document_ids=[1],
         )
         response = client.post(
             "/projects/iter-proj/datasets/import",

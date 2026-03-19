@@ -5,6 +5,9 @@ from fastapi.testclient import TestClient
 from game_survey_workbench.app import create_app
 from game_survey_workbench.llm.client import OpenAICompatibleLLMClient
 from game_survey_workbench.services.knowledge_ingest import ingest_knowledge_file
+from game_survey_workbench.services.project_knowledge import (
+    replace_project_knowledge_selection,
+)
 
 
 def test_create_questionnaire_draft_route_returns_grounded_markdown(
@@ -47,6 +50,11 @@ def test_create_questionnaire_draft_route_returns_grounded_markdown(
             "name": "Returners",
             "knowledge_pack": {"doc_types": ["theory"], "scenarios": ["onboarding"]},
         },
+    )
+    replace_project_knowledge_selection(
+        workspace_root=tmp_path,
+        project_slug="returners",
+        knowledge_document_ids=[1],
     )
 
     response = client.post(

@@ -8,6 +8,8 @@ from sqlmodel import Session, select
 from game_survey_workbench.config import get_settings
 from game_survey_workbench.errors import (
     LLM_CONFIG_ERROR_MESSAGE,
+    NoKnowledgeMatchedError,
+    NoKnowledgeSelectedError,
     ProjectNotFoundError,
 )
 from game_survey_workbench.llm.client import (
@@ -36,16 +38,13 @@ def _generate_questionnaire_version(
     *, project_slug: str, payload: QuestionnaireDraftRequest
 ) -> QuestionnaireSpecVersion:
     settings = get_settings()
-    try:
-        client = build_llm_client(settings)
-        return generate_questionnaire_draft(
-            project_slug=project_slug,
-            payload=payload,
-            workspace_root=settings.workspace_root,
-            client=client,
-        )
-    except ProjectNotFoundError as exc:
-        raise HTTPException(status_code=404, detail="Project not found") from exc
+    client = build_llm_client(settings)
+    return generate_questionnaire_draft(
+        project_slug=project_slug,
+        payload=payload,
+        workspace_root=settings.workspace_root,
+        client=client,
+    )
 
 
 @router.post("/projects/{project_slug}/questionnaires/draft", status_code=status.HTTP_201_CREATED)
@@ -54,6 +53,12 @@ def create_questionnaire_draft(project_slug: str, payload: QuestionnaireDraftReq
         version = _generate_questionnaire_version(project_slug=project_slug, payload=payload)
     except MissingLLMConfigurationError as exc:
         raise HTTPException(status_code=500, detail=LLM_CONFIG_ERROR_MESSAGE) from exc
+    except ProjectNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Project not found") from exc
+    except NoKnowledgeSelectedError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except NoKnowledgeMatchedError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {
         "version_id": version.version_id,
         "markdown_spec": version.markdown_spec,
@@ -76,6 +81,13 @@ def draft_questionnaire_form(
             url=f"/projects/{project_slug}/questionnaires/latest?error=llm_missing",
             status_code=status.HTTP_303_SEE_OTHER,
         )
+    except (NoKnowledgeSelectedError, NoKnowledgeMatchedError) as exc:
+        return RedirectResponse(
+            url=f"/projects/{project_slug}/questionnaires/latest?error={str(exc)}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+    except ProjectNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Project not found") from exc
     return RedirectResponse(
         url=f"/projects/{project_slug}/questionnaires/latest",
         status_code=status.HTTP_303_SEE_OTHER,
@@ -158,13 +170,6 @@ def questionnaire_detail(project_slug: str, request: Request):
     latest = None
     if versions:
         latest = versions[0]
-    fallback_notice = None
-    if latest is not None and not latest.retrieved_snippets:
-        fallback_notice = (
-            "当前还没有知识文档，已先基于研究简报和输入生成基础版本。建议补充共享知识库以提升问卷、洞察和报告质量。"
-            if knowledge_count == 0
-            else "当前未匹配到相关知识，已仅基于研究简报和输入生成基础版本。建议补充共享知识库以提升质量。"
-        )
 
     return templates.TemplateResponse(
         request,
@@ -173,12 +178,12 @@ def questionnaire_detail(project_slug: str, request: Request):
             "project_slug": project_slug,
             "spec": latest,
             "version_count": len(versions),
-            "fallback_notice": fallback_notice,
+            "fallback_notice": None,
             "error_message": (
                 LLM_CONFIG_ERROR_MESSAGE
                 if request.query_params.get("error") == "llm_missing"
-                else "问卷改进失败，请重试或更换修改意见"
-                if request.query_params.get("error") == "refine_failed"
+                else request.query_params.get("error")
+                if request.query_params.get("error")
                 else None
             ),
         },

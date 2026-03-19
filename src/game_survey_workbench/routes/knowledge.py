@@ -22,12 +22,38 @@ templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent
 def knowledge_detail(request: Request):
     settings = get_settings()
     engine = get_engine(settings.workspace_root)
+    search = request.query_params.get("search", "").strip()
+    stage = request.query_params.get("stage", "").strip()
+    doc_type = request.query_params.get("doc_type", "").strip()
+    tag = request.query_params.get("tag", "").strip()
     with Session(engine) as session:
         documents = list(
             session.exec(
                 select(KnowledgeDocument).order_by(KnowledgeDocument.id.desc())
             ).all()
         )
+    if search:
+        lowered = search.lower()
+        documents = [
+            document for document in documents
+            if lowered in document.title.lower()
+            or lowered in document.source_path.lower()
+        ]
+    if stage:
+        documents = [
+            document for document in documents
+            if stage in (document.stages or [])
+        ]
+    if doc_type:
+        documents = [
+            document for document in documents
+            if document.doc_type == doc_type
+        ]
+    if tag:
+        documents = [
+            document for document in documents
+            if tag in (document.tags or [])
+        ]
 
     return templates.TemplateResponse(
         request,
@@ -37,6 +63,12 @@ def knowledge_detail(request: Request):
             "upload_success": request.query_params.get("upload_success"),
             "upload_error": request.query_params.get("upload_error"),
             "stage_label_map": STAGE_LABEL_MAP,
+            "filters": {
+                "search": search,
+                "stage": stage,
+                "doc_type": doc_type,
+                "tag": tag,
+            },
         },
     )
 

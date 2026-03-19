@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from game_survey_workbench.db import create_db_and_tables
 from game_survey_workbench.services.workspace import bootstrap_workspace
 
 
@@ -9,6 +10,18 @@ def test_bootstrap_workspace_creates_expected_directories(tmp_path: Path):
     assert (tmp_path / "knowledge").exists()
     assert (tmp_path / "projects").exists()
     assert (tmp_path / "artifacts").exists()
+
+
+def test_create_db_and_tables_bootstraps_fresh_workspace(tmp_path: Path):
+    workspace_root = tmp_path / "fresh-workspace"
+
+    create_db_and_tables(workspace_root)
+
+    assert workspace_root.exists()
+    assert (workspace_root / "app.db").exists()
+    assert (workspace_root / "knowledge").exists()
+    assert (workspace_root / "projects").exists()
+    assert (workspace_root / "artifacts").exists()
 
 
 def test_run_bat_uses_python_module_uv_entrypoint():

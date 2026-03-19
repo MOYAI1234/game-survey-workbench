@@ -1,7 +1,14 @@
 from pathlib import Path
 
+from sqlmodel import Session, select
+
+from game_survey_workbench.db import get_engine
 from game_survey_workbench.llm.client import OpenAICompatibleLLMClient
+from game_survey_workbench.models.knowledge import KnowledgeDocument
 from game_survey_workbench.services.knowledge_ingest import ingest_knowledge_file
+from game_survey_workbench.services.project_knowledge import (
+    replace_project_knowledge_selection,
+)
 from scripts.run_stage2_closeout_assessment import run_stage2_closeout_assessment
 
 
@@ -33,6 +40,16 @@ def test_end_to_end_flow_creates_report(client, seeded_workspace, monkeypatch):
         ingest_knowledge_file(source, project_root=seeded_workspace)
 
     project = client.post("/projects", json={"slug": "demo", "name": "Demo", "knowledge_pack": {}}).json()
+    engine = get_engine(seeded_workspace)
+    with Session(engine) as session:
+        document_ids = list(
+            session.exec(select(KnowledgeDocument.id).order_by(KnowledgeDocument.id)).all()
+        )
+    replace_project_knowledge_selection(
+        workspace_root=seeded_workspace,
+        project_slug=project["slug"],
+        knowledge_document_ids=document_ids,
+    )
     draft = client.post(
         f"/projects/{project['slug']}/questionnaires/draft",
         json={"research_goal": "Learn why players drop after the patch"},

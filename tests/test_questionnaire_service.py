@@ -1,6 +1,10 @@
 import pytest
 from pathlib import Path
 
+from game_survey_workbench.errors import (
+    NoKnowledgeMatchedError,
+    NoKnowledgeSelectedError,
+)
 from game_survey_workbench.llm.client import FakeLLMClient
 from game_survey_workbench.models.project import ProjectCreate
 from game_survey_workbench.models.questionnaire import (
@@ -8,6 +12,9 @@ from game_survey_workbench.models.questionnaire import (
     QuestionnaireSpecVersion,
 )
 from game_survey_workbench.services.knowledge_ingest import ingest_knowledge_file
+from game_survey_workbench.services.project_knowledge import (
+    replace_project_knowledge_selection,
+)
 from game_survey_workbench.services.projects import create_project
 from game_survey_workbench.services.questionnaires import (
     build_questionnaire_design_context,
@@ -108,6 +115,11 @@ def test_generate_questionnaire_draft_uses_project_retrieval_and_persists_citati
         ),
         workspace_root=tmp_path,
     )
+    replace_project_knowledge_selection(
+        workspace_root=tmp_path,
+        project_slug="returners",
+        knowledge_document_ids=[1],
+    )
 
     version = generate_questionnaire_draft(
         project_slug="returners",
@@ -123,7 +135,7 @@ def test_generate_questionnaire_draft_uses_project_retrieval_and_persists_citati
     assert version.citations[0]["document_title"] == "Questionnaire Principles"
 
 
-def test_generate_questionnaire_draft_degrades_when_knowledge_is_missing(tmp_path: Path):
+def test_generate_questionnaire_draft_rejects_when_no_knowledge_is_selected(tmp_path: Path):
     create_project(
         ProjectCreate(
             slug="empty-project",
@@ -133,16 +145,45 @@ def test_generate_questionnaire_draft_degrades_when_knowledge_is_missing(tmp_pat
         workspace_root=tmp_path,
     )
 
-    version = generate_questionnaire_draft(
-        project_slug="empty-project",
-        payload=QuestionnaireDraftRequest(research_goal="Study returners"),
+    with pytest.raises(NoKnowledgeSelectedError):
+        generate_questionnaire_draft(
+            project_slug="empty-project",
+            payload=QuestionnaireDraftRequest(research_goal="Study returners"),
+            workspace_root=tmp_path,
+            client=FakeLLMClient("# Draft"),
+        )
+
+
+def test_generate_questionnaire_draft_rejects_when_selected_knowledge_has_no_hits(tmp_path: Path):
+    source = tmp_path / "domain.md"
+    source.write_text(
+        "---\n"
+        "title: Domain Research\n"
+        "doc_type: research\n"
+        "stage:\n"
+        "  - analysis\n"
+        "---\n"
+        "Domain content only.\n",
+        encoding="utf-8",
+    )
+    ingest_knowledge_file(source, project_root=tmp_path)
+    create_project(
+        ProjectCreate(slug="empty-hit-project", name="Empty Hit Project"),
         workspace_root=tmp_path,
-        client=FakeLLMClient("# Draft"),
+    )
+    replace_project_knowledge_selection(
+        workspace_root=tmp_path,
+        project_slug="empty-hit-project",
+        knowledge_document_ids=[1],
     )
 
-    assert version.project_slug == "empty-project"
-    assert version.citations == []
-    assert version.retrieved_snippets == []
+    with pytest.raises(NoKnowledgeMatchedError):
+        generate_questionnaire_draft(
+            project_slug="empty-hit-project",
+            payload=QuestionnaireDraftRequest(research_goal="Study returners"),
+            workspace_root=tmp_path,
+            client=FakeLLMClient("# Draft"),
+        )
 
 
 def test_load_questionnaire_prompt_contains_markdown_instruction():
@@ -175,6 +216,11 @@ def test_questionnaire_draft_includes_visible_knowledge_basis_with_realistic_fix
             knowledge_pack={},
         ),
         workspace_root=tmp_path,
+    )
+    replace_project_knowledge_selection(
+        workspace_root=tmp_path,
+        project_slug="stage2-closeout",
+        knowledge_document_ids=[1, 2],
     )
 
     version = generate_questionnaire_draft(

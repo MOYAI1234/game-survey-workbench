@@ -11,6 +11,9 @@ from game_survey_workbench.db import get_engine
 from game_survey_workbench.models.analysis_run import AnalysisRunRecord
 from game_survey_workbench.errors import LLM_CONFIG_ERROR_MESSAGE
 from game_survey_workbench.services.knowledge_ingest import ingest_knowledge_file
+from game_survey_workbench.services.project_knowledge import (
+    replace_project_knowledge_selection,
+)
 from game_survey_workbench.services.workflow_state import get_workflow_state
 
 
@@ -62,6 +65,11 @@ def _seed_project_with_analysis(client: TestClient, workspace_root: Path, *, slu
         encoding="utf-8",
     )
     ingest_knowledge_file(knowledge_dir / "guide.md", project_root=workspace_root)
+    replace_project_knowledge_selection(
+        workspace_root=workspace_root,
+        project_slug=slug,
+        knowledge_document_ids=[1],
+    )
 
     csv_content = (
         "Q1_Score,Q2_Feedback\n"

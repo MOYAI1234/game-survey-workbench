@@ -98,3 +98,73 @@ class LocalVectorStore:
         if top_k is not None:
             matches = matches[:top_k]
         return [item for _, item in matches]
+
+    def query_layered(
+        self,
+        query: str,
+        *,
+        selected_document_titles: list[str],
+        task_stages: list[str],
+        top_method_k: int = 3,
+        top_domain_k: int = 5,
+    ) -> list[dict]:
+        selected_titles = set(selected_document_titles)
+        if not selected_titles:
+            return []
+
+        all_selected = [
+            item
+            for item in self.load_chunks()
+            if item.get("document_title") in selected_titles
+        ]
+        if not all_selected:
+            return []
+
+        method_doc_types = {"guide", "theory", "method", "playbook"}
+        domain_doc_types = {"experience", "research", "benchmark"}
+
+        method_candidates = [
+            item for item in all_selected
+            if (
+                set(task_stages).intersection(item.get("stages", []))
+                and item.get("doc_type") in method_doc_types
+            )
+            or int(item.get("priority", 0)) >= 8
+        ]
+        method_candidates.sort(
+            key=lambda item: (
+                int(item.get("priority", 0)),
+                item.get("document_title", ""),
+                item.get("content", ""),
+            ),
+            reverse=True,
+        )
+        method_results = [
+            {**item, "retrieval_pool": "method"}
+            for item in method_candidates[:top_method_k]
+        ]
+
+        domain_candidates = [
+            item for item in all_selected
+            if item.get("doc_type") in domain_doc_types
+        ]
+        domain_results = [
+            {**item, "retrieval_pool": "domain"}
+            for item in self.query(
+                query,
+                stages=task_stages,
+                doc_types=sorted(domain_doc_types),
+                top_k=top_domain_k,
+            )
+            if item.get("document_title") in selected_titles
+        ]
+
+        combined: list[dict] = []
+        seen_keys: set[tuple[str, str]] = set()
+        for item in method_results + domain_results:
+            key = (item.get("document_title", ""), item.get("content", ""))
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
+            combined.append(item)
+        return combined

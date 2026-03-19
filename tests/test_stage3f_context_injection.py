@@ -9,6 +9,9 @@ from game_survey_workbench.services.insights import (
     generate_analysis_insights,
 )
 from game_survey_workbench.services.knowledge_ingest import ingest_knowledge_file
+from game_survey_workbench.services.project_knowledge import (
+    replace_project_knowledge_selection,
+)
 from game_survey_workbench.services.projects import create_project
 from game_survey_workbench.services.questionnaires import (
     build_questionnaire_design_context,
@@ -69,6 +72,11 @@ def test_generate_questionnaire_draft_includes_saved_brief_in_prompt(tmp_path: P
     create_project(
         ProjectCreate(slug="bp-study", name="BP Study", knowledge_pack={}),
         workspace_root=tmp_path,
+    )
+    replace_project_knowledge_selection(
+        workspace_root=tmp_path,
+        project_slug="bp-study",
+        knowledge_document_ids=[1],
     )
     save_research_brief(
         project_slug="bp-study",
@@ -141,6 +149,11 @@ def test_generate_analysis_insights_includes_saved_brief_objectives_in_prompt(
     create_project(
         ProjectCreate(slug="bp-study", name="BP Study", knowledge_pack={}),
         workspace_root=tmp_path,
+    )
+    replace_project_knowledge_selection(
+        workspace_root=tmp_path,
+        project_slug="bp-study",
+        knowledge_document_ids=[1],
     )
     save_research_brief(
         project_slug="bp-study",

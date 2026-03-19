@@ -5,6 +5,7 @@ from game_survey_workbench.config import get_settings
 from game_survey_workbench.errors import (
     LLM_CONFIG_ERROR_MESSAGE,
     NoKnowledgeMatchedError,
+    NoKnowledgeSelectedError,
     NoSavedCodingResultsError,
     ProjectNotFoundError,
 )
@@ -140,6 +141,8 @@ def generate_insights_route(
         raise HTTPException(status_code=500, detail=LLM_CONFIG_ERROR_MESSAGE) from exc
     except ProjectNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Project not found") from exc
+    except NoKnowledgeSelectedError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except NoKnowledgeMatchedError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except NoSavedCodingResultsError as exc:

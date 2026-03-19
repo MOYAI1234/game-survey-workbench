@@ -4,6 +4,7 @@ from sqlmodel import SQLModel, create_engine
 
 from game_survey_workbench.models import knowledge as _knowledge_models
 from game_survey_workbench.models import project as _project_models
+from game_survey_workbench.models import project_knowledge_selection as _project_knowledge_selection_models
 from game_survey_workbench.models import questionnaire as _questionnaire_models
 from game_survey_workbench.models import dataset as _dataset_models
 from game_survey_workbench.models import analysis_run as _analysis_run_models
@@ -13,6 +14,7 @@ from game_survey_workbench.models import research_brief as _research_brief_model
 from game_survey_workbench.models import reporting as _reporting_models
 from game_survey_workbench.models import task_plan as _task_plan_models
 from game_survey_workbench.models import text_coding as _text_coding_models
+from game_survey_workbench.services.workspace import bootstrap_workspace
 
 
 def get_engine(workspace_root: Path):
@@ -89,6 +91,7 @@ def _ensure_questionnairespecversion_stage7_columns(engine) -> None:
 
 
 def create_db_and_tables(workspace_root: Path) -> None:
+    bootstrap_workspace(workspace_root)
     engine = get_engine(workspace_root)
     SQLModel.metadata.create_all(engine)
     _ensure_projectrecord_stage3a_columns(engine)

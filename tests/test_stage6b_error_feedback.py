@@ -117,7 +117,7 @@ def test_analysis_page_shows_fallback_notice_when_insights_generated_without_kno
     detail_response = client.get(f"/projects/fallback-insight/analysis/{run_id}")
 
     assert detail_response.status_code == 200
-    assert "当前还没有知识文档，已先生成基础版本" in detail_response.text
+    assert "项目尚未选择任何知识文档" in detail_response.text
 
 
 def test_analysis_page_shows_fallback_notice_when_coding_generated_without_knowledge(

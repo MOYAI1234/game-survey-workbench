@@ -10,6 +10,9 @@ from game_survey_workbench.models.project import ProjectCreate
 from game_survey_workbench.models.text_coding import CodingResult
 from game_survey_workbench.services.analysis_context import NoFreeTextResponsesFoundError
 from game_survey_workbench.services.knowledge_ingest import ingest_knowledge_file
+from game_survey_workbench.services.project_knowledge import (
+    replace_project_knowledge_selection,
+)
 from game_survey_workbench.services.projects import create_project
 from game_survey_workbench.services.text_coding import (
     build_coding_context,
@@ -97,6 +100,11 @@ def test_code_open_text_column_retrieves_knowledge_and_persists_result(tmp_path:
             knowledge_pack={"doc_types": ["theory"], "scenarios": ["churn"]},
         ),
         workspace_root=tmp_path,
+    )
+    replace_project_knowledge_selection(
+        workspace_root=tmp_path,
+        project_slug="churn-study",
+        knowledge_document_ids=[1],
     )
 
     fake_response = (

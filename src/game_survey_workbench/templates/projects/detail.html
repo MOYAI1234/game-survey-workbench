@@ -120,23 +120,44 @@
 </section>
 
 <section class="upload-section">
-  <h2>共享知识库</h2>
-  <p class="help-text">当前项目会从共享知识库中检索相关知识。当前共享知识文档 {{ knowledge_count }} 篇，多个项目会共用这里的资料。</p>
-  <p class="help-text"><a href="/knowledge">查看或管理共享知识库</a></p>
-  <p class="help-text">你也可以在这里快捷上传 Markdown 文档，系统会将其加入共享知识库，供问卷设计、问卷分析和报告写作复用。</p>
-  <form
-    action="/projects/{{ project_slug }}/knowledge/upload"
-    method="post"
-    enctype="multipart/form-data"
-  >
-    <input type="file" name="file" accept=".md,.txt" required>
+  <h2>项目知识选择</h2>
+  <p class="help-text">当前项目会从共享知识库中检索相关知识。当前共享知识文档 {{ knowledge_count }} 篇，但只有你在这里选中的文档会参与本项目的问卷、洞察和报告生成。</p>
+  <p class="help-text"><a href="/knowledge">前往共享知识库管理页</a></p>
+
+  <h3>当前已选知识</h3>
+  {% if selected_documents %}
+  <ul>
+    {% for document in selected_documents %}
+    <li>
+      <strong>{{ document.title }}</strong>
+      <span class="help-text">｜{{ document.doc_type }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty-state">当前项目还没有选中任何知识文档。请先从下方列表中勾选。</p>
+  {% endif %}
+
+  <form action="/projects/{{ project_slug }}/knowledge-selection" method="post">
+    {% if knowledge_documents %}
     <fieldset>
-      <legend>用途分类（可多选）</legend>
-      <label><input type="checkbox" name="purposes" value="questionnaire_design"> 问卷设计</label>
-      <label><input type="checkbox" name="purposes" value="analysis"> 问卷分析</label>
-      <label><input type="checkbox" name="purposes" value="reporting"> 报告写作</label>
+      <legend>从共享知识库中选择本项目要使用的文档</legend>
+      {% for document in knowledge_documents %}
+      <label>
+        <input
+          type="checkbox"
+          name="knowledge_document_ids"
+          value="{{ document.id }}"
+          {% if document.id in selected_document_ids %}checked{% endif %}
+        >
+        {{ document.title }}（{{ document.doc_type }}）
+      </label>
+      {% endfor %}
     </fieldset>
-    <button type="submit">上传知识文档</button>
+    <button type="submit">保存项目知识选择</button>
+    {% else %}
+    <p class="empty-state">共享知识库还没有文档，请先去知识库管理页上传资料。</p>
+    {% endif %}
   </form>
 </section>
 
