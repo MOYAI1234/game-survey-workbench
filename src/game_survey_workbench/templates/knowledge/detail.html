@@ -65,6 +65,9 @@
     {% for document in documents %}
     <li>
       <strong>{{ document.title }}</strong>
+      {% if document.source_format and document.source_format != "md" %}
+      <span class="badge">{{ document.source_format | upper }}</span>
+      {% endif %}
       <div class="help-text">文档类型：{{ document.doc_type }} ｜ 优先级：{{ document.priority }}</div>
       {% if document.stages %}
       <span>｜适用阶段：
