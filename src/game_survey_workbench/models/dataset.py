@@ -32,6 +32,8 @@ class DatasetRecord(SQLModel, table=True):
     source_path: str
     dataset_schema: dict = Field(default_factory=dict, sa_column=Column(JSON))
     analysis_run_id: str | None = None
+    format_type: str | None = None
+    column_overrides_json: dict | None = Field(default=None, sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 

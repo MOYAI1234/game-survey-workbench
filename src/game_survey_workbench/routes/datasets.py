@@ -1,6 +1,6 @@
 from pathlib import Path
-
 from tempfile import NamedTemporaryFile
+from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File, status
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -16,7 +16,12 @@ from game_survey_workbench.services.analysis_context import (
     build_deterministic_findings_for_run,
     load_analysis_run_context,
 )
-from game_survey_workbench.services.dataset_import import import_dataset, store_uploaded_dataset
+from game_survey_workbench.services.dataset_import import (
+    import_dataset,
+    import_dataset_with_overrides,
+    store_uploaded_dataset,
+)
+from game_survey_workbench.services.upload_contract import detect_format
 from game_survey_workbench.services.reporting import (
     get_coding_results,
     get_latest_insight_record,
@@ -77,6 +82,80 @@ async def import_dataset_form(project_slug: str, file: UploadFile = File(...)):
             url=f"/projects/{project_slug}?upload_error={exc.detail}",
             status_code=status.HTTP_303_SEE_OTHER,
         )
+    return RedirectResponse(
+        url=f"/projects/{project_slug}/analysis/{dataset.analysis_run_id}",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
+
+
+@router.post("/projects/{project_slug}/datasets/upload-preview", response_class=HTMLResponse)
+async def upload_preview(project_slug: str, request: Request, file: UploadFile = File(...)):
+    settings = get_settings()
+    engine = get_engine(settings.workspace_root)
+    with Session(engine) as session:
+        project = session.exec(
+            select(ProjectRecord).where(ProjectRecord.slug == project_slug)
+        ).first()
+
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    suffix = Path(file.filename or "upload.csv").suffix.lower()
+    if suffix not in {".csv", ".xlsx", ".xls"}:
+        raise HTTPException(status_code=400, detail="Unsupported dataset format")
+
+    staging_dir = settings.workspace_root / "projects" / project_slug / "data" / "staging"
+    staging_dir.mkdir(parents=True, exist_ok=True)
+    staging_id = uuid4().hex[:12]
+    staging_path = staging_dir / f"{staging_id}{suffix}"
+    staging_path.write_bytes(await file.read())
+
+    try:
+        detection = detect_format(staging_path)
+    except ValueError as exc:
+        staging_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return templates.TemplateResponse(
+        request,
+        "datasets/preview.html",
+        {
+            "project_slug": project_slug,
+            "staging_id": staging_id,
+            "detection": detection,
+        },
+    )
+
+
+@router.post("/projects/{project_slug}/datasets/confirm-import")
+async def confirm_import(project_slug: str, request: Request):
+    settings = get_settings()
+    form = await request.form()
+    staging_id = form.get("staging_id")
+    column_types = form.getlist("column_types")
+    column_include = form.getlist("column_include")
+
+    staging_dir = settings.workspace_root / "projects" / project_slug / "data" / "staging"
+    staging_path = next(staging_dir.glob(f"{staging_id}.*"), None)
+    if staging_path is None or not staging_path.exists():
+        raise HTTPException(status_code=400, detail="Staging file not found or expired")
+
+    try:
+        dataset = import_dataset_with_overrides(
+            csv_path=staging_path,
+            project_slug=project_slug,
+            workspace_root=settings.workspace_root,
+            column_types=column_types,
+            column_include=column_include,
+        )
+    except ValueError as exc:
+        return RedirectResponse(
+            url=f"/projects/{project_slug}?upload_error={exc}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+    finally:
+        staging_path.unlink(missing_ok=True)
+
     return RedirectResponse(
         url=f"/projects/{project_slug}/analysis/{dataset.analysis_run_id}",
         status_code=status.HTTP_303_SEE_OTHER,

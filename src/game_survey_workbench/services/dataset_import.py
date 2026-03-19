@@ -16,7 +16,7 @@ from game_survey_workbench.models.dataset import (
     QuestionColumnSchema,
 )
 from game_survey_workbench.services.dataset_schema import classify_column
-from game_survey_workbench.services.upload_contract import parse_dual_header_dataframe
+from game_survey_workbench.services.upload_contract import detect_format, parse_dual_header_dataframe
 from game_survey_workbench.services.workspace import bootstrap_workspace
 
 
@@ -160,6 +160,102 @@ def import_dataset(csv_path: Path, *, project_slug: str, workspace_root: Path) -
         session.commit()
 
     return imported
+
+
+def import_dataset_with_overrides(
+    csv_path: Path,
+    *,
+    project_slug: str,
+    workspace_root: Path,
+    column_types: list[str],
+    column_include: list[str],
+) -> ImportedDataset:
+    bootstrap_workspace(workspace_root)
+    create_db_and_tables(workspace_root)
+
+    detection = detect_format(csv_path)
+    raw = _load_tabular_file(csv_path, header=None)
+
+    column_titles = raw.iloc[0].fillna("").astype(str).tolist()
+    if detection.format_type == "dual_header":
+        dataframe = raw.iloc[2:].copy()
+    else:
+        dataframe = raw.iloc[1:].copy()
+    dataframe.columns = column_titles
+    dataframe = dataframe.reset_index(drop=True)
+
+    included_columns = set(column_include)
+    question_columns: dict[str, QuestionColumnSchema] = {}
+    for index, column_name in enumerate(column_titles):
+        if index >= len(column_types):
+            break
+        declared_type = column_types[index]
+        if declared_type == "metadata" or column_name not in included_columns:
+            continue
+        if classify_column(column_name) == "metadata":
+            continue
+        question_columns[column_name] = QuestionColumnSchema(
+            column_role="question",
+            question_type=declared_type,
+            include_in_analysis=column_name in included_columns,
+        )
+
+    stored_path = store_uploaded_dataset(
+        source_path=csv_path,
+        filename=csv_path.name,
+        project_slug=project_slug,
+        workspace_root=workspace_root,
+    )
+
+    dataset_id = str(uuid4())
+    analysis_run_id = str(uuid4())
+    schema_payload = {key: value.model_dump() for key, value in question_columns.items()}
+    overrides_payload = {
+        column_name: {
+            "question_type": column_types[index],
+            "include_in_analysis": column_name in included_columns,
+        }
+        for index, column_name in enumerate(column_titles)
+        if index < len(column_types)
+    }
+
+    schema_dir = workspace_root / "projects" / project_slug / "data" / "schema"
+    schema_dir.mkdir(parents=True, exist_ok=True)
+    schema_path = schema_dir / f"{dataset_id}.json"
+    schema_path.write_text(
+        json.dumps(schema_payload, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+    engine = get_engine(workspace_root)
+    with Session(engine) as session:
+        record = DatasetRecord(
+            dataset_id=dataset_id,
+            project_slug=project_slug,
+            source_path=str(stored_path),
+            dataset_schema=schema_payload,
+            analysis_run_id=analysis_run_id,
+            format_type=detection.format_type,
+            column_overrides_json=overrides_payload,
+        )
+        session.add(record)
+        session.add(
+            AnalysisRunRecord(
+                analysis_run_id=analysis_run_id,
+                project_slug=project_slug,
+                dataset_id=dataset_id,
+                status="ready",
+            )
+        )
+        session.commit()
+
+    return ImportedDataset(
+        dataset_id=dataset_id,
+        project_slug=project_slug,
+        source_path=str(stored_path),
+        question_columns=question_columns,
+        analysis_run_id=analysis_run_id,
+    )
 
 
 def store_uploaded_dataset(

@@ -1,0 +1,70 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>数据导入预览</h2>
+
+<p>检测格式: <strong>{{ detection.format_type }}</strong></p>
+
+<form method="post" action="/projects/{{ project_slug }}/datasets/confirm-import">
+  <input type="hidden" name="staging_id" value="{{ staging_id }}">
+
+  <table>
+    <thead>
+      <tr>
+        <th>列名</th>
+        <th>推断题型</th>
+        <th>推断依据</th>
+        <th>纳入分析</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for i in range(detection.column_titles | length) %}
+      <tr>
+        <td>{{ detection.column_titles[i] }}</td>
+        <td>
+          <select name="column_types">
+            {% for t in ["metadata", "single_choice", "multi_select", "free_text", "scale", "matrix", "ranking"] %}
+            <option value="{{ t }}" {% if detection.column_types[i] == t %}selected{% endif %}>
+              {{ t }}
+            </option>
+            {% endfor %}
+          </select>
+        </td>
+        <td>
+          {% if detection.inferred_columns %}
+            {{ detection.inferred_columns[i].reason }} ({{ detection.inferred_columns[i].confidence }})
+          {% else %}
+            双层表头声明
+          {% endif %}
+        </td>
+        <td>
+          <input type="checkbox" name="column_include" value="{{ detection.column_titles[i] }}" checked>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h3>数据预览（前5行）</h3>
+  <table>
+    <thead>
+      <tr>
+        {% for title in detection.column_titles %}
+        <th>{{ title }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in detection.preview_rows %}
+      <tr>
+        {% for cell in row %}
+        <td>{{ cell }}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <button type="submit">确认导入</button>
+  <a href="/projects/{{ project_slug }}">返回重新上传</a>
+</form>
+{% endblock %}
