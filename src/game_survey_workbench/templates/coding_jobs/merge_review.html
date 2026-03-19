@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>编码合并审查</h2>
+<p>以下是编码主题列表。如有近义主题需要合并，请选择目标名称和要合并的来源。</p>
+
+<form method="post" action="/projects/{{ project_slug }}/coding-jobs/{{ job_id }}/merge-confirm">
+  <table>
+    <thead>
+      <tr>
+        <th>主题名</th>
+        <th>计数</th>
+        <th>示例</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for theme in themes %}
+      <tr>
+        <td>{{ theme.theme_name }}</td>
+        <td>{{ theme.count }}</td>
+        <td>{{ theme.example_responses | join(', ') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h3>合并设置（可选）</h3>
+  <div id="merge-groups">
+    <div class="merge-group">
+      <label>目标主题名:
+        <select name="merge_group_0_target">
+          {% for theme in themes %}
+          <option value="{{ theme.theme_name }}">{{ theme.theme_name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>合并来源:
+        <select name="merge_group_0_sources" multiple>
+          {% for theme in themes %}
+          <option value="{{ theme.theme_name }}">{{ theme.theme_name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+  </div>
+
+  <button type="submit">确认合并</button>
+  <a href="/projects/{{ project_slug }}/analysis/latest">跳过，直接使用</a>
+</form>
+{% endblock %}

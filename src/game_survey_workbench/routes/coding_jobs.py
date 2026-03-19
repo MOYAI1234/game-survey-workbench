@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
+from fastapi.responses import RedirectResponse
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
@@ -15,6 +18,7 @@ from game_survey_workbench.services.batched_coding import (
 )
 
 router = APIRouter()
+templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
 
 
 class CreateCodingJobRequest(BaseModel):
@@ -101,3 +105,67 @@ def retry_failed_batches(project_slug: str, job_id: int):
         session.commit()
 
     return {"status": "queued", "retried_batches": len(batches)}
+
+
+@router.get("/projects/{project_slug}/coding-jobs/{job_id}/merge-review")
+def merge_review(project_slug: str, job_id: int, request: Request):
+    settings = get_settings()
+    engine = get_engine(settings.workspace_root)
+    with Session(engine) as session:
+        job = session.exec(select(CodingJob).where(CodingJob.id == job_id)).first()
+    if job is None:
+        raise HTTPException(status_code=404, detail="Coding job not found")
+
+    codebook = job.final_codebook_json or {}
+    themes = codebook.get("themes", [])
+    return templates.TemplateResponse(
+        request,
+        "coding_jobs/merge_review.html",
+        {
+            "project_slug": project_slug,
+            "job_id": job_id,
+            "themes": themes,
+        },
+    )
+
+
+@router.post("/projects/{project_slug}/coding-jobs/{job_id}/merge-confirm")
+async def merge_confirm(project_slug: str, job_id: int, request: Request):
+    settings = get_settings()
+    form = await request.form()
+    engine = get_engine(settings.workspace_root)
+
+    merge_map: dict[str, str] = {}
+    index = 0
+    while f"merge_group_{index}_target" in form:
+        target = form.get(f"merge_group_{index}_target")
+        sources = form.getlist(f"merge_group_{index}_sources")
+        for source in sources:
+            if source != target:
+                merge_map[source] = target
+        index += 1
+
+    with Session(engine) as session:
+        job = session.exec(select(CodingJob).where(CodingJob.id == job_id)).first()
+        if job is None:
+            raise HTTPException(status_code=404, detail="Coding job not found")
+
+        codebook = job.final_codebook_json or {}
+        themes = codebook.get("themes", [])
+        merged_themes: dict[str, dict] = {}
+        for theme in themes:
+            name = theme["theme_name"]
+            target = merge_map.get(name, name)
+            if target in merged_themes:
+                merged_themes[target]["count"] += theme["count"]
+            else:
+                merged_themes[target] = {**theme, "theme_name": target}
+
+        job.final_codebook_json = {"themes": list(merged_themes.values())}
+        session.add(job)
+        session.commit()
+
+    return RedirectResponse(
+        url=f"/projects/{project_slug}/analysis/latest",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
