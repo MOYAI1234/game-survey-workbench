@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from game_survey_workbench.config import get_settings
 from game_survey_workbench.db import create_db_and_tables
 from game_survey_workbench.routes.crosstabs import router as crosstabs_router
+from game_survey_workbench.routes.coding_jobs import router as coding_jobs_router
 from game_survey_workbench.routes.datasets import router as datasets_router
 from game_survey_workbench.routes.insights import router as insights_router
 from game_survey_workbench.routes.knowledge import router as knowledge_router
@@ -38,6 +39,7 @@ def create_app() -> FastAPI:
     app.include_router(questionnaires_router)
     app.include_router(datasets_router)
     app.include_router(crosstabs_router)
+    app.include_router(coding_jobs_router)
     app.include_router(text_coding_router)
     app.include_router(insights_router)
     app.include_router(reports_router)
