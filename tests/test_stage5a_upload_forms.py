@@ -33,7 +33,8 @@ def test_project_page_has_dataset_upload_form(client, project_slug):
     response = client.get(f"/projects/{project_slug}")
 
     html = response.text
-    assert f'/projects/{project_slug}/datasets/import-form' in html
+    assert f'/projects/{project_slug}/datasets/upload-preview' in html
+    assert f'/projects/{project_slug}/datasets/import-form' not in html
     assert 'type="file"' in html
 
 
