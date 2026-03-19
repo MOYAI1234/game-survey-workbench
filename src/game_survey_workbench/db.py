@@ -13,6 +13,7 @@ from game_survey_workbench.models import research_brief as _research_brief_model
 from game_survey_workbench.models import reporting as _reporting_models
 from game_survey_workbench.models import task_plan as _task_plan_models
 from game_survey_workbench.models import text_coding as _text_coding_models
+from game_survey_workbench.services.workspace import bootstrap_workspace
 
 
 def get_engine(workspace_root: Path):
@@ -89,6 +90,7 @@ def _ensure_questionnairespecversion_stage7_columns(engine) -> None:
 
 
 def create_db_and_tables(workspace_root: Path) -> None:
+    bootstrap_workspace(workspace_root)
     engine = get_engine(workspace_root)
     SQLModel.metadata.create_all(engine)
     _ensure_projectrecord_stage3a_columns(engine)
