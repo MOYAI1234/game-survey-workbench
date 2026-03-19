@@ -30,6 +30,15 @@ def test_knowledge_page_shows_global_management_language(client: TestClient):
     assert "筛选知识文档" in html
 
 
+def test_knowledge_page_upload_form_accepts_pdf_docx_pptx(client: TestClient):
+    response = client.get("/knowledge")
+
+    html = response.text
+    assert ".pdf" in html
+    assert ".docx" in html
+    assert ".pptx" in html
+
+
 def test_knowledge_page_filters_documents_by_stage_and_type(
     client: TestClient,
     tmp_path: Path,

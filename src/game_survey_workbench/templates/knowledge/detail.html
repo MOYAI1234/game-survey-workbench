@@ -45,9 +45,9 @@
 
 <section class="upload-section">
   <h2>上传知识文档</h2>
-  <p class="help-text">支持 Markdown 文档。上传时请勾选这篇文档主要会用于哪些研究环节。</p>
+  <p class="help-text">支持 Markdown (.md)、PDF (.pdf)、Word (.docx) 和 PowerPoint (.pptx) 文档。非 Markdown 文件会自动转换并提供预览。</p>
   <form action="/knowledge/upload" method="post" enctype="multipart/form-data">
-    <input type="file" name="file" accept=".md,.txt" required>
+    <input type="file" name="file" accept=".md,.txt,.pdf,.docx,.pptx" required>
     <fieldset>
       <legend>用途分类（可多选）</legend>
       <label><input type="checkbox" name="purposes" value="questionnaire_design"> 问卷设计</label>
