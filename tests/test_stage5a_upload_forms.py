@@ -20,13 +20,13 @@ def project_slug(client):
     return slug
 
 
-def test_project_page_has_knowledge_upload_form(client, project_slug):
+def test_project_page_has_knowledge_selection_form(client, project_slug):
     response = client.get(f"/projects/{project_slug}")
 
     html = response.text
-    assert 'enctype="multipart/form-data"' in html
     assert "knowledge" in html.lower()
-    assert f'/projects/{project_slug}/knowledge/upload' in html
+    assert f'/projects/{project_slug}/knowledge-selection' in html
+    assert "共享知识库还没有文档" in html
 
 
 def test_project_page_has_dataset_upload_form(client, project_slug):
@@ -37,16 +37,14 @@ def test_project_page_has_dataset_upload_form(client, project_slug):
     assert 'type="file"' in html
 
 
-def test_knowledge_upload_stores_file(client, project_slug, tmp_path):
-    md_content = b"---\ntitle: Test Doc\n---\n# Test Knowledge\nSome content."
+def test_project_knowledge_selection_form_redirects(client, project_slug):
     response = client.post(
-        f"/projects/{project_slug}/knowledge/upload",
-        files={"file": ("test-doc.md", md_content, "text/markdown")},
+        f"/projects/{project_slug}/knowledge-selection",
+        data={"knowledge_document_ids": []},
         follow_redirects=False,
     )
 
     assert response.status_code in (302, 303)
-    assert (tmp_path / "knowledge" / "test-doc.md").exists()
 
 
 def test_dataset_upload_via_form_redirects(client, project_slug):

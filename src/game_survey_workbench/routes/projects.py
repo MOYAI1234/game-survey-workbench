@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
@@ -11,9 +11,10 @@ from game_survey_workbench.models.knowledge import KnowledgeDocument
 from game_survey_workbench.models.project import ProjectCreate
 from game_survey_workbench.models.research_brief import ResearchBriefPayload
 from game_survey_workbench.models.task_plan import TaskPlanPayload
-from game_survey_workbench.services.knowledge_ingest import (
-    build_ingest_ready_markdown,
-    ingest_knowledge_file,
+from game_survey_workbench.services.project_knowledge import (
+    list_selected_knowledge_document_ids,
+    list_selected_knowledge_documents,
+    replace_project_knowledge_selection,
 )
 from game_survey_workbench.services.projects import create_project, get_project
 from game_survey_workbench.services.research_brief import (
@@ -78,9 +79,17 @@ def project_detail(project_slug: str, request: Request):
     )
     engine = get_engine(settings.workspace_root)
     with Session(engine) as session:
-        knowledge_count = session.exec(
-            select(KnowledgeDocument)
-        ).all()
+        knowledge_documents = list(
+            session.exec(select(KnowledgeDocument).order_by(KnowledgeDocument.id.desc())).all()
+        )
+    selected_document_ids = list_selected_knowledge_document_ids(
+        project_slug=project_slug,
+        workspace_root=settings.workspace_root,
+    )
+    selected_documents = list_selected_knowledge_documents(
+        project_slug=project_slug,
+        workspace_root=settings.workspace_root,
+    )
     return templates.TemplateResponse(
         request,
         "projects/detail.html",
@@ -89,44 +98,29 @@ def project_detail(project_slug: str, request: Request):
             "project_slug": project_slug,
             "brief": brief,
             "plan": plan,
-            "knowledge_count": len(knowledge_count),
+            "knowledge_count": len(knowledge_documents),
+            "knowledge_documents": knowledge_documents,
+            "selected_document_ids": selected_document_ids,
+            "selected_documents": selected_documents,
             "upload_success": request.query_params.get("upload_success"),
             "upload_error": request.query_params.get("upload_error"),
         },
     )
 
 
-@router.post("/projects/{project_slug}/knowledge/upload")
-async def upload_knowledge_form(
+@router.post("/projects/{project_slug}/knowledge-selection")
+def save_project_knowledge_selection(
     project_slug: str,
-    file: UploadFile = File(...),
-    purposes: list[str] = Form([]),
+    knowledge_document_ids: list[int] = Form([]),
 ):
     settings, _project = require_project(project_slug=project_slug)
-    knowledge_dir = settings.workspace_root / "knowledge"
-    knowledge_dir.mkdir(parents=True, exist_ok=True)
-
-    filename = Path(file.filename or "uploaded.md").name
-    destination = knowledge_dir / filename
-    try:
-        raw = (await file.read()).decode("utf-8")
-        destination.write_text(
-            build_ingest_ready_markdown(
-                raw=raw,
-                filename=filename,
-                purposes=purposes,
-            ),
-            encoding="utf-8",
-        )
-        ingest_knowledge_file(destination, project_root=settings.workspace_root)
-    except Exception:
-        return RedirectResponse(
-            url=f"/projects/{project_slug}?upload_error=知识文档解析失败，请检查文件格式",
-            status_code=status.HTTP_303_SEE_OTHER,
-        )
-
+    replace_project_knowledge_selection(
+        workspace_root=settings.workspace_root,
+        project_slug=project_slug,
+        knowledge_document_ids=knowledge_document_ids,
+    )
     return RedirectResponse(
-        url=f"/projects/{project_slug}?upload_success=知识文档「{filename}」已成功上传并入库",
+        url=f"/projects/{project_slug}",
         status_code=status.HTTP_303_SEE_OTHER,
     )
 

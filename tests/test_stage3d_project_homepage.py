@@ -29,6 +29,7 @@ def test_project_homepage_shows_brief_section(client: TestClient, tmp_path: Path
     assert "Pass study" in html
     assert "Research Brief" in html or "研究简报" in html
     assert "Task Plan" in html or "任务计划" in html
+    assert "项目知识选择" in html
     assert "问卷设计" in html
     assert "数据分析" in html
     assert "报告生成" in html

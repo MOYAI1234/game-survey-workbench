@@ -42,6 +42,29 @@ def list_selected_knowledge_document_ids(
     return [selection.knowledge_document_id for selection in selections]
 
 
+def list_selected_knowledge_documents(
+    *,
+    workspace_root: Path,
+    project_slug: str,
+) -> list[KnowledgeDocument]:
+    selected_ids = list_selected_knowledge_document_ids(
+        workspace_root=workspace_root,
+        project_slug=project_slug,
+    )
+    if not selected_ids:
+        return []
+
+    engine = get_engine(workspace_root)
+    with Session(engine) as session:
+        documents = {
+            document.id: document
+            for document in session.exec(
+                select(KnowledgeDocument).where(KnowledgeDocument.id.in_(selected_ids))
+            ).all()
+        }
+    return [documents[document_id] for document_id in selected_ids if document_id in documents]
+
+
 def replace_project_knowledge_selection(
     *,
     workspace_root: Path,
