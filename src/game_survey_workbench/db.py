@@ -91,6 +91,20 @@ def _ensure_questionnairespecversion_stage7_columns(engine) -> None:
             )
 
 
+def _ensure_knowledgedocument_source_format_column(engine) -> None:
+    with engine.begin() as connection:
+        columns = {
+            row[1] for row in connection.exec_driver_sql("PRAGMA table_info(knowledgedocument)")
+        }
+        if not columns:
+            return
+
+        if "source_format" not in columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE knowledgedocument ADD COLUMN source_format VARCHAR"
+            )
+
+
 def create_db_and_tables(workspace_root: Path) -> None:
     bootstrap_workspace(workspace_root)
     engine = get_engine(workspace_root)
@@ -98,3 +112,4 @@ def create_db_and_tables(workspace_root: Path) -> None:
     _ensure_projectrecord_stage3a_columns(engine)
     _ensure_analysisrunrecord_stage6a_columns(engine)
     _ensure_questionnairespecversion_stage7_columns(engine)
+    _ensure_knowledgedocument_source_format_column(engine)

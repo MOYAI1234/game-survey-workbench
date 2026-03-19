@@ -1,4 +1,5 @@
 from pathlib import Path
+import sqlite3
 
 from game_survey_workbench.db import create_db_and_tables
 from game_survey_workbench.services.workspace import bootstrap_workspace
@@ -22,6 +23,37 @@ def test_create_db_and_tables_bootstraps_fresh_workspace(tmp_path: Path):
     assert (workspace_root / "knowledge").exists()
     assert (workspace_root / "projects").exists()
     assert (workspace_root / "artifacts").exists()
+
+
+def test_create_db_and_tables_backfills_knowledge_source_format_column(tmp_path: Path):
+    workspace_root = tmp_path / "legacy-workspace"
+    workspace_root.mkdir()
+    database_path = workspace_root / "app.db"
+
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE knowledgedocument (
+                id INTEGER PRIMARY KEY,
+                source_path VARCHAR NOT NULL,
+                title VARCHAR NOT NULL,
+                doc_type VARCHAR NOT NULL DEFAULT 'experience',
+                stages JSON,
+                tags JSON,
+                scenario VARCHAR,
+                priority INTEGER NOT NULL DEFAULT 0
+            )
+            """
+        )
+
+    create_db_and_tables(workspace_root)
+
+    with sqlite3.connect(database_path) as connection:
+        columns = {
+            row[1] for row in connection.execute("PRAGMA table_info(knowledgedocument)")
+        }
+
+    assert "source_format" in columns
 
 
 def test_run_bat_uses_python_module_uv_entrypoint():
