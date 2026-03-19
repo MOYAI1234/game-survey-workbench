@@ -1,0 +1,57 @@
+{% extends "layout.html" %}
+{% block title %}知识文档转换预览{% endblock %}
+{% block content %}
+<header>
+  <p class="eyebrow"><a href="/knowledge">← 返回知识库</a></p>
+  <h1>知识文档转换预览</h1>
+  <p>原始文件：<strong>{{ original_filename }}</strong>（{{ source_format | upper }}）</p>
+</header>
+
+{% if quality.warning %}
+<section class="workflow-alert alert-error">
+  <strong>⚠ {{ quality.warning }}</strong>
+</section>
+{% endif %}
+
+<section>
+  <h2>转换结果预览</h2>
+  <p class="help-text">字数：{{ quality.char_count }} ｜ 段落数：{{ quality.paragraph_count }}</p>
+  <div class="conversion-preview" style="max-height:400px; overflow-y:auto; border:1px solid #ccc; padding:1em; background:#fafafa; white-space:pre-wrap; font-family:monospace; font-size:0.9em;">{{ markdown_text }}</div>
+</section>
+
+<section>
+  <h2>元数据设置</h2>
+  <form id="confirm-form" action="/knowledge/convert-confirm" method="post">
+    <input type="hidden" name="staging_id" value="{{ staging_id }}">
+    <input type="hidden" name="source_format" value="{{ source_format }}">
+
+    <label for="title">文档标题</label>
+    <input type="text" id="title" name="title" value="{{ inferred_title }}" required>
+
+    <label for="doc_type">文档类型</label>
+    <select id="doc_type" name="doc_type">
+      <option value="experience">experience（经验/案例）</option>
+      <option value="research">research（研究/报告）</option>
+      <option value="benchmark">benchmark（基准/对标）</option>
+      <option value="guide" selected>guide（方法论/指南）</option>
+      <option value="theory">theory（理论）</option>
+    </select>
+
+    <fieldset>
+      <legend>适用阶段（可多选）</legend>
+      <label><input type="checkbox" name="purposes" value="questionnaire_design"> 问卷设计</label>
+      <label><input type="checkbox" name="purposes" value="analysis"> 问卷分析</label>
+      <label><input type="checkbox" name="purposes" value="reporting"> 报告写作</label>
+    </fieldset>
+
+    <button type="submit">确认入库</button>
+  </form>
+
+  <form action="/knowledge/convert-download" method="post" style="display:inline;">
+    <input type="hidden" name="staging_id" value="{{ staging_id }}">
+    <button type="submit">下载 Markdown 副本</button>
+  </form>
+
+  <a href="/knowledge">放弃</a>
+</section>
+{% endblock %}
