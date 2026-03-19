@@ -334,8 +334,15 @@ SECTION_REGISTRY = {
   - 新增 `CodingJob` / `CodingBatch` 持久化模型与分批编码服务，大样本开放题会自动走串行 batch + rolling codebook 路径
   - 新增编码任务路由、merge-review 页面与 staging 清理工具
   - 2026-03-19 最终验证：`pytest -v` 通过（274 passed），`python -m compileall src` 通过
+- `2.0D 知识来源格式扩展`：已完成
+  - 新增 `markitdown` 依赖，支持直接上传 PDF、Word、PowerPoint 文件
+  - 非 Markdown 文件经自动转换后展示预览页，用户可确认入库、下载副本或放弃
+  - 转换质量检测：自动识别空内容和乱码，给出警告
+  - `KnowledgeDocument` 新增 `source_format` 字段追溯原始格式
+  - 知识库页面显示来源格式标签，上传表单已支持 `.pdf` / `.docx` / `.pptx`
+  - 2026-03-19 最终验证：`pytest -v` 通过（288 passed, 3 skipped），`python -m compileall src` 通过
 
-这意味着 2.0A / 2.0B / 2.0C 的首轮实现已经全部落地，2.0 已从方向储备进入可持续迭代阶段。后续优先级可以转向 2.0D 及更高阶段，但应优先围绕当前闭环补手动体验、性能与稳定性。
+这意味着 2.0A / 2.0B / 2.0C / 2.0D 的首轮实现已经全部落地，2.0 已从方向储备进入可持续迭代阶段。后续优先级可以转向更高阶段，但应优先围绕当前闭环补手动体验、性能与稳定性。
 
 ## 与 1.0 north-star 的关系
 
