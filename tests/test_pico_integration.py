@@ -30,3 +30,9 @@ def test_html_has_data_theme(client: TestClient):
     response = client.get("/")
     html = response.text
     assert 'data-theme="light"' in html
+
+
+def test_app_css_defines_pico_primary(client: TestClient):
+    response = client.get("/static/app.css")
+    css = response.text
+    assert "--pico-primary" in css

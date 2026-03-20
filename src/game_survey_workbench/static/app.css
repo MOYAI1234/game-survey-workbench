@@ -1,27 +1,39 @@
+/* -- Brand tokens --------------------------------------------------------- */
 :root {
   color-scheme: light;
+
+  /* Brand palette */
   --bg: #f5f1e8;
   --panel: rgba(255, 255, 255, 0.78);
   --text: #1f1a14;
   --muted: #6a5f52;
   --accent: #b2552d;
   --border: rgba(31, 26, 20, 0.1);
+
+  /* Map brand -> Pico custom properties */
+  --pico-primary: #b2552d;
+  --pico-primary-hover: #9a4526;
+  --pico-primary-focus: rgba(178, 85, 45, 0.25);
+  --pico-primary-inverse: #fff;
+  --pico-border-radius: 12px;
+  --pico-font-family: "Segoe UI", "PingFang SC", sans-serif;
+  --pico-background-color: var(--bg);
+  --pico-color: var(--text);
+  --pico-muted-color: var(--muted);
+  --pico-card-background-color: var(--panel);
+  --pico-card-border-color: var(--border);
 }
 
-* {
-  box-sizing: border-box;
-}
-
+/* -- Body background (gradient override) --------------------------------- */
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: "Segoe UI", "PingFang SC", sans-serif;
-  color: var(--text);
   background:
     radial-gradient(circle at top left, rgba(178, 85, 45, 0.18), transparent 32%),
     linear-gradient(135deg, #efe6d6, var(--bg));
 }
 
+/* -- Sticky navigation ---------------------------------------------------- */
 .top-nav {
   position: sticky;
   top: 0;
@@ -30,6 +42,9 @@ body {
   background: rgba(255, 255, 255, 0.82);
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  gap: 24px;
 }
 
 .nav-brand {
@@ -39,22 +54,36 @@ body {
   letter-spacing: 0.04em;
 }
 
-.page {
-  width: min(960px, calc(100% - 32px));
-  margin: 0 auto;
-  padding: 48px 0 80px;
+.nav-link {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.92rem;
 }
 
+.nav-link:hover {
+  color: var(--accent);
+}
+
+/* -- Page container refinement ------------------------------------------- */
+.page {
+  padding-top: 48px;
+  padding-bottom: 80px;
+}
+
+/* -- Glass card panels ---------------------------------------------------- */
 .hero,
-h1 + p,
-.page > p {
+section,
+header,
+details {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 24px;
-  padding: 24px;
   backdrop-filter: blur(8px);
+  padding: 24px;
+  margin-bottom: 24px;
 }
 
+/* -- Eyebrow (back link) -------------------------------------------------- */
 .eyebrow {
   margin: 0 0 12px;
   color: var(--accent);
@@ -63,133 +92,7 @@ h1 + p,
   text-transform: uppercase;
 }
 
-.workflow-list {
-  display: grid;
-  gap: 12px;
-  padding-left: 20px;
-}
-
-section,
-header,
-.page > p,
-.page > ul,
-.page > ol {
-  margin-bottom: 24px;
-}
-
-section,
-header,
-details,
-table,
-form,
-.report-content,
-.questionnaire-content,
-.insight-narrative,
-.evidence {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 24px;
-  backdrop-filter: blur(8px);
-}
-
-section,
-header {
-  padding: 24px;
-}
-
-a {
-  color: var(--accent);
-}
-
-code,
-pre {
-  font-family: "Cascadia Code", "Consolas", monospace;
-}
-
-label {
-  display: block;
-  margin-top: 14px;
-  font-size: 0.92rem;
-  font-weight: 600;
-  color: var(--muted);
-}
-
-input[type="text"],
-textarea,
-input[type="file"] {
-  width: 100%;
-  margin-top: 6px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.95);
-  color: var(--text);
-  font: inherit;
-}
-
-textarea {
-  resize: vertical;
-  min-height: 88px;
-}
-
-button[type="submit"] {
-  margin-top: 16px;
-  padding: 10px 18px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--accent);
-  color: #fff;
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-button[type="submit"]:hover {
-  opacity: 0.92;
-}
-
-ul,
-ol,
-dl {
-  margin: 12px 0 0;
-}
-
-li + li {
-  margin-top: 8px;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  overflow: hidden;
-}
-
-th,
-td {
-  padding: 12px 14px;
-  text-align: left;
-  border-bottom: 1px solid var(--border);
-  vertical-align: top;
-}
-
-th {
-  color: var(--muted);
-  font-size: 0.82rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-tr:last-child td {
-  border-bottom: 0;
-}
-
-.muted,
-.empty-state,
-.project-desc,
-.project-status {
-  color: var(--muted);
-}
-
+/* -- Status badges -------------------------------------------------------- */
 .status-badge {
   display: inline-block;
   margin-left: 8px;
@@ -201,6 +104,7 @@ tr:last-child td {
   font-weight: 700;
 }
 
+/* -- Workflow alerts ------------------------------------------------------ */
 .workflow-alert {
   border-left: 4px solid #c94c3b;
 }
@@ -209,27 +113,20 @@ tr:last-child td {
   background: rgba(201, 76, 59, 0.1);
 }
 
-.workflow-status p {
-  margin-top: 0;
+.alert-success {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  color: #166534;
 }
 
-.workflow-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.workflow-badge {
-  margin-left: 0;
-}
-
-.workflow-steps ol {
+/* -- Workflow steps ------------------------------------------------------- */
+.workflow-list {
+  display: grid;
+  gap: 12px;
   padding-left: 20px;
-}
-
-.step-item {
-  padding-left: 4px;
 }
 
 .step-item.done {
@@ -246,6 +143,7 @@ tr:last-child td {
   color: var(--muted);
 }
 
+/* -- Pre-formatted content ------------------------------------------------ */
 .report-markdown,
 .questionnaire-markdown,
 .insight-narrative,
@@ -262,54 +160,12 @@ tr:last-child td {
   border: 0;
 }
 
-.findings-list {
-  padding-left: 20px;
-}
-
-details {
-  padding: 18px 20px;
-}
-
-summary {
-  cursor: pointer;
-  font-weight: 700;
-}
-
-hr {
-  border: 0;
-  border-top: 1px solid var(--border);
-  margin: 28px 0;
-}
-
-@media (max-width: 720px) {
-  .page {
-    width: min(100%, calc(100% - 20px));
-    padding: 24px 0 48px;
-  }
-
-  .top-nav {
-    padding: 12px 16px;
-  }
-
-  section,
-  header {
-    padding: 18px;
-  }
-
-  th,
-  td {
-    padding: 10px 10px;
-  }
-}
-
-/* 1.0 closeout styles */
-.alert-success {
-  background: #f0fdf4;
-  border: 1px solid #86efac;
-  border-radius: 6px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  color: #166534;
+/* -- Utility classes ------------------------------------------------------ */
+.muted,
+.empty-state,
+.project-desc,
+.project-status {
+  color: var(--muted);
 }
 
 .help-text {
@@ -323,4 +179,32 @@ hr {
   font-size: 0.85em;
   color: #2563eb;
   margin-left: 8px;
+}
+
+.badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(178, 85, 45, 0.12);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* -- Responsive ----------------------------------------------------------- */
+@media (max-width: 720px) {
+  .page {
+    padding-top: 24px;
+    padding-bottom: 48px;
+  }
+
+  .top-nav {
+    padding: 12px 16px;
+  }
+
+  section,
+  header {
+    padding: 18px;
+  }
 }
