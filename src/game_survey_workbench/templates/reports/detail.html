@@ -28,6 +28,13 @@
   </section>
   {% endfor %}
 </section>
+<section class="download-actions">
+  <h3>下载报告</h3>
+  <p class="muted">
+    <a href="/projects/{{ project_slug }}/reports/latest/download?fmt=md">下载 Markdown (.md)</a>
+    ｜<a href="/projects/{{ project_slug }}/reports/latest/download?fmt=txt">下载纯文本 (.txt)</a>
+  </p>
+</section>
 {% else %}
 <p class="empty-state">
   尚未生成报告。请到<a href="/projects/{{ project_slug }}/analysis/latest">数据分析页</a>

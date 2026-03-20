@@ -28,6 +28,13 @@
     <a href="/projects/{{ project_slug }}/questionnaires/history">查看版本历史{% if version_count %} ({{ version_count }} 个版本){% endif %}</a>
   </p>
   <pre class="questionnaire-markdown">{{ spec.markdown_spec }}</pre>
+  <section class="download-actions">
+    <h3>下载问卷</h3>
+    <p class="muted">
+      <a href="/projects/{{ project_slug }}/questionnaires/{{ spec.version_id }}/download?fmt=md">下载 Markdown (.md)</a>
+      ｜<a href="/projects/{{ project_slug }}/questionnaires/{{ spec.version_id }}/download?fmt=txt">下载纯文本 (.txt)</a>
+    </p>
+  </section>
   {% if spec.retrieved_snippets %}
   <details>
     <summary>参考知识来源（{{ spec.retrieved_snippets | length }} 篇）</summary>
