@@ -101,7 +101,7 @@
   {% else %}
   <p class="empty-state">尚未执行文本编码。</p>
   <form action="/projects/{{ project_slug }}/analysis/latest/code-text-all" method="post">
-    <button type="submit">执行文本编码（所有开放题）</button>
+    <button type="submit" data-loading-text="正在编码…">执行文本编码（所有开放题）</button>
   </form>
   <p class="help-text">系统将使用 LLM 对所有 free_text 类型的题目进行主题编码。</p>
   {% endif %}
@@ -162,7 +162,7 @@
       required
       placeholder="如：分析玩家流失的核心驱动因素"
     >
-    <button type="submit">{% if insight %}重新生成洞察{% else %}生成洞察{% endif %}</button>
+    <button type="submit" data-loading-text="正在生成洞察…">{% if insight %}重新生成洞察{% else %}生成洞察{% endif %}</button>
   </form>
   {% if not insight %}
   <p class="help-text">系统将结合确定性分析结果、编码主题和知识库，由 LLM 生成研究洞察。</p>
@@ -172,7 +172,7 @@
 <section class="report-section">
   <h2>研究报告</h2>
   <form action="/projects/{{ project_slug }}/reports/generate-form" method="post">
-    <button type="submit">生成报告</button>
+    <button type="submit" data-loading-text="正在生成报告…">生成报告</button>
   </form>
   <p class="help-text"><a href="/projects/{{ project_slug }}/reports/latest">查看最新报告</a></p>
 </section>
