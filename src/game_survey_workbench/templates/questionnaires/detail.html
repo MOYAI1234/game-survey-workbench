@@ -27,7 +27,7 @@
   <p class="muted">
     <a href="/projects/{{ project_slug }}/questionnaires/history">查看版本历史{% if version_count %} ({{ version_count }} 个版本){% endif %}</a>
   </p>
-  <pre class="questionnaire-markdown">{{ spec.markdown_spec }}</pre>
+  <div class="prose questionnaire-rendered">{{ spec.markdown_spec | markdown | safe }}</div>
   <section class="download-actions">
     <h3>下载问卷</h3>
     <p class="muted">
