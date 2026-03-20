@@ -148,6 +148,7 @@ def generate_questionnaire_draft(
     payload: QuestionnaireDraftRequest,
     workspace_root: Path,
     client: LLMClient,
+    bilingual: bool = False,
 ) -> QuestionnaireSpecVersion:
     project = get_project(workspace_root=workspace_root, project_slug=project_slug)
     if project is None:
@@ -181,6 +182,7 @@ def generate_questionnaire_draft(
         brief_background=brief.background if brief else "",
         brief_target_audience=brief.target_audience if brief else "",
         language=language,
+        bilingual=bilingual,
     )
     prompt = load_questionnaire_prompt()
     llm_output = client.generate(f"{prompt}\n\n{context}")

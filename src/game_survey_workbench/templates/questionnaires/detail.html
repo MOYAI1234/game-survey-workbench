@@ -70,6 +70,10 @@
       placeholder="如：了解玩家对新赛季通行证的购买意愿和定价敏感度"
       value="{{ spec.research_goal if spec else '' }}"
     >
+    <label>
+      <input type="checkbox" name="bilingual" value="true">
+      生成中英双语问卷
+    </label>
     <button type="submit">生成草稿</button>
   </form>
 </section>

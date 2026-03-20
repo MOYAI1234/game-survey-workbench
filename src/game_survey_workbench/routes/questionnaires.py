@@ -36,7 +36,10 @@ templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent
 
 
 def _generate_questionnaire_version(
-    *, project_slug: str, payload: QuestionnaireDraftRequest
+    *,
+    project_slug: str,
+    payload: QuestionnaireDraftRequest,
+    bilingual: bool = False,
 ) -> QuestionnaireSpecVersion:
     settings = get_settings()
     client = build_llm_client(settings)
@@ -45,6 +48,7 @@ def _generate_questionnaire_version(
         payload=payload,
         workspace_root=settings.workspace_root,
         client=client,
+        bilingual=bilingual,
     )
 
 
@@ -71,11 +75,13 @@ def create_questionnaire_draft(project_slug: str, payload: QuestionnaireDraftReq
 def draft_questionnaire_form(
     project_slug: str,
     research_goal: str = Form(...),
+    bilingual: bool = Form(False),
 ):
     try:
         _generate_questionnaire_version(
             project_slug=project_slug,
             payload=QuestionnaireDraftRequest(research_goal=research_goal),
+            bilingual=bilingual,
         )
     except MissingLLMConfigurationError:
         return RedirectResponse(
