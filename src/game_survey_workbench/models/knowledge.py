@@ -17,3 +17,6 @@ class KnowledgeDocument(SQLModel, table=True):
     scenario: Optional[str] = None
     priority: int = 0
     source_format: Optional[str] = None
+    index_status: str = "pending"
+    index_error: Optional[str] = None
+    chunk_count: int = 0
