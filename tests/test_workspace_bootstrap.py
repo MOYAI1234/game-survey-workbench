@@ -60,6 +60,10 @@ def test_run_bat_uses_python_module_uv_entrypoint():
     script_path = Path(__file__).resolve().parents[1] / "run.bat"
     script = script_path.read_text(encoding="utf-8")
 
+    assert 'set "VENV_PYTHON=%CD%\\.venv\\Scripts\\python.exe"' in script
+    assert 'set "FALLBACK_VENV_PYTHON=%CD%\\..\\..\\.venv\\Scripts\\python.exe"' in script
+    assert 'if not exist "%VENV_PYTHON%" set "VENV_PYTHON=%FALLBACK_VENV_PYTHON%"' in script
+    assert 'if not exist "%VENV_PYTHON%" (' in script
     assert "call python -m uv sync --extra dev" in script
     assert 'set "PYTHONPATH=%CD%\\src"' in script
     assert 'set "PORT=8000"' in script
@@ -68,7 +72,7 @@ def test_run_bat_uses_python_module_uv_entrypoint():
     assert "Could not find an available port." in script
     assert 'start "" http://127.0.0.1:!PORT!/' in script
     assert (
-        "call python -m uvicorn --app-dir src "
+        'call "%VENV_PYTHON%" -m uvicorn --app-dir src '
         "game_survey_workbench.app:create_app --factory "
         "--host 127.0.0.1 --port !PORT!"
     ) in script
