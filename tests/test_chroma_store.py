@@ -218,3 +218,105 @@ def test_chroma_store_dedupes_adjacent_chunks_from_same_document():
     results = store.query("玩家动机", stages=["design"], top_k=5)
 
     assert [item["document_title"] for item in results] == ["方法论", "领域研究"]
+
+
+def test_chroma_store_query_layered_combines_method_and_domain_pools_for_selected_titles():
+    store = ChromaVectorStore(
+        collection=FakeCollection(),
+        embedding_client=FakeEmbeddingClient(),
+        relevance_threshold=2.0,
+    )
+    store.add_chunks(
+        document_id=1,
+        document_title="问卷方法指南",
+        doc_type="guide",
+        stages=["design"],
+        tags=[],
+        scenario=None,
+        priority=9,
+        chunks=[
+            ChunkResult(content="玩家动机问题要覆盖成长感。", heading_context="方法", chunk_index=0),
+        ],
+    )
+    store.add_chunks(
+        document_id=2,
+        document_title="留存研究",
+        doc_type="research",
+        stages=["design"],
+        tags=[],
+        scenario=None,
+        priority=4,
+        chunks=[
+            ChunkResult(content="留存依赖长期价值。", heading_context="领域", chunk_index=0),
+        ],
+    )
+    store.add_chunks(
+        document_id=3,
+        document_title="未选中文档",
+        doc_type="guide",
+        stages=["design"],
+        tags=[],
+        scenario=None,
+        priority=10,
+        chunks=[
+            ChunkResult(content="玩家动机问题也可以这么写。", heading_context="未选中", chunk_index=0),
+        ],
+    )
+
+    results = store.query_layered(
+        "玩家动机",
+        selected_document_titles=["问卷方法指南", "留存研究"],
+        task_stages=["design"],
+        top_method_k=2,
+        top_domain_k=2,
+    )
+
+    assert any(item["retrieval_pool"] == "method" for item in results)
+    assert any(item["retrieval_pool"] == "domain" for item in results)
+    assert {item["document_title"] for item in results} <= {"问卷方法指南", "留存研究"}
+
+
+def test_chroma_store_query_layered_dedupes_cross_pool_matches():
+    store = ChromaVectorStore(
+        collection=FakeCollection(),
+        embedding_client=FakeEmbeddingClient(),
+        relevance_threshold=2.0,
+    )
+    store.add_chunks(
+        document_id=1,
+        document_title="高优先级研究",
+        doc_type="research",
+        stages=["design"],
+        tags=[],
+        scenario=None,
+        priority=9,
+        chunks=[
+            ChunkResult(content="玩家动机和留存都需要覆盖。", heading_context="研究", chunk_index=0),
+        ],
+    )
+    store.add_chunks(
+        document_id=2,
+        document_title="补充研究",
+        doc_type="research",
+        stages=["design"],
+        tags=[],
+        scenario=None,
+        priority=5,
+        chunks=[
+            ChunkResult(content="留存依赖长期价值。", heading_context="补充", chunk_index=0),
+        ],
+    )
+
+    results = store.query_layered(
+        "玩家动机",
+        selected_document_titles=["高优先级研究", "补充研究"],
+        task_stages=["design"],
+        top_method_k=2,
+        top_domain_k=2,
+    )
+
+    high_priority_results = [
+        item for item in results if item["document_title"] == "高优先级研究"
+    ]
+    assert len(high_priority_results) == 1
+    assert high_priority_results[0]["retrieval_pool"] == "method"
