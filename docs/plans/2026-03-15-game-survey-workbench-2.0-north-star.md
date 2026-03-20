@@ -341,8 +341,16 @@ SECTION_REGISTRY = {
   - `KnowledgeDocument` 新增 `source_format` 字段追溯原始格式
   - 知识库页面显示来源格式标签，上传表单已支持 `.pdf` / `.docx` / `.pptx`
   - 2026-03-19 最终验证：`pytest -v` 通过（288 passed, 3 skipped），`python -m compileall src` 通过
+- `2.0E 输出可用性套件`：已完成
+  - `ProjectRecord` 新增 `language` 字段（默认 `zh`），项目页可切换输出语言
+  - 报告章节标题支持中英文切换（`SECTION_TITLES` 映射表）
+  - 问卷和洞察 prompt 追加语言指令后缀，确保 LLM 输出语言可控
+  - 问卷支持中英双语生成模式（表单勾选后追加双语 prompt 指令）
+  - 问卷和报告页均新增下载按钮，支持 `.md` 和 `.txt` 两种格式
+  - 新增 `download_utils.py` 提供 Markdown 到纯文本的格式剥离
+  - 2026-03-20 最终验证：`pytest -v` 通过（320 passed, 3 skipped），`python -m compileall src` 通过
 
-这意味着 2.0A / 2.0B / 2.0C / 2.0D 的首轮实现已经全部落地，2.0 已从方向储备进入可持续迭代阶段。后续优先级可以转向更高阶段，但应优先围绕当前闭环补手动体验、性能与稳定性。
+这意味着 2.0A / 2.0B / 2.0C / 2.0D / 2.0E 的首轮实现已经全部落地，2.0 已从方向储备进入可持续迭代阶段。后续优先级可以转向更高阶段，但应优先围绕当前闭环补手动体验、性能与稳定性。
 
 ## 与 1.0 north-star 的关系
 
