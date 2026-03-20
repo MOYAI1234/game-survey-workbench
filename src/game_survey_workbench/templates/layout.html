@@ -1,17 +1,18 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}游戏问卷研究工作台{% endblock %}</title>
+  <title>{% block title %}极光问卷{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
   <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
   <nav class="top-nav">
-    <a href="/" class="nav-brand">游戏问卷研究工作台</a>
+    <a href="/" class="nav-brand">极光问卷</a>
     <a href="/knowledge" class="nav-link">共享知识库</a>
   </nav>
-  <main class="page">
+  <main class="container page">
     {% block content %}{% endblock %}
   </main>
 </body>
