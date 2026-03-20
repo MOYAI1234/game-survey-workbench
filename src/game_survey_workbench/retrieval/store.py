@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import math
 import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any
+
+from game_survey_workbench.retrieval.chunking import ChunkResult
 
 
 @dataclass
@@ -168,3 +172,186 @@ class LocalVectorStore:
             seen_keys.add(key)
             combined.append(item)
         return combined
+
+
+class ChromaVectorStore:
+    def __init__(
+        self,
+        *,
+        collection: Any,
+        embedding_client: Any,
+        relevance_threshold: float = 1.2,
+        reranker: Any | None = None,
+    ) -> None:
+        self.collection = collection
+        self.embedding_client = embedding_client
+        self.relevance_threshold = relevance_threshold
+        self.reranker = reranker
+
+    def add_chunks(
+        self,
+        *,
+        document_id: int,
+        document_title: str,
+        doc_type: str,
+        stages: list[str],
+        tags: list[str],
+        chunks: list[ChunkResult],
+        scenario: str | None = None,
+        priority: int = 0,
+    ) -> None:
+        documents = [_format_chunk_document(chunk) for chunk in chunks]
+        embeddings = self._run_async(
+            self.embedding_client.embed_batch(documents)
+        )
+        self.collection.add(
+            ids=[
+                f"doc-{document_id}-chunk-{chunk.chunk_index}"
+                for chunk in chunks
+            ],
+            documents=documents,
+            embeddings=embeddings,
+            metadatas=[
+                {
+                    "document_id": document_id,
+                    "document_title": document_title,
+                    "doc_type": doc_type,
+                    "stages": ",".join(stages),
+                    "tags": ",".join(tags),
+                    "scenario": scenario,
+                    "priority": priority,
+                    "chunk_index": chunk.chunk_index,
+                    "content": chunk.content,
+                    "heading_context": chunk.heading_context,
+                }
+                for chunk in chunks
+            ],
+        )
+
+    def delete_document(self, document_id: int) -> None:
+        self.collection.delete(where={"document_id": document_id})
+
+    def query(
+        self,
+        query: str,
+        *,
+        stages: list[str] | None = None,
+        doc_types: list[str] | None = None,
+        scenarios: list[str] | None = None,
+        top_k: int | None = None,
+    ) -> list[dict]:
+        embedding = self._run_async(self.embedding_client.embed(query))
+        requested = top_k or 5
+        raw_results = self.collection.query(
+            query_embeddings=[embedding],
+            where=_build_chroma_where(
+                stages=stages,
+                doc_types=doc_types,
+                scenarios=scenarios,
+            ),
+            n_results=max(requested * 3, requested),
+        )
+        candidates = _normalize_chroma_results(raw_results)
+        filtered = [
+            item
+            for item in candidates
+            if item["distance"] <= self.relevance_threshold
+        ]
+        deduped = _dedupe_adjacent_chunks(filtered)
+        if self.reranker is not None:
+            deduped = self.reranker.rerank(query, deduped)
+        return deduped[:top_k] if top_k is not None else deduped
+
+    def query_layered(
+        self,
+        query: str,
+        *,
+        selected_document_titles: list[str],
+        task_stages: list[str],
+        top_method_k: int = 3,
+        top_domain_k: int = 5,
+    ) -> list[dict]:
+        raise NotImplementedError("query_layered is implemented in Task 4.")
+
+    def _run_async(self, coroutine: Any) -> Any:
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return asyncio.run(coroutine)
+        raise RuntimeError("ChromaVectorStore sync methods cannot run inside an active event loop.")
+
+
+def _format_chunk_document(chunk: ChunkResult) -> str:
+    if chunk.heading_context:
+        return f"[{chunk.heading_context}] {chunk.content}"
+    return chunk.content
+
+
+def _build_chroma_where(
+    *,
+    stages: list[str] | None,
+    doc_types: list[str] | None,
+    scenarios: list[str] | None,
+) -> dict[str, Any] | None:
+    clauses: list[dict[str, Any]] = []
+    if stages:
+        clauses.append(
+            {"$or": [{"stages": {"$contains": stage}} for stage in stages]}
+        )
+    if doc_types:
+        clauses.append({"doc_type": {"$in": doc_types}})
+    if scenarios:
+        clauses.append({"scenario": {"$in": scenarios}})
+    if not clauses:
+        return None
+    if len(clauses) == 1:
+        return clauses[0]
+    return {"$and": clauses}
+
+
+def _normalize_chroma_results(raw_results: dict[str, list[list[Any]]]) -> list[dict]:
+    ids = raw_results.get("ids", [[]])[0]
+    documents = raw_results.get("documents", [[]])[0]
+    metadatas = raw_results.get("metadatas", [[]])[0]
+    distances = raw_results.get("distances", [[]])[0]
+    normalized: list[dict] = []
+
+    for record_id, document, metadata, distance in zip(
+        ids, documents, metadatas, distances, strict=False
+    ):
+        normalized.append(
+            {
+                "id": record_id,
+                "document_id": metadata.get("document_id"),
+                "document_title": metadata.get("document_title"),
+                "content": metadata.get("content") or document,
+                "doc_type": metadata.get("doc_type"),
+                "stages": _split_csv(metadata.get("stages")),
+                "tags": _split_csv(metadata.get("tags")),
+                "scenario": metadata.get("scenario"),
+                "priority": int(metadata.get("priority", 0)),
+                "chunk_index": int(metadata.get("chunk_index", 0)),
+                "heading_context": metadata.get("heading_context", ""),
+                "distance": float(distance),
+            }
+        )
+    return normalized
+
+
+def _dedupe_adjacent_chunks(items: list[dict]) -> list[dict]:
+    deduped: list[dict] = []
+    for item in items:
+        if any(
+            item["document_id"] == existing["document_id"]
+            and abs(item["chunk_index"] - existing["chunk_index"]) <= 1
+            for existing in deduped
+        ):
+            continue
+        deduped.append(item)
+    return deduped
+
+
+def _split_csv(value: str | None) -> list[str]:
+    if not value:
+        return []
+    return [item for item in value.split(",") if item]
