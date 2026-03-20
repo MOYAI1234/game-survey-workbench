@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import APIRouter, Form, HTTPException, Request, status
+from fastapi import APIRouter, Form, HTTPException, Request, Response, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
@@ -17,6 +17,7 @@ from game_survey_workbench.services.analysis_context import (
     load_analysis_run_context,
 )
 from game_survey_workbench.services.dataset_meta import extract_dataset_meta
+from game_survey_workbench.services.download_utils import strip_markdown
 from game_survey_workbench.services.knowledge_feedback import (
     KnowledgeFeedbackPayload,
     save_report_findings_as_knowledge,
@@ -35,6 +36,28 @@ from game_survey_workbench.services.workflow_state import record_workflow_event
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
+
+
+def _serve_report_file(report: ReportRecord, *, fmt: str = "md") -> Response:
+    path_obj = Path(report.path)
+    if not path_obj.exists():
+        raise HTTPException(status_code=404, detail="Report file not found on disk")
+
+    normalized_fmt = "txt" if fmt == "txt" else "md"
+    markdown = path_obj.read_text(encoding="utf-8")
+    if normalized_fmt == "txt":
+        media_type = "text/plain; charset=utf-8"
+        content = strip_markdown(markdown)
+    else:
+        media_type = "text/markdown; charset=utf-8"
+        content = markdown
+
+    filename = f"{report.project_slug}-report-{report.id}.{normalized_fmt}"
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.post("/projects/{project_slug}/reports/generate", status_code=status.HTTP_201_CREATED)
@@ -236,6 +259,40 @@ def report_history(project_slug: str, request: Request):
             "versions": versions,
         },
     )
+
+
+@router.get("/projects/{project_slug}/reports/latest/download")
+def download_latest_report(project_slug: str, fmt: str = "md"):
+    settings = get_settings()
+    engine = get_engine(settings.workspace_root)
+    with Session(engine) as session:
+        records = session.exec(
+            select(ReportRecord).where(ReportRecord.project_slug == project_slug)
+        ).all()
+
+    if not records:
+        raise HTTPException(status_code=404, detail="No reports found")
+
+    latest = sorted(records, key=lambda record: record.created_at, reverse=True)[0]
+    return _serve_report_file(latest, fmt=fmt)
+
+
+@router.get("/projects/{project_slug}/reports/{report_id}/download")
+def download_report_by_id(project_slug: str, report_id: int, fmt: str = "md"):
+    settings = get_settings()
+    engine = get_engine(settings.workspace_root)
+    with Session(engine) as session:
+        record = session.exec(
+            select(ReportRecord).where(
+                ReportRecord.id == report_id,
+                ReportRecord.project_slug == project_slug,
+            )
+        ).first()
+
+    if record is None:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    return _serve_report_file(record, fmt=fmt)
 
 
 @router.post("/reports/feedback-to-knowledge")
