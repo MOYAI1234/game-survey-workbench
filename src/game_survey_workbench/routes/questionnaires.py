@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi import APIRouter, Form, HTTPException, Request, Response, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+import mistune
 from sqlmodel import Session, select
 
 from game_survey_workbench.config import get_settings
@@ -33,6 +34,7 @@ from game_survey_workbench.services.projects import get_project
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
+templates.env.filters["markdown"] = mistune.create_markdown(escape=False)
 
 
 def _generate_questionnaire_version(
