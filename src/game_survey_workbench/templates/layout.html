@@ -15,5 +15,16 @@
   <main class="container page">
     {% block content %}{% endblock %}
   </main>
+  <script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll("button[data-loading-text]").forEach(function (btn) {
+      btn.closest("form").addEventListener("submit", function () {
+        btn.disabled = true;
+        btn.textContent = btn.getAttribute("data-loading-text");
+        btn.classList.add("btn-loading");
+      });
+    });
+  });
+  </script>
 </body>
 </html>

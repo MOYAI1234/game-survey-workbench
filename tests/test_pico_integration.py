@@ -73,3 +73,15 @@ def test_app_css_has_spinner_animation(client: TestClient):
     css = response.text
     assert "@keyframes" in css
     assert "spinner" in css.lower()
+
+
+def test_layout_includes_spinner_script(client: TestClient):
+    response = client.get("/")
+    html = response.text
+    assert "data-loading-text" in html or "aurora-loading" in html or "<script>" in html
+
+
+def test_script_handles_loading_attribute(client: TestClient):
+    response = client.get("/")
+    html = response.text
+    assert "data-loading-text" in html
