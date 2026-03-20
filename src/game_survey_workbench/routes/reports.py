@@ -114,6 +114,7 @@ def generate_report(project_slug: str, payload: ReportGenerateRequest):
         if theme_names:
             summary_points = [f"Coded themes: {', '.join(theme_names)}"]
 
+    language = getattr(project, "language", "zh")
     markdown = generate_structured_report(
         project_name=project.name,
         brief=brief_record.model_dump() if brief_record is not None else None,
@@ -122,6 +123,7 @@ def generate_report(project_slug: str, payload: ReportGenerateRequest):
         coded_themes=coded_themes,
         insight_narrative=narrative,
         evidence_section=evidence_section,
+        language=language,
     )
 
     path = save_report(
