@@ -28,6 +28,7 @@ def create_project(payload: ProjectCreate, *, workspace_root: Path) -> ProjectRe
             slug=payload.slug,
             name=payload.name,
             description=payload.description,
+            language=payload.language,
             knowledge_pack=payload.knowledge_pack.model_dump(),
         )
         session.add(record)

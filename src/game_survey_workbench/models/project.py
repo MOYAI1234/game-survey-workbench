@@ -17,6 +17,7 @@ class ProjectCreate(SQLModel):
     slug: str
     name: str
     description: str = ""
+    language: str = "zh"
     knowledge_pack: KnowledgePack = Field(default_factory=KnowledgePack)
 
 
@@ -26,5 +27,6 @@ class ProjectRecord(SQLModel, table=True):
     name: str
     description: str = ""
     status: str = "active"
+    language: str = "zh"
     knowledge_pack: dict = Field(default_factory=dict, sa_column=Column(JSON))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))

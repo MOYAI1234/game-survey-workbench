@@ -48,6 +48,19 @@ def _ensure_projectrecord_stage3a_columns(engine) -> None:
             )
 
 
+def _ensure_projectrecord_language_column(engine) -> None:
+    with engine.begin() as connection:
+        columns = {
+            row[1] for row in connection.exec_driver_sql("PRAGMA table_info(projectrecord)")
+        }
+        if not columns:
+            return
+        if "language" not in columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE projectrecord ADD COLUMN language VARCHAR NOT NULL DEFAULT 'zh'"
+            )
+
+
 def _ensure_analysisrunrecord_stage6a_columns(engine) -> None:
     with engine.begin() as connection:
         columns = {
@@ -110,6 +123,7 @@ def create_db_and_tables(workspace_root: Path) -> None:
     engine = get_engine(workspace_root)
     SQLModel.metadata.create_all(engine)
     _ensure_projectrecord_stage3a_columns(engine)
+    _ensure_projectrecord_language_column(engine)
     _ensure_analysisrunrecord_stage6a_columns(engine)
     _ensure_questionnairespecversion_stage7_columns(engine)
     _ensure_knowledgedocument_source_format_column(engine)
