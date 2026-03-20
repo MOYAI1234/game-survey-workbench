@@ -117,3 +117,23 @@ def test_homepage_no_workflow_overview_section(client: TestClient):
     response = client.get("/")
     html = response.text
     assert 'class="workflow-overview"' not in html
+
+
+def test_alert_success_uses_no_hardcoded_green(client: TestClient):
+    response = client.get("/static/app.css")
+    css = response.text
+    assert "#f0fdf4" not in css
+    assert "#86efac" not in css
+    assert "#166534" not in css
+
+
+def test_step_hint_uses_brand_color(client: TestClient):
+    response = client.get("/static/app.css")
+    css = response.text
+    assert "#2563eb" not in css
+
+
+def test_step_done_uses_warm_color(client: TestClient):
+    response = client.get("/static/app.css")
+    css = response.text
+    assert "#2f6b2f" not in css
