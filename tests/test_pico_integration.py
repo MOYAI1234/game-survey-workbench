@@ -66,3 +66,10 @@ def test_brand_name_is_aurora_survey(client: TestClient):
     html = response.text
     assert "极光问卷" in html
     assert "游戏问卷研究工作台" not in html
+
+
+def test_app_css_has_spinner_animation(client: TestClient):
+    response = client.get("/static/app.css")
+    css = response.text
+    assert "@keyframes" in css
+    assert "spinner" in css.lower()
