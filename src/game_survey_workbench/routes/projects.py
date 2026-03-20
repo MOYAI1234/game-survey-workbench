@@ -8,7 +8,7 @@ from sqlmodel import Session, select
 from game_survey_workbench.config import get_settings
 from game_survey_workbench.db import get_engine
 from game_survey_workbench.models.knowledge import KnowledgeDocument
-from game_survey_workbench.models.project import ProjectCreate
+from game_survey_workbench.models.project import ProjectCreate, ProjectRecord
 from game_survey_workbench.models.research_brief import ResearchBriefPayload
 from game_survey_workbench.models.task_plan import TaskPlanPayload
 from game_survey_workbench.services.project_knowledge import (
@@ -119,6 +119,29 @@ def save_project_knowledge_selection(
         project_slug=project_slug,
         knowledge_document_ids=knowledge_document_ids,
     )
+    return RedirectResponse(
+        url=f"/projects/{project_slug}",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
+
+
+@router.post("/projects/{project_slug}/settings")
+def update_project_settings(
+    project_slug: str,
+    language: str = Form("zh"),
+):
+    settings = get_settings()
+    engine = get_engine(settings.workspace_root)
+    with Session(engine) as session:
+        project = session.exec(
+            select(ProjectRecord).where(ProjectRecord.slug == project_slug)
+        ).first()
+        if project is None:
+            raise HTTPException(status_code=404, detail="Project not found")
+        project.language = language if language in {"zh", "en"} else "zh"
+        session.add(project)
+        session.commit()
+
     return RedirectResponse(
         url=f"/projects/{project_slug}",
         status_code=status.HTTP_303_SEE_OTHER,
