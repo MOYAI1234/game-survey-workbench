@@ -38,5 +38,5 @@ def test_report_page_has_history_link(client: TestClient, tmp_path: Path):
     assert detail_response.status_code == 200
     assert '/projects/detail-proj/reports/history' in detail_response.text
     assert "<pre" not in detail_response.text
-    assert "<h2>Methodology</h2>" in detail_response.text
+    assert "<h2>研究方法</h2>" in detail_response.text
     assert "Question Types:" in detail_response.text

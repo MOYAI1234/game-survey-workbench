@@ -167,10 +167,10 @@ def test_generate_report_renders_saved_insight_narrative_without_bullet_wrapping
     report_path = Path(report["path"])
     markdown = report_path.read_text(encoding="utf-8")
 
-    assert "## Executive Summary" in markdown
-    assert "## Analysis" in markdown
+    assert "## 执行摘要" in markdown
+    assert "## 分析叙述" in markdown
     assert "\n- Boredom emerged" not in markdown
-    assert markdown.count("## Evidence Basis") == 1
+    assert markdown.count("## 证据基础") == 1
 
 
 def test_generate_report_rejects_unknown_analysis_run_id(tmp_path: Path, monkeypatch):
@@ -264,6 +264,6 @@ def test_generate_report_succeeds_without_stage_2d_artifacts(tmp_path: Path, mon
 
     assert response.status_code == 201
     markdown = Path(response.json()["path"]).read_text(encoding="utf-8")
-    assert "## Methodology" in markdown
-    assert "## Statistical Findings" in markdown
+    assert "## 研究方法" in markdown
+    assert "## 统计发现" in markdown
     assert "## Evidence Basis" not in markdown

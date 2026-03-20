@@ -197,8 +197,8 @@ def _build_themes_section(coded_themes: list[dict]) -> str:
 
 def _strip_section_heading(*, content: str, title: str) -> str:
     stripped = content.lstrip()
-    heading = f"## {title}"
-    if stripped.startswith(heading):
-        remainder = stripped[len(heading):].lstrip()
-        return remainder
+    if stripped.startswith("## "):
+        _first_line, _newline, remainder = stripped.partition("\n")
+        if remainder:
+            return remainder.lstrip()
     return content

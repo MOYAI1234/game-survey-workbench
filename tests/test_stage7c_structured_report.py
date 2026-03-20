@@ -63,7 +63,7 @@ def test_structured_report_has_methodology_section(client: TestClient, tmp_path:
     report_path = Path(response.json()["path"])
     content = report_path.read_text(encoding="utf-8")
 
-    assert "## Methodology" in content
+    assert "## 研究方法" in content
 
 
 def test_structured_report_includes_brief_context(client: TestClient, tmp_path: Path):
