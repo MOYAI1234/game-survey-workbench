@@ -143,12 +143,12 @@ details {
 }
 
 .alert-success {
-  background: #f0fdf4;
-  border: 1px solid #86efac;
+  background: rgba(178, 85, 45, 0.06);
+  border: 1px solid rgba(178, 85, 45, 0.28);
   border-radius: 6px;
   padding: 12px 16px;
   margin-bottom: 16px;
-  color: #166534;
+  color: var(--accent);
 }
 
 /* -- Workflow steps ------------------------------------------------------- */
@@ -159,7 +159,7 @@ details {
 }
 
 .step-item.done {
-  color: #2f6b2f;
+  color: #5a3e1b;
   font-weight: 700;
 }
 
@@ -206,7 +206,7 @@ details {
 
 .step-hint {
   font-size: 0.85em;
-  color: #2563eb;
+  color: var(--muted);
   margin-left: 8px;
 }
 
@@ -261,4 +261,31 @@ details {
   border-radius: 50%;
   vertical-align: middle;
   animation: aurora-spin 0.6s linear infinite;
+}
+
+/* -- Prose (rendered Markdown) ------------------------------------------- */
+.prose {
+  line-height: 1.75;
+}
+
+.prose h1,
+.prose h2,
+.prose h3 {
+  margin-top: 1.4em;
+  margin-bottom: 0.4em;
+  font-weight: 700;
+}
+
+.prose p {
+  margin-bottom: 0.85em;
+}
+
+.prose ol,
+.prose ul {
+  padding-left: 1.4em;
+  margin-bottom: 0.85em;
+}
+
+.prose li + li {
+  margin-top: 0.25em;
 }

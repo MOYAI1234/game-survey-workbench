@@ -78,3 +78,74 @@ def test_project_nav_absent_on_knowledge_page(client: TestClient):
     response = client.get("/knowledge")
     html = response.text
     assert 'class="project-nav"' not in html
+
+
+def test_workflow_links_appear_before_settings(client: TestClient):
+    client.post("/projects", json={"slug": "order-test", "name": "Order Test"})
+    response = client.get("/projects/order-test")
+    html = response.text
+    workflow_pos = html.find("核心工作流")
+    settings_pos = html.find("项目设置")
+    assert workflow_pos != -1
+    assert settings_pos != -1
+    assert workflow_pos < settings_pos
+
+
+def test_data_upload_appears_before_brief(client: TestClient):
+    client.post("/projects", json={"slug": "order-test2", "name": "Order Test2"})
+    response = client.get("/projects/order-test2")
+    html = response.text
+    upload_pos = html.find("上传问卷数据")
+    brief_pos = html.find("研究简报")
+    assert upload_pos != -1
+    assert brief_pos != -1
+    assert upload_pos < brief_pos
+
+
+def test_project_config_in_details_element(client: TestClient):
+    client.post("/projects", json={"slug": "order-test3", "name": "Order Test3"})
+    response = client.get("/projects/order-test3")
+    html = response.text
+    assert "项目配置" in html
+    details_pos = html.find("<details")
+    config_pos = html.find("项目配置")
+    assert details_pos != -1
+    assert details_pos < config_pos
+
+
+def test_homepage_no_workflow_overview_section(client: TestClient):
+    response = client.get("/")
+    html = response.text
+    assert 'class="workflow-overview"' not in html
+
+
+def test_alert_success_uses_no_hardcoded_green(client: TestClient):
+    response = client.get("/static/app.css")
+    css = response.text
+    assert "#f0fdf4" not in css
+    assert "#86efac" not in css
+    assert "#166534" not in css
+
+
+def test_step_hint_uses_brand_color(client: TestClient):
+    response = client.get("/static/app.css")
+    css = response.text
+    assert "#2563eb" not in css
+
+
+def test_step_done_uses_warm_color(client: TestClient):
+    response = client.get("/static/app.css")
+    css = response.text
+    assert "#2f6b2f" not in css
+
+
+def test_app_css_has_prose_class(client: TestClient):
+    response = client.get("/static/app.css")
+    css = response.text
+    assert ".prose" in css
+
+
+def test_app_css_has_project_nav(client: TestClient):
+    response = client.get("/static/app.css")
+    css = response.text
+    assert ".project-nav" in css
