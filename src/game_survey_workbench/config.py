@@ -10,13 +10,22 @@ class Settings:
     llm_model: str | None
     llm_api_key: str | None
     llm_base_url: str | None
-    embedding_api_key: str | None
-    embedding_base_url: str
-    embedding_model: str
-    embedding_dimensions: int | None
-    relevance_threshold: float
-    chroma_path: Path
-    legacy_chunks_path: Path
+    embedding_api_key: str | None = None
+    embedding_base_url: str = "https://api.openai.com/v1"
+    embedding_model: str = "text-embedding-3-small"
+    embedding_dimensions: int | None = None
+    relevance_threshold: float = 1.2
+    chroma_path: Path | None = None
+    legacy_chunks_path: Path | None = None
+
+    def __post_init__(self) -> None:
+        self.workspace_root = Path(self.workspace_root)
+        if self.chroma_path is None:
+            self.chroma_path = self.workspace_root / "artifacts" / "chroma_db"
+        if self.legacy_chunks_path is None:
+            self.legacy_chunks_path = (
+                self.workspace_root / "artifacts" / "vector_store" / "chunks.json"
+            )
 
 
 def get_settings() -> Settings:

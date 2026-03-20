@@ -200,10 +200,33 @@ class ChromaVectorStore:
         scenario: str | None = None,
         priority: int = 0,
     ) -> None:
-        documents = [_format_chunk_document(chunk) for chunk in chunks]
-        embeddings = self._run_async(
-            self.embedding_client.embed_batch(documents)
+        self._run_async(
+            self.aadd_chunks(
+                document_id=document_id,
+                document_title=document_title,
+                doc_type=doc_type,
+                stages=stages,
+                tags=tags,
+                chunks=chunks,
+                scenario=scenario,
+                priority=priority,
+            )
         )
+
+    async def aadd_chunks(
+        self,
+        *,
+        document_id: int,
+        document_title: str,
+        doc_type: str,
+        stages: list[str],
+        tags: list[str],
+        chunks: list[ChunkResult],
+        scenario: str | None = None,
+        priority: int = 0,
+    ) -> None:
+        documents = [_format_chunk_document(chunk) for chunk in chunks]
+        embeddings = await self.embedding_client.embed_batch(documents)
         self.collection.add(
             ids=[
                 f"doc-{document_id}-chunk-{chunk.chunk_index}"
@@ -212,18 +235,21 @@ class ChromaVectorStore:
             documents=documents,
             embeddings=embeddings,
             metadatas=[
-                {
-                    "document_id": document_id,
-                    "document_title": document_title,
-                    "doc_type": doc_type,
-                    "stages": ",".join(stages),
-                    "tags": ",".join(tags),
-                    "scenario": scenario,
-                    "priority": priority,
-                    "chunk_index": chunk.chunk_index,
-                    "content": chunk.content,
-                    "heading_context": chunk.heading_context,
-                }
+                _sanitize_metadata(
+                    {
+                        "document_id": document_id,
+                        "document_title": document_title,
+                        "doc_type": doc_type,
+                        "stages": ",".join(stages),
+                        **{f"stage_{stage}": True for stage in stages},
+                        "tags": ",".join(tags),
+                        "scenario": scenario,
+                        "priority": priority,
+                        "chunk_index": chunk.chunk_index,
+                        "content": chunk.content,
+                        "heading_context": chunk.heading_context,
+                    }
+                )
                 for chunk in chunks
             ],
         )
@@ -367,8 +393,11 @@ def _build_chroma_where(
 ) -> dict[str, Any] | None:
     clauses: list[dict[str, Any]] = []
     if stages:
+        stage_clauses = [{f"stage_{stage}": True} for stage in stages]
         clauses.append(
-            {"$or": [{"stages": {"$contains": stage}} for stage in stages]}
+            stage_clauses[0]
+            if len(stage_clauses) == 1
+            else {"$or": stage_clauses}
         )
     if doc_types:
         clauses.append({"doc_type": {"$in": doc_types}})
@@ -441,3 +470,11 @@ def _split_csv(value: str | None) -> list[str]:
     if not value:
         return []
     return [item for item in value.split(",") if item]
+
+
+def _sanitize_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
+    return {
+        key: value
+        for key, value in metadata.items()
+        if value is not None
+    }

@@ -1,11 +1,47 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import math
+import re
 from collections.abc import Awaitable, Callable, Sequence
 
 import httpx
 
 RetrySleep = Callable[[float], Awaitable[None]]
+
+
+class DeterministicEmbeddingClient:
+    def __init__(self, dimensions: int | None = None) -> None:
+        self.dimensions = dimensions or 64
+
+    async def embed(self, text: str) -> list[float]:
+        return self._embed_text(text)
+
+    async def embed_batch(
+        self,
+        texts: list[str],
+        batch_size: int = 100,
+    ) -> list[list[float]]:
+        del batch_size
+        return [self._embed_text(text) for text in texts]
+
+    def _embed_text(self, text: str) -> list[float]:
+        vector = [0.0] * self.dimensions
+        for token in self._tokenize(text):
+            digest = hashlib.sha256(token.encode("utf-8")).digest()
+            index = int.from_bytes(digest[:4], "big") % self.dimensions
+            vector[index] += 1.0
+        magnitude = math.sqrt(sum(value * value for value in vector))
+        if magnitude == 0:
+            return vector
+        return [value / magnitude for value in vector]
+
+    def _tokenize(self, text: str) -> list[str]:
+        lowered = text.lower()
+        latin_tokens = re.findall(r"[a-z0-9]+(?:-[a-z0-9]+)*", lowered)
+        cjk_tokens = re.findall(r"[\u4e00-\u9fff]", text)
+        return latin_tokens + cjk_tokens
 
 
 class EmbeddingClient:

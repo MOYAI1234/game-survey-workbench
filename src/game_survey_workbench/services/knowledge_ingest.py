@@ -9,10 +9,19 @@ from typing import Any
 import frontmatter
 from sqlmodel import Session
 
+from game_survey_workbench.config import Settings, get_settings
 from game_survey_workbench.db import create_db_and_tables, get_engine
 from game_survey_workbench.models.knowledge import KnowledgeDocument
+from game_survey_workbench.retrieval.embeddings import (
+    DeterministicEmbeddingClient,
+    EmbeddingClient,
+)
 from game_survey_workbench.retrieval.chunking import ChunkResult, split_markdown
-from game_survey_workbench.retrieval.store import LocalVectorStore, StoredChunk
+from game_survey_workbench.retrieval.store import (
+    ChromaVectorStore,
+    LocalVectorStore,
+    StoredChunk,
+)
 from game_survey_workbench.services.knowledge_parser import parse_markdown_document
 from game_survey_workbench.services.project_knowledge import (
     list_selected_knowledge_documents,
@@ -61,6 +70,62 @@ class LocalVectorStoreAdapter:
                 for chunk in chunks
             ]
         )
+
+    def delete_document(self, document_id: int) -> None:
+        del document_id
+        return None
+
+
+def _get_effective_settings(project_root: Path) -> Settings:
+    settings = get_settings()
+    if settings.workspace_root != project_root:
+        settings.workspace_root = project_root
+        settings.chroma_path = project_root / "artifacts" / "chroma_db"
+        settings.legacy_chunks_path = (
+            project_root / "artifacts" / "vector_store" / "chunks.json"
+        )
+    return settings
+
+
+def _build_embedding_client(settings: Settings) -> Any:
+    if settings.embedding_api_key == "fake":
+        return DeterministicEmbeddingClient(dimensions=settings.embedding_dimensions)
+    return EmbeddingClient(
+        api_key=settings.embedding_api_key or "",
+        base_url=settings.embedding_base_url,
+        model=settings.embedding_model,
+        dimensions=settings.embedding_dimensions,
+    )
+
+
+def _build_ingest_store(project_root: Path) -> Any:
+    settings = _get_effective_settings(project_root)
+    if settings.embedding_api_key:
+        import chromadb
+
+        client = chromadb.PersistentClient(path=str(settings.chroma_path))
+        collection = client.get_or_create_collection("knowledge_chunks")
+        return ChromaVectorStore(
+            collection=collection,
+            embedding_client=_build_embedding_client(settings),
+            relevance_threshold=settings.relevance_threshold,
+        )
+    return LocalVectorStoreAdapter(project_root / "artifacts" / "vector_store")
+
+
+def _build_query_store(project_root: Path) -> Any:
+    settings = _get_effective_settings(project_root)
+    if settings.embedding_api_key:
+        import chromadb
+
+        client = chromadb.PersistentClient(path=str(settings.chroma_path))
+        collection = client.get_or_create_collection("knowledge_chunks")
+        return ChromaVectorStore(
+            collection=collection,
+            embedding_client=_build_embedding_client(settings),
+            relevance_threshold=settings.relevance_threshold,
+        )
+    return LocalVectorStore(project_root / "artifacts" / "vector_store")
 
 
 PURPOSE_STAGE_MAP = {
@@ -165,9 +230,7 @@ def ingest_knowledge_file(
         session.commit()
         session.refresh(document)
 
-    store = vector_store or LocalVectorStoreAdapter(
-        project_root / "artifacts" / "vector_store"
-    )
+    store = vector_store or _build_ingest_store(project_root)
     task_body = _finalize_document_index(
         project_root=project_root,
         document_id=int(document.id or 0),
@@ -218,7 +281,7 @@ async def _finalize_document_index(
     vector_store: Any,
 ) -> None:
     try:
-        result = vector_store.add_chunks(
+        add_kwargs = dict(
             document_id=document_id,
             document_title=document_title,
             doc_type=doc_type,
@@ -228,8 +291,12 @@ async def _finalize_document_index(
             scenario=scenario,
             priority=priority,
         )
-        if inspect.isawaitable(result):
-            await result
+        if hasattr(vector_store, "aadd_chunks"):
+            await vector_store.aadd_chunks(**add_kwargs)
+        else:
+            result = vector_store.add_chunks(**add_kwargs)
+            if inspect.isawaitable(result):
+                await result
         _update_document_index(
             project_root=project_root,
             document_id=document_id,
@@ -283,7 +350,7 @@ def retrieve_knowledge(
     scenarios: list[str] | None = None,
     top_k: int | None = None,
 ) -> list[dict]:
-    store = LocalVectorStore(project_root / "artifacts" / "vector_store")
+    store = _build_query_store(project_root)
     return store.query(
         query,
         stages=stages,
@@ -312,7 +379,7 @@ def retrieve_project_knowledge(
     if not selected_documents:
         return []
 
-    store = LocalVectorStore(workspace_root / "artifacts" / "vector_store")
+    store = _build_query_store(workspace_root)
     results = store.query_layered(
         query=query,
         selected_document_titles=[document.title for document in selected_documents],
@@ -320,3 +387,20 @@ def retrieve_project_knowledge(
         top_domain_k=top_k or 5,
     )
     return results[:top_k] if top_k is not None else results
+
+
+def delete_knowledge_document(document_id: int | None, *, project_root: Path) -> None:
+    if document_id is None:
+        return
+
+    store = _build_ingest_store(project_root)
+    if hasattr(store, "delete_document"):
+        store.delete_document(int(document_id))
+
+    engine = get_engine(project_root)
+    with Session(engine) as session:
+        document = session.get(KnowledgeDocument, int(document_id))
+        if document is None:
+            return
+        session.delete(document)
+        session.commit()
