@@ -36,3 +36,26 @@ def test_app_css_defines_pico_primary(client: TestClient):
     response = client.get("/static/app.css")
     css = response.text
     assert "--pico-primary" in css
+
+
+def test_project_settings_form_renders_with_pico(client: TestClient):
+    client.post("/projects", json={"slug": "pico-test", "name": "Pico Test"})
+    response = client.get("/projects/pico-test")
+    assert response.status_code == 200
+    html = response.text
+    assert '<select name="language"' in html
+    assert "保存设置" in html
+
+
+def test_knowledge_page_renders_with_pico(client: TestClient):
+    response = client.get("/knowledge")
+    assert response.status_code == 200
+    html = response.text
+    assert '<select id="stage"' in html
+    assert "共享知识库" in html
+
+
+def test_analysis_page_renders_with_pico(client: TestClient):
+    client.post("/projects", json={"slug": "ana-pico", "name": "Analysis Pico"})
+    response = client.get("/projects/ana-pico/analysis/latest")
+    assert response.status_code == 200
