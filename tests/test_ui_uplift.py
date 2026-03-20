@@ -137,3 +137,15 @@ def test_step_done_uses_warm_color(client: TestClient):
     response = client.get("/static/app.css")
     css = response.text
     assert "#2f6b2f" not in css
+
+
+def test_app_css_has_prose_class(client: TestClient):
+    response = client.get("/static/app.css")
+    css = response.text
+    assert ".prose" in css
+
+
+def test_app_css_has_project_nav(client: TestClient):
+    response = client.get("/static/app.css")
+    css = response.text
+    assert ".project-nav" in css

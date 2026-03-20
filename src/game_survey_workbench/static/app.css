@@ -262,3 +262,30 @@ details {
   vertical-align: middle;
   animation: aurora-spin 0.6s linear infinite;
 }
+
+/* -- Prose (rendered Markdown) ------------------------------------------- */
+.prose {
+  line-height: 1.75;
+}
+
+.prose h1,
+.prose h2,
+.prose h3 {
+  margin-top: 1.4em;
+  margin-bottom: 0.4em;
+  font-weight: 700;
+}
+
+.prose p {
+  margin-bottom: 0.85em;
+}
+
+.prose ol,
+.prose ul {
+  padding-left: 1.4em;
+  margin-bottom: 0.85em;
+}
+
+.prose li + li {
+  margin-top: 0.25em;
+}
