@@ -1,0 +1,63 @@
+from pathlib import Path
+
+from fastapi.testclient import TestClient
+from sqlmodel import Session
+
+from game_survey_workbench.app import create_app
+from game_survey_workbench.db import create_db_and_tables, get_engine
+from game_survey_workbench.models.knowledge import KnowledgeDocument
+from game_survey_workbench.services.workspace import bootstrap_workspace
+
+
+def test_knowledge_page_shows_index_status_badges_and_retry_button(
+    tmp_path: Path,
+    monkeypatch,
+):
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT", str(tmp_path))
+    bootstrap_workspace(tmp_path)
+    create_db_and_tables(tmp_path)
+    engine = get_engine(tmp_path)
+
+    with Session(engine) as session:
+        session.add(
+            KnowledgeDocument(
+                source_path="knowledge/indexing.md",
+                title="正在索引的文档",
+                doc_type="guide",
+                stages=["design"],
+                index_status="indexing",
+            )
+        )
+        session.add(
+            KnowledgeDocument(
+                source_path="knowledge/ready.md",
+                title="已完成文档",
+                doc_type="research",
+                stages=["analysis"],
+                index_status="ready",
+                chunk_count=1234,
+            )
+        )
+        session.add(
+            KnowledgeDocument(
+                source_path="knowledge/failed.md",
+                title="失败文档",
+                doc_type="theory",
+                stages=["report"],
+                index_status="index_failed",
+                index_error="embedding backend unavailable",
+            )
+        )
+        session.commit()
+
+    with TestClient(create_app()) as client:
+        response = client.get("/knowledge")
+
+    assert response.status_code == 200
+    html = response.text
+    assert "正在建立索引..." in html
+    assert "已就绪 · 1,234 chunks" in html
+    assert "索引失败" in html
+    assert "embedding backend unavailable" in html
+    assert 'action="/knowledge/3/retry"' in html
+    assert "重试索引" in html

@@ -60,6 +60,9 @@
 
 <section class="knowledge-list">
   <h2>当前知识文档</h2>
+  {% if has_indexing_documents %}
+  <p class="help-text">存在正在建立索引的文档，页面会在你手动刷新后显示最新状态。</p>
+  {% endif %}
   {% if documents %}
   <ul>
     {% for document in documents %}
@@ -69,6 +72,19 @@
       <span class="badge">{{ document.source_format | upper }}</span>
       {% endif %}
       <div class="help-text">文档类型：{{ document.doc_type }} ｜ 优先级：{{ document.priority }}</div>
+      {% if document.index_status == "indexing" %}
+      <div class="help-text">🔄 正在建立索引...</div>
+      {% elif document.index_status == "ready" %}
+      <div class="help-text">✅ 已就绪 · {{ "{:,}".format(document.chunk_count or 0) }} chunks</div>
+      {% elif document.index_status == "index_failed" %}
+      <div class="help-text">❌ 索引失败</div>
+      {% if document.index_error %}
+      <div class="help-text">{{ document.index_error }}</div>
+      {% endif %}
+      <form action="/knowledge/{{ document.id }}/retry" method="post">
+        <button type="submit">重试索引</button>
+      </form>
+      {% endif %}
       {% if document.stages %}
       <span>｜适用阶段：
         {% for stage in document.stages %}
