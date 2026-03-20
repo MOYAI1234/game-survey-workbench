@@ -64,6 +64,35 @@ body {
   color: var(--accent);
 }
 
+/* -- Project context nav ------------------------------------------------- */
+.project-nav {
+  background: rgba(178, 85, 45, 0.06);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-size: 0.88rem;
+}
+
+.project-nav-name {
+  color: var(--muted);
+  font-weight: 600;
+  margin-right: 8px;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.project-nav a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.project-nav a:hover {
+  color: var(--accent);
+}
+
 /* -- Page container refinement ------------------------------------------- */
 .page {
   padding-top: 48px;

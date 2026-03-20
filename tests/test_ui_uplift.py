@@ -48,3 +48,33 @@ def test_questionnaire_content_not_in_pre_block(
     html = response.text
     assert '<pre class="questionnaire-markdown">' not in html
     assert 'class="prose questionnaire-rendered"' in html
+
+
+def test_project_nav_shows_on_project_detail(client: TestClient):
+    client.post("/projects", json={"slug": "nav-test", "name": "Nav Test"})
+    response = client.get("/projects/nav-test")
+    html = response.text
+    assert 'class="project-nav"' in html
+    assert 'href="/projects/nav-test/questionnaires/latest"' in html
+    assert 'href="/projects/nav-test/analysis/latest"' in html
+    assert 'href="/projects/nav-test/reports/latest"' in html
+
+
+def test_project_nav_shows_on_questionnaire_page(client: TestClient):
+    client.post("/projects", json={"slug": "nav-test2", "name": "Nav Test2"})
+    response = client.get("/projects/nav-test2/questionnaires/latest")
+    html = response.text
+    assert 'class="project-nav"' in html
+    assert 'href="/projects/nav-test2/questionnaires/latest"' in html
+
+
+def test_project_nav_absent_on_homepage(client: TestClient):
+    response = client.get("/")
+    html = response.text
+    assert 'class="project-nav"' not in html
+
+
+def test_project_nav_absent_on_knowledge_page(client: TestClient):
+    response = client.get("/knowledge")
+    html = response.text
+    assert 'class="project-nav"' not in html

@@ -12,6 +12,14 @@
     <a href="/" class="nav-brand">极光问卷</a>
     <a href="/knowledge" class="nav-link">共享知识库</a>
   </nav>
+  {% if project_slug %}
+  <nav class="project-nav">
+    <span class="project-nav-name">{{ project_slug }}</span>
+    <a href="/projects/{{ project_slug }}/questionnaires/latest">问卷设计</a>
+    <a href="/projects/{{ project_slug }}/analysis/latest">数据分析</a>
+    <a href="/projects/{{ project_slug }}/reports/latest">报告生成</a>
+  </nav>
+  {% endif %}
   <main class="container page">
     {% block content %}{% endblock %}
   </main>
