@@ -111,3 +111,9 @@ def test_project_config_in_details_element(client: TestClient):
     config_pos = html.find("项目配置")
     assert details_pos != -1
     assert details_pos < config_pos
+
+
+def test_homepage_no_workflow_overview_section(client: TestClient):
+    response = client.get("/")
+    html = response.text
+    assert 'class="workflow-overview"' not in html
