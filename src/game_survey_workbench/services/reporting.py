@@ -107,6 +107,7 @@ def generate_structured_report(
     coded_themes: list[dict],
     insight_narrative: str | None,
     evidence_section: str | None,
+    language: str = "zh",
 ) -> str:
     """Generate a structured Markdown report."""
 
@@ -118,6 +119,7 @@ def generate_structured_report(
         insight_narrative=insight_narrative,
         evidence_section=evidence_section,
         recommendations=extract_recommendations(insight_narrative),
+        language=language,
     )
 
     return assemble_report_markdown(

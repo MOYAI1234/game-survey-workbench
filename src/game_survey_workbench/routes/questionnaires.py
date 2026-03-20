@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import APIRouter, Form, HTTPException, Request, status
+from fastapi import APIRouter, Form, HTTPException, Request, Response, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
@@ -22,6 +22,7 @@ from game_survey_workbench.models.questionnaire import (
     QuestionnaireDraftRequest,
     QuestionnaireSpecVersion,
 )
+from game_survey_workbench.services.download_utils import strip_markdown
 from game_survey_workbench.services.questionnaires import generate_questionnaire_draft
 from game_survey_workbench.services.questionnaires import refine_questionnaire_draft
 from game_survey_workbench.services.questionnaire_versions import (
@@ -35,7 +36,10 @@ templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent
 
 
 def _generate_questionnaire_version(
-    *, project_slug: str, payload: QuestionnaireDraftRequest
+    *,
+    project_slug: str,
+    payload: QuestionnaireDraftRequest,
+    bilingual: bool = False,
 ) -> QuestionnaireSpecVersion:
     settings = get_settings()
     client = build_llm_client(settings)
@@ -44,6 +48,7 @@ def _generate_questionnaire_version(
         payload=payload,
         workspace_root=settings.workspace_root,
         client=client,
+        bilingual=bilingual,
     )
 
 
@@ -70,11 +75,13 @@ def create_questionnaire_draft(project_slug: str, payload: QuestionnaireDraftReq
 def draft_questionnaire_form(
     project_slug: str,
     research_goal: str = Form(...),
+    bilingual: bool = Form(False),
 ):
     try:
         _generate_questionnaire_version(
             project_slug=project_slug,
             payload=QuestionnaireDraftRequest(research_goal=research_goal),
+            bilingual=bilingual,
         )
     except MissingLLMConfigurationError:
         return RedirectResponse(
@@ -220,4 +227,39 @@ def questionnaire_history(
             "from_version": from_version,
             "to_version": to_version,
         },
+    )
+
+
+@router.get("/projects/{project_slug}/questionnaires/{version_id}/download")
+def download_questionnaire(
+    project_slug: str,
+    version_id: str,
+    fmt: str = "md",
+):
+    settings = get_settings()
+    engine = get_engine(settings.workspace_root)
+    with Session(engine) as session:
+        version = session.exec(
+            select(QuestionnaireSpecVersion).where(
+                QuestionnaireSpecVersion.project_slug == project_slug,
+                QuestionnaireSpecVersion.version_id == version_id,
+            )
+        ).first()
+
+    if version is None:
+        raise HTTPException(status_code=404, detail="Questionnaire version not found")
+
+    normalized_fmt = "txt" if fmt == "txt" else "md"
+    if normalized_fmt == "txt":
+        media_type = "text/plain; charset=utf-8"
+        content = strip_markdown(version.markdown_spec)
+    else:
+        media_type = "text/markdown; charset=utf-8"
+        content = version.markdown_spec
+
+    filename = f"{project_slug}-questionnaire-{version_id}.{normalized_fmt}"
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

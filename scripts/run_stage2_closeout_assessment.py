@@ -224,7 +224,10 @@ def run_stage2_closeout_assessment(mode: str = "scripted") -> dict[str, str | bo
             "QUESTIONNAIRE_HAS_KNOWLEDGE_BASIS": "## Knowledge Basis" in questionnaire_markdown,
             "CODING_THEMES_PRESENT": bool(coding_payload["themes"]),
             "INSIGHT_EVIDENCE_PRESENT": bool(insight_payload["evidence_section"].strip()),
-            "REPORT_EVIDENCE_SECTION_COUNT": report_markdown.count("## Evidence Basis"),
+            "REPORT_EVIDENCE_SECTION_COUNT": (
+                report_markdown.count("## Evidence Basis")
+                + report_markdown.count("## 证据基础")
+            ),
             "REPORT_PATH": str(report_path),
         }
     finally:

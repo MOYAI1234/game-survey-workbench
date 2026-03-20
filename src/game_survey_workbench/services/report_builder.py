@@ -7,6 +7,31 @@ from game_survey_workbench.services.report_sections import (
     ReportSectionRegistry,
 )
 
+SECTION_TITLES = {
+    "zh": {
+        "executive_summary": "执行摘要",
+        "methodology": "研究方法",
+        "statistical_findings": "统计发现",
+        "qualitative_themes": "定性主题",
+        "analysis_narrative": "分析叙述",
+        "recommendations": "行动建议",
+        "evidence_basis": "证据基础",
+    },
+    "en": {
+        "executive_summary": "Executive Summary",
+        "methodology": "Methodology",
+        "statistical_findings": "Statistical Findings",
+        "qualitative_themes": "Qualitative Themes",
+        "analysis_narrative": "Analysis",
+        "recommendations": "Recommendations",
+        "evidence_basis": "Evidence Basis",
+    },
+}
+
+
+def _title(key: str, language: str) -> str:
+    return SECTION_TITLES.get(language, SECTION_TITLES["zh"]).get(key, key)
+
 
 def build_report_sections(
     *,
@@ -17,6 +42,7 @@ def build_report_sections(
     insight_narrative: str | None,
     evidence_section: str | None,
     recommendations: list[str],
+    language: str = "zh",
 ) -> ReportSectionRegistry:
     """Populate a section registry from available analysis artifacts."""
 
@@ -30,7 +56,7 @@ def build_report_sections(
         registry.register(
             ReportSection(
                 key="executive_summary",
-                title="Executive Summary",
+                title=_title("executive_summary", language),
                 order=10,
                 content=executive_summary,
             )
@@ -39,7 +65,7 @@ def build_report_sections(
     registry.register(
         ReportSection(
             key="methodology",
-            title="Methodology",
+            title=_title("methodology", language),
             order=20,
             content=_build_methodology(brief=brief, dataset_meta=dataset_meta),
         )
@@ -49,7 +75,7 @@ def build_report_sections(
         registry.register(
             ReportSection(
                 key="statistical_findings",
-                title="Statistical Findings",
+                title=_title("statistical_findings", language),
                 order=30,
                 content="\n".join(f"- {finding}" for finding in statistical_findings),
             )
@@ -59,7 +85,7 @@ def build_report_sections(
         registry.register(
             ReportSection(
                 key="qualitative_themes",
-                title="Qualitative Themes",
+                title=_title("qualitative_themes", language),
                 order=40,
                 content=_build_themes_section(coded_themes),
             )
@@ -69,7 +95,7 @@ def build_report_sections(
         registry.register(
             ReportSection(
                 key="analysis_narrative",
-                title="Analysis",
+                title=_title("analysis_narrative", language),
                 order=50,
                 content=insight_narrative,
             )
@@ -79,7 +105,7 @@ def build_report_sections(
         registry.register(
             ReportSection(
                 key="recommendations",
-                title="Recommendations",
+                title=_title("recommendations", language),
                 order=60,
                 content="\n".join(f"- {recommendation}" for recommendation in recommendations),
             )
@@ -89,11 +115,11 @@ def build_report_sections(
         registry.register(
             ReportSection(
                 key="evidence_basis",
-                title="Evidence Basis",
+                title=_title("evidence_basis", language),
                 order=90,
                 content=_strip_section_heading(
                     content=evidence_section,
-                    title="Evidence Basis",
+                    title=_title("evidence_basis", language),
                 ),
             )
         )
@@ -171,8 +197,8 @@ def _build_themes_section(coded_themes: list[dict]) -> str:
 
 def _strip_section_heading(*, content: str, title: str) -> str:
     stripped = content.lstrip()
-    heading = f"## {title}"
-    if stripped.startswith(heading):
-        remainder = stripped[len(heading):].lstrip()
-        return remainder
+    if stripped.startswith("## "):
+        _first_line, _newline, remainder = stripped.partition("\n")
+        if remainder:
+            return remainder.lstrip()
     return content

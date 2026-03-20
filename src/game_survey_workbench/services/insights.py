@@ -81,6 +81,19 @@ def load_insight_prompt() -> str:
     return prompt_path.read_text(encoding="utf-8").strip()
 
 
+def _insight_language_suffix(language: str) -> str:
+    if language == "en":
+        return (
+            "\n\n## Language Instruction\n"
+            "Output the entire insight narrative in English."
+        )
+    return (
+        "\n\n## Language Instruction\n"
+        "Output the entire insight narrative in Chinese (简体中文). "
+        "Section headings and prose must all be in Chinese."
+    )
+
+
 @dataclass
 class InsightSynthesisResult:
     narrative: str
@@ -99,6 +112,7 @@ def synthesize_insights(
     crosstab_findings: list[str | dict] | None = None,
     matrix_findings: list[str | dict] | None = None,
     ranking_findings: list[str | dict] | None = None,
+    language: str = "zh",
 ) -> InsightSynthesisResult:
     context = build_insight_context(
         research_goal=research_goal,
@@ -111,7 +125,7 @@ def synthesize_insights(
         ranking_findings=ranking_findings,
     )
     prompt = load_insight_prompt()
-    llm_output = client.generate(f"{prompt}\n\n{context}")
+    llm_output = client.generate(f"{prompt}\n\n{context}{_insight_language_suffix(language)}")
     evidence_section = build_evidence_section(citations=knowledge_snippets)
     narrative = build_insight_markdown(llm_output=llm_output, citations=knowledge_snippets)
     return InsightSynthesisResult(
@@ -168,6 +182,7 @@ def generate_analysis_insights(
         project_slug=project_slug,
         workspace_root=workspace_root,
     )
+    language = getattr(project, "language", "zh")
     synthesis = synthesize_insights(
         client=client,
         research_goal=research_goal,
@@ -178,6 +193,7 @@ def generate_analysis_insights(
         crosstab_findings=crosstab_findings,
         matrix_findings=matrix_findings,
         ranking_findings=ranking_findings,
+        language=language,
     )
     record = InsightRecord(
         analysis_run_id=analysis_run_id,

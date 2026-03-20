@@ -99,7 +99,7 @@ def test_end_to_end_flow_creates_report(client, seeded_workspace, monkeypatch):
     assert "## Evidence Basis" not in insights["narrative"]
     assert insights["evidence_section"].startswith("## Evidence Basis")
     assert "Churn" in insights["citations"][0]["document_title"] or insights["citations"]
-    assert report_markdown.count("## Evidence Basis") == 1
+    assert report_markdown.count("## 证据基础") == 1
     assert "Boredom emerged as the dominant churn factor" in report_markdown
     assert "Client-controlled insight should not appear." not in report_markdown
 

@@ -35,6 +35,27 @@ def format_knowledge_item(item: str | dict) -> str:
     return f"{title}{tag_text}: {content}".strip()
 
 
+def _language_suffix(language: str, *, bilingual: bool = False) -> str:
+    if bilingual:
+        return (
+            "\n\n## Language Instruction\n"
+            "Output the complete questionnaire in English first. "
+            "Then add a horizontal divider (---), and provide the complete "
+            "Chinese translation of the same questionnaire below. "
+            "Both versions must be complete and independently usable."
+        )
+    if language == "zh":
+        return (
+            "\n\n## Language Instruction\n"
+            "Output the entire questionnaire in Chinese (简体中文). "
+            "Section headings, question text, and diagnostic notes must all be in Chinese."
+        )
+    return (
+        "\n\n## Language Instruction\n"
+        "Output the entire questionnaire in English."
+    )
+
+
 def build_questionnaire_design_context(
     *,
     project_name: str,
@@ -43,6 +64,8 @@ def build_questionnaire_design_context(
     knowledge_snippets: list[str | dict],
     brief_background: str = "",
     brief_target_audience: str = "",
+    language: str = "zh",
+    bilingual: bool = False,
 ) -> str:
     parts = [
         f"Project: {project_name}",
@@ -60,7 +83,7 @@ def build_questionnaire_design_context(
             *[f"- {format_knowledge_item(item)}" for item in knowledge_snippets],
         ]
     )
-    return "\n".join(parts)
+    return "\n".join(parts) + _language_suffix(language, bilingual=bilingual)
 
 
 def build_questionnaire_markdown(*, llm_output: str, citations: list[dict]) -> str:
@@ -125,6 +148,7 @@ def generate_questionnaire_draft(
     payload: QuestionnaireDraftRequest,
     workspace_root: Path,
     client: LLMClient,
+    bilingual: bool = False,
 ) -> QuestionnaireSpecVersion:
     project = get_project(workspace_root=workspace_root, project_slug=project_slug)
     if project is None:
@@ -149,6 +173,7 @@ def generate_questionnaire_draft(
         project_slug=project_slug,
         workspace_root=workspace_root,
     )
+    language = getattr(project, "language", "zh")
     context = build_questionnaire_design_context(
         project_name=project.name,
         research_goal=payload.research_goal,
@@ -156,6 +181,8 @@ def generate_questionnaire_draft(
         knowledge_snippets=snippets,
         brief_background=brief.background if brief else "",
         brief_target_audience=brief.target_audience if brief else "",
+        language=language,
+        bilingual=bilingual,
     )
     prompt = load_questionnaire_prompt()
     llm_output = client.generate(f"{prompt}\n\n{context}")
