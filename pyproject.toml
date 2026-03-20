@@ -20,6 +20,8 @@ dependencies = [
   "pdfminer-six>=20251230,<20270000",
   "pdfplumber>=0.11.9,<1.0",
   "python-pptx>=1.0.2,<2.0",
+  "chromadb>=1.5.5",
+  "openai>=2.29.0",
 ]
 
 [project.optional-dependencies]

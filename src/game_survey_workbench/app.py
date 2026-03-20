@@ -19,6 +19,13 @@ from game_survey_workbench.routes.ui import router as ui_router
 from game_survey_workbench.services.workspace import bootstrap_workspace
 
 
+def _build_chroma_client(path: Path):
+    import chromadb
+
+    path.mkdir(parents=True, exist_ok=True)
+    return chromadb.PersistentClient(path=str(path))
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
 
@@ -26,6 +33,8 @@ def create_app() -> FastAPI:
     async def lifespan(app: FastAPI):
         bootstrap_workspace(settings.workspace_root)
         create_db_and_tables(settings.workspace_root)
+        app.state.settings = settings
+        app.state.chroma_client = _build_chroma_client(settings.chroma_path)
         yield
 
     app = FastAPI(lifespan=lifespan)
