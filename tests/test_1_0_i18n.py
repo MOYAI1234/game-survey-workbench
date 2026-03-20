@@ -20,7 +20,7 @@ def test_layout_nav_is_chinese(client: TestClient):
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "游戏问卷研究工作台" in response.text
+    assert "极光问卷" in response.text
 
 
 def test_index_page_is_chinese(client: TestClient):

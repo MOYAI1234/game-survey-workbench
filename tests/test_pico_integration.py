@@ -59,3 +59,10 @@ def test_analysis_page_renders_with_pico(client: TestClient):
     client.post("/projects", json={"slug": "ana-pico", "name": "Analysis Pico"})
     response = client.get("/projects/ana-pico/analysis/latest")
     assert response.status_code == 200
+
+
+def test_brand_name_is_aurora_survey(client: TestClient):
+    response = client.get("/")
+    html = response.text
+    assert "极光问卷" in html
+    assert "游戏问卷研究工作台" not in html
