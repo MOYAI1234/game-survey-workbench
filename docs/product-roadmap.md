@@ -4,7 +4,8 @@
 
 - `1.0` is complete and archived.
 - `2.0` is complete and archived.
-- Future iteration planning starts at `2.1`.
+- `2.1` UI uplift — plan written, pending execution.
+- `2.2` RAG knowledge base (ChromaDB + OpenAI embeddings) — plan written, pending execution.
 
 ## Planning Rules
 
@@ -31,11 +32,11 @@ If a new initiative emerges, replan it under the next available `2.x` version.
 
 ## Next Planning Line
 
-The next approved planning document should be named as a `2.1` document and saved under `docs/plans/`.
+The next available version is `2.3`. Save under `docs/plans/`.
 
 Recommended pattern:
 
-`docs/plans/YYYY-MM-DD-game-survey-workbench-2.1-<topic>.md`
+`docs/plans/YYYY-MM-DD-game-survey-workbench-2.3-<topic>.md`
 
 ## Maintenance Note
 
