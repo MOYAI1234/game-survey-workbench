@@ -79,6 +79,9 @@ def _render_knowledge_detail(
     upload_error: str | None = None,
 ) -> HTMLResponse:
     documents, filters = _load_filtered_documents(request=request)
+    has_indexing_documents = any(
+        document.index_status == "indexing" for document in documents
+    )
     return templates.TemplateResponse(
         request,
         "knowledge/detail.html",
@@ -92,6 +95,7 @@ def _render_knowledge_detail(
             else request.query_params.get("upload_error"),
             "stage_label_map": STAGE_LABEL_MAP,
             "filters": filters,
+            "has_indexing_documents": has_indexing_documents,
         },
     )
 

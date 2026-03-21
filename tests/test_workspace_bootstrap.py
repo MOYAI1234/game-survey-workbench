@@ -56,6 +56,40 @@ def test_create_db_and_tables_backfills_knowledge_source_format_column(tmp_path:
     assert "source_format" in columns
 
 
+def test_create_db_and_tables_backfills_knowledge_index_columns(tmp_path: Path):
+    workspace_root = tmp_path / "legacy-index-workspace"
+    workspace_root.mkdir()
+    database_path = workspace_root / "app.db"
+
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE knowledgedocument (
+                id INTEGER PRIMARY KEY,
+                source_path VARCHAR NOT NULL,
+                title VARCHAR NOT NULL,
+                doc_type VARCHAR NOT NULL DEFAULT 'experience',
+                stages JSON,
+                tags JSON,
+                scenario VARCHAR,
+                priority INTEGER NOT NULL DEFAULT 0,
+                source_format VARCHAR
+            )
+            """
+        )
+
+    create_db_and_tables(workspace_root)
+
+    with sqlite3.connect(database_path) as connection:
+        columns = {
+            row[1] for row in connection.execute("PRAGMA table_info(knowledgedocument)")
+        }
+
+    assert "index_status" in columns
+    assert "index_error" in columns
+    assert "chunk_count" in columns
+
+
 def test_run_bat_uses_python_module_uv_entrypoint():
     script_path = Path(__file__).resolve().parents[1] / "run.bat"
     script = script_path.read_text(encoding="utf-8")
