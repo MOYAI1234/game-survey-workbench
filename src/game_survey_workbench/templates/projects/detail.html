@@ -161,6 +161,19 @@
       <li><a href="/projects/{{ project_slug }}/waves/{{ current_wave.id }}/reports">报告生成</a></li>
     </ul>
   </article>
+  {% if wave_progress %}
+  <section class="wave-progress">
+    <h3>当前轮次进度</h3>
+    <ol>
+      {% for item in wave_progress %}
+      <li>
+        {{ item.label }}
+        <span class="help-text">｜{{ "已完成" if item.status == "done" else "待开始" }}</span>
+      </li>
+      {% endfor %}
+    </ol>
+  </section>
+  {% endif %}
   {% else %}
   <p class="empty-state">当前项目还没有研究轮次。请先新建一轮研究，再进入问卷设计、数据分析和报告生成流程。</p>
   {% endif %}

@@ -45,3 +45,25 @@ def test_project_homepage_shows_brief_section(client: TestClient, tmp_path: Path
     assert "问卷设计" in html
     assert "数据分析" in html
     assert "报告生成" in html
+
+
+def test_project_page_shows_wave_progress_instead_of_task_plan_placeholder(
+    client: TestClient,
+    tmp_path: Path,
+):
+    create_project(
+        ProjectCreate(slug="progress-proj", name="Progress Project"),
+        workspace_root=tmp_path,
+    )
+    create_research_wave(
+        workspace_root=tmp_path,
+        project_slug="progress-proj",
+        name="1.1 版本问卷",
+    )
+
+    response = client.get("/projects/progress-proj")
+
+    assert response.status_code == 200
+    assert "当前轮次进度" in response.text
+    assert "任务计划" not in response.text
+    assert "当前版本不会自动生成任务计划" not in response.text

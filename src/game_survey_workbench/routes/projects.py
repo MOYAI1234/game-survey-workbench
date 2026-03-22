@@ -29,6 +29,7 @@ from game_survey_workbench.services.research_brief import (
     save_research_brief,
 )
 from game_survey_workbench.services.task_plan import get_task_plan, save_task_plan
+from game_survey_workbench.services.workflow_state import build_wave_progress
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
@@ -80,10 +81,6 @@ def project_detail(project_slug: str, request: Request):
         project_slug=project_slug,
         workspace_root=settings.workspace_root,
     )
-    plan = get_task_plan(
-        project_slug=project_slug,
-        workspace_root=settings.workspace_root,
-    )
     engine = get_engine(settings.workspace_root)
     with Session(engine) as session:
         knowledge_documents = list(
@@ -105,6 +102,15 @@ def project_detail(project_slug: str, request: Request):
         workspace_root=settings.workspace_root,
         project_slug=project_slug,
     )
+    wave_progress = (
+        build_wave_progress(
+            workspace_root=settings.workspace_root,
+            project_slug=project_slug,
+            wave_id=current_wave.id,
+        )
+        if current_wave is not None
+        else []
+    )
     return templates.TemplateResponse(
         request,
         "projects/detail.html",
@@ -112,13 +118,13 @@ def project_detail(project_slug: str, request: Request):
             "project": project,
             "project_slug": project_slug,
             "brief": brief,
-            "plan": plan,
             "knowledge_count": len(knowledge_documents),
             "knowledge_documents": knowledge_documents,
             "selected_document_ids": selected_document_ids,
             "selected_documents": selected_documents,
             "current_wave": current_wave,
             "research_waves": research_waves,
+            "wave_progress": wave_progress,
             "upload_success": request.query_params.get("upload_success"),
             "upload_error": request.query_params.get("upload_error"),
         },
