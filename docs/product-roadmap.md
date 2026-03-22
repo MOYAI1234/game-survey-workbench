@@ -6,6 +6,7 @@
 - `2.0` is complete and archived.
 - `2.1` UI uplift — plan written, pending execution.
 - `2.2` RAG knowledge base (ChromaDB + OpenAI embeddings) — plan written, pending execution.
+- `2.3` Research waves and long-lived project workflow — plan written, pending execution.
 
 ## Planning Rules
 
@@ -14,6 +15,7 @@ Use version numbers in strict sequence:
 - `2.1`
 - `2.2`
 - `2.3`
+- `2.4`
 
 Do not reopen `1.0` or `2.0` as active planning lines.
 Do not continue abandoned `2.0G/H/I/J/K` style suffixes.
@@ -32,11 +34,11 @@ If a new initiative emerges, replan it under the next available `2.x` version.
 
 ## Next Planning Line
 
-The next available version is `2.3`. Save under `docs/plans/`.
+The next available version is `2.4`. Save under `docs/plans/`.
 
 Recommended pattern:
 
-`docs/plans/YYYY-MM-DD-game-survey-workbench-2.3-<topic>.md`
+`docs/plans/YYYY-MM-DD-game-survey-workbench-2.4-<topic>.md`
 
 ## Maintenance Note
 
