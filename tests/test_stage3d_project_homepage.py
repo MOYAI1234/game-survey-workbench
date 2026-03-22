@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from game_survey_workbench.app import create_app
 from game_survey_workbench.models.project import ProjectCreate
 from game_survey_workbench.services.projects import create_project
+from game_survey_workbench.services.research_waves import create_research_wave
 
 
 @pytest.fixture()
@@ -20,6 +21,12 @@ def test_project_homepage_shows_brief_section(client: TestClient, tmp_path: Path
         ProjectCreate(slug="bp", name="Battle Pass", description="Pass study"),
         workspace_root=tmp_path,
     )
+    create_research_wave(
+        workspace_root=tmp_path,
+        project_slug="bp",
+        name="1.1 版本问卷",
+        goal_summary="验证赛季通行证新版体验",
+    )
 
     response = client.get("/projects/bp")
 
@@ -28,7 +35,12 @@ def test_project_homepage_shows_brief_section(client: TestClient, tmp_path: Path
     assert "Battle Pass" in html
     assert "Pass study" in html
     assert "Research Brief" in html or "研究简报" in html
-    assert "Task Plan" in html or "任务计划" in html
+    assert "研究轮次工作台" in html
+    assert "1.1 版本问卷" in html
+    assert "验证赛季通行证新版体验" in html
+    assert "新建一轮研究" in html
+    assert "任务计划" not in html
+    assert "上传问卷数据" not in html
     assert "项目知识选择" in html
     assert "问卷设计" in html
     assert "数据分析" in html
