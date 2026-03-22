@@ -17,6 +17,7 @@ class QuestionnaireDraftRequest(SQLModel):
 class QuestionnaireSpecVersion(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     project_slug: str = Field(index=True)
+    wave_id: Optional[int] = Field(default=None, index=True)
     version_id: str = Field(index=True, unique=True)
     research_goal: str
     markdown_spec: str

@@ -4,6 +4,9 @@
 <header>
   <p class="eyebrow"><a href="/projects/{{ project_slug }}">← 返回项目</a></p>
   <h1>问卷设计</h1>
+  {% if current_wave %}
+  <p class="muted">当前轮次：<a href="/projects/{{ project_slug }}/waves/{{ current_wave.id }}">{{ current_wave.name }}</a></p>
+  {% endif %}
 </header>
 
 {% if error_message %}
@@ -20,14 +23,14 @@
 
 {% if spec %}
 <section class="questionnaire-content">
-  <h2>最新草稿</h2>
+  <h2>{% if current_wave %}本轮最新草稿{% else %}最新草稿{% endif %}</h2>
   <p class="muted">
     版本：{{ spec.version_id }} ｜ 研究目标：{{ spec.research_goal }}
   </p>
   <p class="muted">
-    <a href="/projects/{{ project_slug }}/questionnaires/history">查看版本历史{% if version_count %} ({{ version_count }} 个版本){% endif %}</a>
+    <a href="/projects/{{ project_slug }}/questionnaires/history">查看{% if current_wave %}本轮{% endif %}版本历史{% if version_count %} ({{ version_count }} 个版本){% endif %}</a>
   </p>
-  <div class="prose questionnaire-rendered">{{ spec.markdown_spec | markdown | safe }}</div>
+  <div class="prose questionnaire-rendered">{{ rendered_markdown | markdown | safe }}</div>
   <section class="download-actions">
     <h3>下载问卷</h3>
     <p class="muted">
@@ -35,18 +38,16 @@
       ｜<a href="/projects/{{ project_slug }}/questionnaires/{{ spec.version_id }}/download?fmt=txt">下载纯文本 (.txt)</a>
     </p>
   </section>
-  {% if spec.retrieved_snippets %}
+  {% if provenance_cards %}
   <details>
     <summary>参考知识来源（{{ spec.retrieved_snippets | length }} 篇）</summary>
     <ul>
-      {% for snippet in spec.retrieved_snippets %}
+      {% for card in provenance_cards %}
       <li>
-        <strong>{{ snippet.document_title if snippet is mapping else snippet }}</strong>
-        {% if snippet is mapping and snippet.retrieval_pool %}
-        ｜{{ "方法论池" if snippet.retrieval_pool == "method" else "领域知识池" }}
-        {% endif %}
-        {% if snippet is mapping and snippet.content %}
-        <div class="help-text">{{ snippet.content }}</div>
+        <strong>{{ card.title }}</strong>
+        <span class="help-text">｜{{ card.pool_label }}</span>
+        {% if card.excerpt %}
+        <div class="help-text">{{ card.excerpt }}</div>
         {% endif %}
       </li>
       {% endfor %}

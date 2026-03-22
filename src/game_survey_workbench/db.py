@@ -104,6 +104,11 @@ def _ensure_questionnairespecversion_stage7_columns(engine) -> None:
                 "UPDATE questionnairespecversion SET retrieved_snippets = '[]' WHERE retrieved_snippets IS NULL"
             )
 
+        if "wave_id" not in columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE questionnairespecversion ADD COLUMN wave_id INTEGER"
+            )
+
 
 def _ensure_knowledgedocument_source_format_column(engine) -> None:
     with engine.begin() as connection:

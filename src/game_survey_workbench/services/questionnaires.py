@@ -22,6 +22,7 @@ from game_survey_workbench.services.project_knowledge import (
 )
 from game_survey_workbench.services.projects import get_project
 from game_survey_workbench.services.research_brief import get_research_brief
+from game_survey_workbench.services.research_waves import get_current_research_wave
 
 
 def format_knowledge_item(item: str | dict) -> str:
@@ -95,6 +96,45 @@ def build_questionnaire_markdown(*, llm_output: str, citations: list[dict]) -> s
     return "\n".join(sections).strip()
 
 
+def build_questionnaire_display_markdown(markdown_spec: str) -> str:
+    display_markdown, _separator, _knowledge_basis = markdown_spec.partition("\n## Knowledge Basis")
+    return display_markdown.strip()
+
+
+def build_provenance_cards(snippets: list[str | dict]) -> list[dict[str, str]]:
+    cards: list[dict[str, str]] = []
+    for snippet in snippets:
+        if isinstance(snippet, str):
+            cards.append(
+                {
+                    "title": "项目知识",
+                    "pool_label": "项目知识",
+                    "excerpt": snippet[:180].rstrip(),
+                }
+            )
+            continue
+        title = snippet.get("document_title", "Unknown Source")
+        retrieval_pool = snippet.get("retrieval_pool")
+        content = snippet.get("content", "").strip()
+        excerpt = content[:180].rstrip()
+        if len(content) > 180:
+            excerpt = f"{excerpt}..."
+        cards.append(
+            {
+                "title": title,
+                "pool_label": (
+                    "方法论池"
+                    if retrieval_pool == "method"
+                    else "领域知识池"
+                    if retrieval_pool == "domain"
+                    else "项目知识"
+                ),
+                "excerpt": excerpt,
+            }
+        )
+    return cards
+
+
 def load_questionnaire_prompt() -> str:
     prompt_path = Path(__file__).resolve().parent.parent / "llm" / "prompts" / "questionnaire_design.md"
     return prompt_path.read_text(encoding="utf-8").strip()
@@ -111,6 +151,7 @@ def save_questionnaire_draft(
     project_name: str,
     payload: QuestionnaireDraftRequest,
     workspace_root: Path,
+    wave_id: int | None = None,
     markdown_spec: str | None = None,
     citations: list[dict] | None = None,
     retrieved_snippets: list[dict] | None = None,
@@ -124,6 +165,7 @@ def save_questionnaire_draft(
     )
     version = QuestionnaireSpecVersion(
         project_slug=project_slug,
+        wave_id=wave_id,
         version_id=str(uuid4()),
         research_goal=payload.research_goal,
         markdown_spec=final_markdown,
@@ -136,7 +178,10 @@ def save_questionnaire_draft(
         session.commit()
         session.refresh(version)
 
-    version_dir = workspace_root / "projects" / project_slug / "questionnaire" / "versions"
+    version_dir = workspace_root / "projects" / project_slug / "questionnaire"
+    if wave_id is not None:
+        version_dir = version_dir / "waves" / str(wave_id)
+    version_dir = version_dir / "versions"
     version_dir.mkdir(parents=True, exist_ok=True)
     (version_dir / f"{version.version_id}.md").write_text(final_markdown, encoding="utf-8")
     return version
@@ -173,6 +218,10 @@ def generate_questionnaire_draft(
         project_slug=project_slug,
         workspace_root=workspace_root,
     )
+    current_wave = get_current_research_wave(
+        workspace_root=workspace_root,
+        project_slug=project_slug,
+    )
     language = getattr(project, "language", "zh")
     context = build_questionnaire_design_context(
         project_name=project.name,
@@ -192,6 +241,7 @@ def generate_questionnaire_draft(
         project_name=project.name,
         payload=payload,
         workspace_root=workspace_root,
+        wave_id=current_wave.id if current_wave is not None else None,
         markdown_spec=markdown,
         citations=snippets,
         retrieved_snippets=snippets,
@@ -257,6 +307,7 @@ def refine_questionnaire_draft(
 
     return QuestionnaireSpecVersion(
         project_slug="",
+        wave_id=None,
         version_id=str(uuid4()),
         research_goal=refined_goal,
         markdown_spec=response,

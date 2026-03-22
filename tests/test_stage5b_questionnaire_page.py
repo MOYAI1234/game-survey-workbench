@@ -5,10 +5,13 @@ import pytest
 from fastapi.testclient import TestClient
 
 from game_survey_workbench.app import create_app
+from game_survey_workbench.models.questionnaire import QuestionnaireDraftRequest
 from game_survey_workbench.services.knowledge_ingest import ingest_knowledge_file
 from game_survey_workbench.services.project_knowledge import (
     replace_project_knowledge_selection,
 )
+from game_survey_workbench.services.questionnaires import save_questionnaire_draft
+from game_survey_workbench.services.research_waves import create_research_wave
 
 
 @pytest.fixture()
@@ -73,6 +76,42 @@ def test_questionnaire_page_shows_latest_draft(client, project_slug):
     )
 
 
+def test_questionnaire_latest_page_is_scoped_to_current_wave(client, tmp_path):
+    client.post("/projects", json={"slug": "demo", "name": "Demo"})
+    wave_one = create_research_wave(
+        workspace_root=tmp_path,
+        project_slug="demo",
+        name="1.0 版本问卷",
+    )
+    wave_two = create_research_wave(
+        workspace_root=tmp_path,
+        project_slug="demo",
+        name="1.1 版本问卷",
+    )
+
+    save_questionnaire_draft(
+        project_slug="demo",
+        project_name="Demo",
+        payload=QuestionnaireDraftRequest(research_goal="Wave 1 goal"),
+        workspace_root=tmp_path,
+        wave_id=wave_one.id,
+        markdown_spec="# Wave 1",
+    )
+    save_questionnaire_draft(
+        project_slug="demo",
+        project_name="Demo",
+        payload=QuestionnaireDraftRequest(research_goal="Wave 2 goal"),
+        workspace_root=tmp_path,
+        wave_id=wave_two.id,
+        markdown_spec="# Wave 2",
+    )
+
+    response = client.get("/projects/demo/questionnaires/latest")
+
+    assert "Wave 2" in response.text
+    assert "Wave 1" not in response.text
+
+
 def test_questionnaire_page_shows_retrieval_pool_metadata_for_used_knowledge(
     client,
     project_slug,
@@ -88,6 +127,41 @@ def test_questionnaire_page_shows_retrieval_pool_metadata_for_used_knowledge(
     html = response.text
     assert "Survey Guide" in html
     assert "方法论池" in html
+
+
+def test_questionnaire_page_hides_knowledge_basis_body_from_main_content(client, tmp_path):
+    client.post("/projects", json={"slug": "demo", "name": "Demo"})
+    wave = create_research_wave(
+        workspace_root=tmp_path,
+        project_slug="demo",
+        name="1.1 版本问卷",
+    )
+
+    save_questionnaire_draft(
+        project_slug="demo",
+        project_name="Demo",
+        payload=QuestionnaireDraftRequest(research_goal="Wave 2 goal"),
+        workspace_root=tmp_path,
+        wave_id=wave.id,
+        markdown_spec=(
+            "# Questionnaire Draft\n\n"
+            "## Core Questions\n- Q1\n\n"
+            "## Knowledge Basis\n"
+            "- Survey Guide: 这一大段原始知识正文不应该直接出现在主阅读区。"
+        ),
+        retrieved_snippets=[
+            {
+                "document_title": "Survey Guide",
+                "retrieval_pool": "method",
+                "content": "这一大段原始知识正文不应该直接出现在主阅读区。",
+            }
+        ],
+    )
+
+    response = client.get("/projects/demo/questionnaires/latest")
+
+    assert "Knowledge Basis" not in response.text
+    assert "参考知识来源（1 篇）" in response.text
 
 
 def test_questionnaire_page_loads_with_legacy_db_schema(
