@@ -17,6 +17,10 @@ from game_survey_workbench.services.project_knowledge import (
     replace_project_knowledge_selection,
 )
 from game_survey_workbench.services.projects import create_project, get_project
+from game_survey_workbench.services.research_waves import (
+    get_current_research_wave,
+    list_research_waves,
+)
 from game_survey_workbench.services.research_brief import (
     get_research_brief,
     save_research_brief,
@@ -90,6 +94,14 @@ def project_detail(project_slug: str, request: Request):
         project_slug=project_slug,
         workspace_root=settings.workspace_root,
     )
+    current_wave = get_current_research_wave(
+        workspace_root=settings.workspace_root,
+        project_slug=project_slug,
+    )
+    research_waves = list_research_waves(
+        workspace_root=settings.workspace_root,
+        project_slug=project_slug,
+    )
     return templates.TemplateResponse(
         request,
         "projects/detail.html",
@@ -102,6 +114,8 @@ def project_detail(project_slug: str, request: Request):
             "knowledge_documents": knowledge_documents,
             "selected_document_ids": selected_document_ids,
             "selected_documents": selected_documents,
+            "current_wave": current_wave,
+            "research_waves": research_waves,
             "upload_success": request.query_params.get("upload_success"),
             "upload_error": request.query_params.get("upload_error"),
         },
