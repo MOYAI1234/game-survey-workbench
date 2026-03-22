@@ -60,6 +60,23 @@ def list_research_waves(*, workspace_root: Path, project_slug: str) -> list[Rese
         )
 
 
+def get_research_wave(
+    *,
+    workspace_root: Path,
+    project_slug: str,
+    wave_id: int,
+) -> ResearchWave | None:
+    create_db_and_tables(workspace_root)
+    engine = get_engine(workspace_root)
+    with Session(engine) as session:
+        return session.exec(
+            select(ResearchWave).where(
+                ResearchWave.project_slug == project_slug,
+                ResearchWave.id == wave_id,
+            )
+        ).first()
+
+
 def get_current_research_wave(
     *,
     workspace_root: Path,

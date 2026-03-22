@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+{% block title %}{{ wave.name }}{% endblock %}
+{% block content %}
+<header class="project-header">
+  <p class="eyebrow"><a href="/projects/{{ project_slug }}">← 返回项目概览</a></p>
+  <h1>{{ wave.name }}</h1>
+  <p class="help-text">所属项目：{{ project.name if project else project_slug }}</p>
+  {% if wave.is_current %}
+  <p class="help-text">当前轮次</p>
+  {% endif %}
+</header>
+
+{% if wave.goal_summary %}
+<section>
+  <h2>轮次目标</h2>
+  <p>{{ wave.goal_summary }}</p>
+</section>
+{% endif %}
+
+<section class="workflow-links">
+  <h2>本轮工作区</h2>
+  <ul>
+    <li><a href="/projects/{{ project_slug }}/waves/{{ wave.id }}/questionnaires">问卷设计</a></li>
+    <li><a href="/projects/{{ project_slug }}/waves/{{ wave.id }}/analysis">数据分析</a></li>
+    <li><a href="/projects/{{ project_slug }}/waves/{{ wave.id }}/reports">报告生成</a></li>
+  </ul>
+  <p class="help-text">进入任一模块时，系统会先将这一轮设为当前轮次，再进入对应工作流。</p>
+</section>
+
+<section>
+  <h2>本轮历史索引</h2>
+  <ul>
+    <li><a href="/projects/{{ project_slug }}/questionnaires/history">问卷版本历史</a></li>
+    <li><a href="/projects/{{ project_slug }}/reports/history">报告历史</a></li>
+  </ul>
+  <p class="help-text">后续步骤会把这些历史进一步收口到“仅看本轮”。</p>
+</section>
+
+{% if research_waves %}
+<section>
+  <h2>项目轮次</h2>
+  <ul>
+    {% for item in research_waves %}
+    <li>
+      <a href="/projects/{{ project_slug }}/waves/{{ item.id }}">{{ item.name }}</a>
+      {% if item.is_current %}
+      <span class="help-text">｜当前轮次</span>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}
