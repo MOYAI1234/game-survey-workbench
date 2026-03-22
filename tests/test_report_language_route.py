@@ -38,7 +38,7 @@ def test_report_generation_passes_project_language_to_report_builder(
     monkeypatch.setattr(
         reports_route,
         "get_analysis_run_record",
-        lambda **kwargs: SimpleNamespace(project_slug="demo"),
+        lambda **kwargs: SimpleNamespace(project_slug="demo", wave_id=None),
     )
     monkeypatch.setattr(
         reports_route,

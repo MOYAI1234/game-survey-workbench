@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from game_survey_workbench.app import create_app
+from game_survey_workbench.services.research_waves import create_research_wave
 
 
 @pytest.fixture()
@@ -29,12 +30,17 @@ def test_project_page_has_knowledge_selection_form(client, project_slug):
     assert "共享知识库还没有文档" in html
 
 
-def test_project_page_has_dataset_upload_form(client, project_slug):
-    response = client.get(f"/projects/{project_slug}")
+def test_project_page_has_dataset_upload_form(client, project_slug, tmp_path):
+    create_research_wave(
+        workspace_root=tmp_path,
+        project_slug=project_slug,
+        name="1.1 版本问卷",
+    )
+    response = client.get(f"/projects/{project_slug}/analysis/latest")
 
     html = response.text
-    assert f'/projects/{project_slug}/datasets/upload-preview' in html
-    assert f'/projects/{project_slug}/datasets/import-form' not in html
+    assert f'/projects/{project_slug}/datasets/import-form' in html
+    assert f'/projects/{project_slug}/datasets/upload-preview' not in html
     assert 'type="file"' in html
 
 

@@ -8,6 +8,22 @@
 
 **Tech Stack:** FastAPI, SQLModel, SQLite, Jinja2 templates, existing workflow-state services, MarkItDown-based knowledge ingestion, pytest
 
+## Execution Status
+
+- Status: implemented and verified on branch `codex/research-waves-plan`
+- Task commits:
+  - `c09ae24` `feat: add research wave model`
+  - `75768d0` `feat: add research wave services`
+  - `bba8b30` `feat: redesign project home around research waves`
+  - `39c4100` `feat: add research wave workspace routes`
+  - `ee1c2c5` `feat: scope questionnaires to research waves`
+  - `a06e5c0` `feat: scope analysis and reports to research waves`
+  - `507fa34` `feat: replace project task plan placeholder with wave progress`
+  - `7f95982` `feat: simplify knowledge upload purpose selection`
+- Final verification:
+  - `pytest tests/ -v --tb=short` -> `385 passed, 3 skipped`
+  - `python -m compileall src/game_survey_workbench` -> passed
+
 ---
 
 ## Approved Product Direction
@@ -529,4 +545,3 @@ Expected: no compile errors.
 git add docs/product-roadmap.md docs/plans/2026-03-22-game-survey-workbench-2.3-research-waves.md
 git commit -m "docs: finalize 2.3 research waves plan"
 ```
-

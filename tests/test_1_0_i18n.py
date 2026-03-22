@@ -51,11 +51,11 @@ def test_project_detail_is_chinese(client: TestClient):
     assert "研究简报" in content
     assert "研究背景" in content
     assert "研究目标" in content
-    assert "上传知识文档" in content
-    assert "上传问卷数据" in content
+    assert "项目知识选择" in content
+    assert "研究轮次工作台" in content
+    assert "新建一轮研究" in content
     assert "PUT /projects/" not in content
-    assert "双层表头" in content
-    assert "当前版本不会自动生成任务计划" in content
+    assert "当前项目还没有研究轮次" in content
     assert "任务计划会在你完善研究简报后逐步明确" not in content
 
 

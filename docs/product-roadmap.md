@@ -6,7 +6,7 @@
 - `2.0` is complete and archived.
 - `2.1` UI uplift — plan written, pending execution.
 - `2.2` RAG knowledge base (ChromaDB + OpenAI embeddings) — plan written, pending execution.
-- `2.3` Research waves and long-lived project workflow — plan written, pending execution.
+- `2.3` Research waves and long-lived project workflow — implemented and verified.
 
 ## Planning Rules
 
