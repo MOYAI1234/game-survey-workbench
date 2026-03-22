@@ -394,13 +394,15 @@ def delete_knowledge_document(document_id: int | None, *, project_root: Path) ->
         return
 
     store = _build_ingest_store(project_root)
-    if hasattr(store, "delete_document"):
-        store.delete_document(int(document_id))
-
     engine = get_engine(project_root)
     with Session(engine) as session:
         document = session.get(KnowledgeDocument, int(document_id))
         if document is None:
             return
+        source_path = Path(document.source_path)
+        if source_path.exists() and source_path.is_file():
+            source_path.unlink()
+        if hasattr(store, "delete_document"):
+            store.delete_document(int(document_id))
         session.delete(document)
         session.commit()

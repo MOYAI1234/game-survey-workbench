@@ -45,9 +45,9 @@
 
 <section class="upload-section">
   <h2>上传知识文档</h2>
-  <p class="help-text">支持 Markdown (.md)、PDF (.pdf)、Word (.docx) 和 PowerPoint (.pptx) 文档。非 Markdown 文件会自动转换并提供预览。</p>
+  <p class="help-text">支持 Markdown (.md)、EPUB (.epub)、PDF (.pdf)、Word (.docx) 和 PowerPoint (.pptx) 文档。非 Markdown 文件会自动转换并提供预览。图片型 PDF 目前不支持自动提取正文，请先用专门软件完成 OCR 或转成可复制文本后再上传。</p>
   <form action="/knowledge/upload" method="post" enctype="multipart/form-data">
-    <input type="file" name="file" accept=".md,.txt,.pdf,.docx,.pptx" required>
+    <input type="file" name="file" accept=".md,.txt,.epub,.pdf,.docx,.pptx" required>
     <fieldset>
       <legend>用途分类（可多选）</legend>
       <label><input type="checkbox" name="purposes" value="questionnaire_design"> 问卷设计</label>
@@ -96,6 +96,9 @@
       <div class="help-text">标签：{{ document.tags | join('、') }}</div>
       {% endif %}
       <div class="help-text">{{ document.source_path }}</div>
+      <form action="/knowledge/{{ document.id }}/delete" method="post">
+        <button type="submit">移出共享知识库</button>
+      </form>
     </li>
     {% endfor %}
   </ul>

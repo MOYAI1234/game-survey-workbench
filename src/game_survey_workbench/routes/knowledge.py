@@ -22,6 +22,7 @@ from game_survey_workbench.services.knowledge_ingest import (
     PURPOSE_STAGE_MAP,
     STAGE_LABEL_MAP,
     build_ingest_ready_markdown,
+    delete_knowledge_document,
     ingest_knowledge_file,
 )
 
@@ -46,6 +47,19 @@ def _load_filtered_documents(
                 select(KnowledgeDocument).order_by(KnowledgeDocument.id.desc())
             ).all()
         )
+        stale_documents = [
+            document
+            for document in documents
+            if not Path(document.source_path).exists()
+        ]
+        if stale_documents:
+            for document in stale_documents:
+                session.delete(document)
+            session.commit()
+            stale_ids = {document.id for document in stale_documents}
+            documents = [
+                document for document in documents if document.id not in stale_ids
+            ]
 
     if search:
         lowered = search.lower()
@@ -103,6 +117,16 @@ def _render_knowledge_detail(
 @router.get("/knowledge", response_class=HTMLResponse)
 def knowledge_detail(request: Request):
     return _render_knowledge_detail(request)
+
+
+@router.post("/knowledge/{document_id}/delete")
+def remove_knowledge_document(document_id: int):
+    settings = get_settings()
+    delete_knowledge_document(document_id, project_root=settings.workspace_root)
+    return RedirectResponse(
+        url="/knowledge?upload_success=知识文档已从共享知识库移除",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
 
 
 @router.post("/knowledge/upload")
