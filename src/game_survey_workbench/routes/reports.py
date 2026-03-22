@@ -23,6 +23,7 @@ from game_survey_workbench.services.knowledge_feedback import (
     save_report_findings_as_knowledge,
 )
 from game_survey_workbench.services.research_brief import get_research_brief
+from game_survey_workbench.services.research_waves import get_current_research_wave
 from game_survey_workbench.services.reporting import (
     generate_structured_report,
     get_analysis_run_record,
@@ -153,6 +154,7 @@ def generate_report(project_slug: str, payload: ReportGenerateRequest):
         project_slug=project_slug,
         analysis_run_id=payload.analysis_run_id,
         workspace_root=settings.workspace_root,
+        wave_id=analysis_run.wave_id,
         title=f"{project.name} Report",
         summary_points=summary_points,
         sections=sections,
@@ -216,10 +218,15 @@ def generate_report_form(project_slug: str, analysis_run_id: str | None = Form(N
 def report_detail(project_slug: str, request: Request):
     settings = get_settings()
     engine = get_engine(settings.workspace_root)
+    current_wave = get_current_research_wave(
+        workspace_root=settings.workspace_root,
+        project_slug=project_slug,
+    )
     with Session(engine) as session:
-        records = session.exec(
-            select(ReportRecord).where(ReportRecord.project_slug == project_slug)
-        ).all()
+        statement = select(ReportRecord).where(ReportRecord.project_slug == project_slug)
+        if current_wave is not None:
+            statement = statement.where(ReportRecord.wave_id == current_wave.id)
+        records = session.exec(statement).all()
 
     report_content = None
     report_display = None
@@ -237,6 +244,7 @@ def report_detail(project_slug: str, request: Request):
         "reports/detail.html",
         {
             "project_slug": project_slug,
+            "current_wave": current_wave,
             "report_content": report_content,
             "report_display": report_display,
             "report_path": report_path,
@@ -248,14 +256,23 @@ def report_detail(project_slug: str, request: Request):
 def report_history(project_slug: str, request: Request):
     settings = get_settings()
     engine = get_engine(settings.workspace_root)
+    current_wave = get_current_research_wave(
+        workspace_root=settings.workspace_root,
+        project_slug=project_slug,
+    )
     with Session(engine) as session:
-        versions = list_report_versions(session, project_slug)
+        versions = list_report_versions(
+            session,
+            project_slug,
+            wave_id=current_wave.id if current_wave is not None else None,
+        )
 
     return templates.TemplateResponse(
         request,
         "reports/history.html",
         {
             "project_slug": project_slug,
+            "current_wave": current_wave,
             "versions": versions,
         },
     )
@@ -265,10 +282,15 @@ def report_history(project_slug: str, request: Request):
 def download_latest_report(project_slug: str, fmt: str = "md"):
     settings = get_settings()
     engine = get_engine(settings.workspace_root)
+    current_wave = get_current_research_wave(
+        workspace_root=settings.workspace_root,
+        project_slug=project_slug,
+    )
     with Session(engine) as session:
-        records = session.exec(
-            select(ReportRecord).where(ReportRecord.project_slug == project_slug)
-        ).all()
+        statement = select(ReportRecord).where(ReportRecord.project_slug == project_slug)
+        if current_wave is not None:
+            statement = statement.where(ReportRecord.wave_id == current_wave.id)
+        records = session.exec(statement).all()
 
     if not records:
         raise HTTPException(status_code=404, detail="No reports found")

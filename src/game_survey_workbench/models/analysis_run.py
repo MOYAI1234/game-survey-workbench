@@ -15,6 +15,7 @@ class AnalysisRunRecord(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     analysis_run_id: str = Field(index=True, unique=True)
     project_slug: str = Field(index=True)
+    wave_id: Optional[int] = Field(default=None, index=True)
     dataset_id: str = Field(index=True)
     status: str = "ready"
     workflow_state: dict = Field(default_factory=dict, sa_column=Column(JSON))

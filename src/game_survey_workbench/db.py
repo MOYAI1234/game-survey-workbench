@@ -77,6 +77,10 @@ def _ensure_analysisrunrecord_stage6a_columns(engine) -> None:
             connection.exec_driver_sql(
                 "UPDATE analysisrunrecord SET workflow_state = '{}' WHERE workflow_state IS NULL"
             )
+        if "wave_id" not in columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE analysisrunrecord ADD COLUMN wave_id INTEGER"
+            )
 
 
 def _ensure_questionnairespecversion_stage7_columns(engine) -> None:
@@ -124,6 +128,20 @@ def _ensure_knowledgedocument_source_format_column(engine) -> None:
             )
 
 
+def _ensure_reportrecord_wave_column(engine) -> None:
+    with engine.begin() as connection:
+        columns = {
+            row[1] for row in connection.exec_driver_sql("PRAGMA table_info(reportrecord)")
+        }
+        if not columns:
+            return
+
+        if "wave_id" not in columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE reportrecord ADD COLUMN wave_id INTEGER"
+            )
+
+
 def _ensure_knowledgedocument_index_columns(engine) -> None:
     with engine.begin() as connection:
         columns = {
@@ -156,3 +174,4 @@ def create_db_and_tables(workspace_root: Path) -> None:
     _ensure_questionnairespecversion_stage7_columns(engine)
     _ensure_knowledgedocument_source_format_column(engine)
     _ensure_knowledgedocument_index_columns(engine)
+    _ensure_reportrecord_wave_column(engine)

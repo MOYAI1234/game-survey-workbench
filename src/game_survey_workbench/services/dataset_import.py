@@ -16,6 +16,7 @@ from game_survey_workbench.models.dataset import (
     QuestionColumnSchema,
 )
 from game_survey_workbench.services.dataset_schema import classify_column
+from game_survey_workbench.services.research_waves import get_current_research_wave
 from game_survey_workbench.services.upload_contract import detect_format, parse_dual_header_dataframe
 from game_survey_workbench.services.workspace import bootstrap_workspace
 
@@ -89,6 +90,10 @@ def load_imported_dataset_dataframe(path: Path) -> pd.DataFrame:
 def import_dataset(csv_path: Path, *, project_slug: str, workspace_root: Path) -> ImportedDataset:
     bootstrap_workspace(workspace_root)
     create_db_and_tables(workspace_root)
+    current_wave = get_current_research_wave(
+        workspace_root=workspace_root,
+        project_slug=project_slug,
+    )
     parsed = parse_dual_header_dataframe(csv_path)
     dataframe = parsed.dataframe
     column_types = dict(zip(parsed.column_titles, parsed.column_types, strict=False))
@@ -153,6 +158,7 @@ def import_dataset(csv_path: Path, *, project_slug: str, workspace_root: Path) -
             AnalysisRunRecord(
                 analysis_run_id=analysis_run_id,
                 project_slug=project_slug,
+                wave_id=current_wave.id if current_wave is not None else None,
                 dataset_id=dataset_id,
                 status="ready",
             )
@@ -172,6 +178,10 @@ def import_dataset_with_overrides(
 ) -> ImportedDataset:
     bootstrap_workspace(workspace_root)
     create_db_and_tables(workspace_root)
+    current_wave = get_current_research_wave(
+        workspace_root=workspace_root,
+        project_slug=project_slug,
+    )
 
     detection = detect_format(csv_path)
     raw = _load_tabular_file(csv_path, header=None)
@@ -243,6 +253,7 @@ def import_dataset_with_overrides(
             AnalysisRunRecord(
                 analysis_run_id=analysis_run_id,
                 project_slug=project_slug,
+                wave_id=current_wave.id if current_wave is not None else None,
                 dataset_id=dataset_id,
                 status="ready",
             )
