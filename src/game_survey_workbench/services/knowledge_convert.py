@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-SUPPORTED_CONVERSION_EXTENSIONS = {".pdf", ".docx", ".pptx"}
+SUPPORTED_CONVERSION_EXTENSIONS = {".pdf", ".docx", ".pptx", ".epub"}
 
 
 @dataclass
