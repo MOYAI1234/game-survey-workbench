@@ -80,26 +80,39 @@ def test_project_nav_absent_on_knowledge_page(client: TestClient):
     assert 'class="project-nav"' not in html
 
 
-def test_workflow_links_appear_before_settings(client: TestClient):
+def test_project_settings_appear_before_wave_workspace(client: TestClient):
     client.post("/projects", json={"slug": "order-test", "name": "Order Test"})
     response = client.get("/projects/order-test")
     html = response.text
-    workflow_pos = html.find("核心工作流")
+    workflow_pos = html.find("研究轮次工作台")
     settings_pos = html.find("项目设置")
     assert workflow_pos != -1
     assert settings_pos != -1
-    assert workflow_pos < settings_pos
+    assert settings_pos < workflow_pos
 
 
-def test_data_upload_appears_before_brief(client: TestClient):
+def test_project_context_appears_before_wave_workspace(client: TestClient):
     client.post("/projects", json={"slug": "order-test2", "name": "Order Test2"})
     response = client.get("/projects/order-test2")
     html = response.text
+    brief_pos = html.find("研究简报")
+    knowledge_pos = html.find("项目知识选择")
+    wave_pos = html.find("研究轮次工作台")
+    assert brief_pos != -1
+    assert knowledge_pos != -1
+    assert wave_pos != -1
+    assert brief_pos < wave_pos
+    assert knowledge_pos < wave_pos
+
+
+def test_project_page_no_longer_shows_data_upload_form(client: TestClient):
+    client.post("/projects", json={"slug": "order-test2b", "name": "Order Test2B"})
+    response = client.get("/projects/order-test2b")
+    html = response.text
     upload_pos = html.find("上传问卷数据")
     brief_pos = html.find("研究简报")
-    assert upload_pos != -1
+    assert upload_pos == -1
     assert brief_pos != -1
-    assert upload_pos < brief_pos
 
 
 def test_project_config_in_details_element(client: TestClient):

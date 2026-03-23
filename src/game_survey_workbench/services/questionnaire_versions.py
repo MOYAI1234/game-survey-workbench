@@ -22,13 +22,15 @@ class VersionDiff:
 def list_versions(
     session: Session,
     project_slug: str,
+    wave_id: int | None = None,
 ) -> list[QuestionnaireSpecVersion]:
     """Return all questionnaire versions for a project, most recent first."""
-    statement = (
-        select(QuestionnaireSpecVersion)
-        .where(QuestionnaireSpecVersion.project_slug == project_slug)
-        .order_by(QuestionnaireSpecVersion.created_at.desc())
+    statement = select(QuestionnaireSpecVersion).where(
+        QuestionnaireSpecVersion.project_slug == project_slug
     )
+    if wave_id is not None:
+        statement = statement.where(QuestionnaireSpecVersion.wave_id == wave_id)
+    statement = statement.order_by(QuestionnaireSpecVersion.created_at.desc())
     return list(session.exec(statement).all())
 
 
@@ -37,11 +39,14 @@ def diff_versions(
     project_slug: str,
     version_id_a: str,
     version_id_b: str,
+    wave_id: int | None = None,
 ) -> VersionDiff:
     """Compute a unified diff between two questionnaire versions."""
     statement = select(QuestionnaireSpecVersion).where(
         QuestionnaireSpecVersion.project_slug == project_slug
     )
+    if wave_id is not None:
+        statement = statement.where(QuestionnaireSpecVersion.wave_id == wave_id)
     versions = {
         version.version_id: version
         for version in session.exec(statement).all()

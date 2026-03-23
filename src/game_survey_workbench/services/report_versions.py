@@ -10,14 +10,17 @@ from sqlmodel import Session, select
 from game_survey_workbench.models.reporting import ReportRecord
 
 
-def list_report_versions(session: Session, project_slug: str) -> list[ReportRecord]:
+def list_report_versions(
+    session: Session,
+    project_slug: str,
+    wave_id: int | None = None,
+) -> list[ReportRecord]:
     """Return all report records for a project, most recent first."""
 
-    statement = (
-        select(ReportRecord)
-        .where(ReportRecord.project_slug == project_slug)
-        .order_by(ReportRecord.created_at.desc())
-    )
+    statement = select(ReportRecord).where(ReportRecord.project_slug == project_slug)
+    if wave_id is not None:
+        statement = statement.where(ReportRecord.wave_id == wave_id)
+    statement = statement.order_by(ReportRecord.created_at.desc())
     return list(session.exec(statement).all())
 
 

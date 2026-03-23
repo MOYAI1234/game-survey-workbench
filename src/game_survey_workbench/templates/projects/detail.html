@@ -21,91 +21,6 @@
 </section>
 {% endif %}
 
-<section class="workflow-links">
-  <h2>核心工作流</h2>
-  <ul>
-    <li><a href="/projects/{{ project_slug }}/questionnaires/latest">问卷设计</a></li>
-    <li><a href="/projects/{{ project_slug }}/analysis/latest">数据分析</a></li>
-    <li><a href="/projects/{{ project_slug }}/reports/latest">报告生成</a></li>
-  </ul>
-</section>
-
-<section class="upload-section">
-  <h2>上传问卷数据</h2>
-  <p class="help-text">
-    上传 CSV 或 Excel 文件。文件必须使用<strong>双层表头</strong>格式：
-    第 1 行为题目名称，第 2 行为类型标记（metadata / single_choice / multi_select / free_text / scale），
-    第 3 行起为答卷数据。
-    <a href="/static/survey_import_template.csv" download>下载模板</a>
-  </p>
-  <form
-    action="/projects/{{ project_slug }}/datasets/upload-preview"
-    method="post"
-    enctype="multipart/form-data"
-  >
-    <input type="file" name="file" accept=".csv,.xlsx,.xls" required>
-    <button type="submit">导入数据</button>
-  </form>
-</section>
-
-<section class="plan-section">
-  <h2>任务计划</h2>
-  {% if plan and plan.tasks %}
-  <ul class="task-list">
-    {% for task in plan.tasks %}
-    <li class="task-{{ task.status }}">
-      {% if task.status == "done" %}✓{% else %}○{% endif %}
-      {{ task.label }}
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p class="empty-state">当前版本不会自动生成任务计划。你可以先上传知识文档、生成问卷草稿或导入数据，后续研究步骤会在这里展示。</p>
-  {% endif %}
-</section>
-
-<section class="upload-section">
-  <h2>项目知识选择</h2>
-  <p class="help-text">当前项目会从共享知识库中检索相关知识。当前共享知识文档 {{ knowledge_count }} 篇，但只有你在这里选中的文档会参与本项目的问卷、洞察和报告生成。</p>
-  <p class="help-text"><a href="/knowledge">前往共享知识库管理页</a></p>
-
-  <h3>当前已选知识</h3>
-  {% if selected_documents %}
-  <ul>
-    {% for document in selected_documents %}
-    <li>
-      <strong>{{ document.title }}</strong>
-      <span class="help-text">｜{{ document.doc_type }}</span>
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p class="empty-state">当前项目还没有选中任何知识文档。请先从下方列表中勾选。</p>
-  {% endif %}
-
-  <form action="/projects/{{ project_slug }}/knowledge-selection" method="post">
-    {% if knowledge_documents %}
-    <fieldset>
-      <legend>从共享知识库中选择本项目要使用的文档</legend>
-      {% for document in knowledge_documents %}
-      <label>
-        <input
-          type="checkbox"
-          name="knowledge_document_ids"
-          value="{{ document.id }}"
-          {% if document.id in selected_document_ids %}checked{% endif %}
-        >
-        {{ document.title }}（{{ document.doc_type }}）
-      </label>
-      {% endfor %}
-    </fieldset>
-    <button type="submit">保存项目知识选择</button>
-    {% else %}
-    <p class="empty-state">共享知识库还没有文档，请先去知识库管理页上传资料。</p>
-    {% endif %}
-  </form>
-</section>
-
 <details class="project-config" {% if not brief %}open{% endif %}>
   <summary>项目配置</summary>
 
@@ -189,4 +104,114 @@
     </form>
   </section>
 </details>
+
+<section class="upload-section">
+  <h2>项目知识选择</h2>
+  <p class="help-text">当前项目会从共享知识库中检索相关知识。当前共享知识文档 {{ knowledge_count }} 篇，但只有你在这里选中的文档会参与本项目的问卷、洞察和报告生成。</p>
+  <p class="help-text"><a href="/knowledge">前往共享知识库管理页</a></p>
+
+  <h3>当前已选知识</h3>
+  {% if selected_documents %}
+  <ul>
+    {% for document in selected_documents %}
+    <li>
+      <strong>{{ document.title }}</strong>
+      <span class="help-text">｜{{ document.doc_type }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty-state">当前项目还没有选中任何知识文档。请先从下方列表中勾选。</p>
+  {% endif %}
+
+  <form action="/projects/{{ project_slug }}/knowledge-selection" method="post">
+    {% if knowledge_documents %}
+    <fieldset>
+      <legend>从共享知识库中选择本项目要使用的文档</legend>
+      {% for document in knowledge_documents %}
+      <label>
+        <input
+          type="checkbox"
+          name="knowledge_document_ids"
+          value="{{ document.id }}"
+          {% if document.id in selected_document_ids %}checked{% endif %}
+        >
+        {{ document.title }}（{{ document.doc_type }}）
+      </label>
+      {% endfor %}
+    </fieldset>
+    <button type="submit">保存项目知识选择</button>
+    {% else %}
+    <p class="empty-state">共享知识库还没有文档，请先去知识库管理页上传资料。</p>
+    {% endif %}
+  </form>
+</section>
+
+<section class="workflow-links">
+  <h2>研究轮次工作台</h2>
+  {% if current_wave %}
+  <article>
+    <h3><a href="/projects/{{ project_slug }}/waves/{{ current_wave.id }}">{{ current_wave.name }}</a></h3>
+    {% if current_wave.goal_summary %}
+    <p class="help-text">{{ current_wave.goal_summary }}</p>
+    {% endif %}
+    <ul>
+      <li><a href="/projects/{{ project_slug }}/waves/{{ current_wave.id }}/questionnaires">问卷设计</a></li>
+      <li><a href="/projects/{{ project_slug }}/waves/{{ current_wave.id }}/analysis">数据分析</a></li>
+      <li><a href="/projects/{{ project_slug }}/waves/{{ current_wave.id }}/reports">报告生成</a></li>
+    </ul>
+  </article>
+  {% if wave_progress %}
+  <section class="wave-progress">
+    <h3>当前轮次进度</h3>
+    <ol>
+      {% for item in wave_progress %}
+      <li>
+        {{ item.label }}
+        <span class="help-text">｜{{ "已完成" if item.status == "done" else "待开始" }}</span>
+      </li>
+      {% endfor %}
+    </ol>
+  </section>
+  {% endif %}
+  {% else %}
+  <p class="empty-state">当前项目还没有研究轮次。请先新建一轮研究，再进入问卷设计、数据分析和报告生成流程。</p>
+  {% endif %}
+  <form action="/projects/{{ project_slug }}/waves/create" method="post" class="wave-form">
+    <label for="wave-name">轮次名称</label>
+    <input
+      type="text"
+      id="wave-name"
+      name="name"
+      placeholder="如：1.1 版本问卷 / 商业化专项"
+      required
+    >
+
+    <label for="wave-goal-summary">轮次目标</label>
+    <textarea
+      id="wave-goal-summary"
+      name="goal_summary"
+      rows="2"
+      placeholder="描述这一轮想验证的版本、主题或决策问题"
+    ></textarea>
+
+    <button type="submit">新建一轮研究</button>
+  </form>
+  {% if research_waves %}
+  <ul>
+    {% for wave in research_waves %}
+    <li>
+      <a href="/projects/{{ project_slug }}/waves/{{ wave.id }}">{{ wave.name }}</a>
+      {% if wave.is_current %}
+      <span class="help-text">｜当前轮次</span>
+      {% else %}
+      <form action="/projects/{{ project_slug }}/waves/{{ wave.id }}/activate" method="post">
+        <button type="submit" class="secondary">设为当前轮次</button>
+      </form>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
 {% endblock %}

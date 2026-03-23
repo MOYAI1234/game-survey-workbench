@@ -25,18 +25,25 @@ def app_client(workspace: Path, monkeypatch: pytest.MonkeyPatch):
 
 
 def test_knowledge_page_shows_source_format_badge(app_client, workspace):
+    knowledge_dir = workspace / "knowledge"
+    knowledge_dir.mkdir(parents=True, exist_ok=True)
+    pdf_markdown = knowledge_dir / "report.md"
+    pdf_markdown.write_text("---\ntitle: From PDF Report\n---\ncontent", encoding="utf-8")
+    native_markdown = knowledge_dir / "manual.md"
+    native_markdown.write_text("---\ntitle: Native Markdown\n---\ncontent", encoding="utf-8")
+
     engine = get_engine(workspace)
     with Session(engine) as session:
         session.add(
             KnowledgeDocument(
-                source_path="/knowledge/report.md",
+                source_path=str(pdf_markdown),
                 title="From PDF Report",
                 source_format="pdf",
             )
         )
         session.add(
             KnowledgeDocument(
-                source_path="/knowledge/manual.md",
+                source_path=str(native_markdown),
                 title="Native Markdown",
                 source_format=None,
             )

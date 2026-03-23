@@ -149,6 +149,7 @@ async def upload_knowledge(
             filename=filename,
             suffix=suffix,
             workspace_root=settings.workspace_root,
+            purposes=purposes,
         )
 
     if suffix not in {".md", ".txt"}:
@@ -183,7 +184,11 @@ async def upload_knowledge(
 
 
 @router.post("/knowledge/convert-preview", response_class=HTMLResponse)
-async def convert_preview(request: Request, file: UploadFile = File(...)):
+async def convert_preview(
+    request: Request,
+    file: UploadFile = File(...),
+    purposes: list[str] = Form([]),
+):
     settings = get_settings()
     filename = Path(file.filename or "uploaded.bin").name
     suffix = Path(filename).suffix.lower()
@@ -193,6 +198,7 @@ async def convert_preview(request: Request, file: UploadFile = File(...)):
         filename=filename,
         suffix=suffix,
         workspace_root=settings.workspace_root,
+        purposes=purposes,
     )
 
 
@@ -203,6 +209,7 @@ async def _handle_conversion_upload(
     filename: str,
     suffix: str,
     workspace_root: Path,
+    purposes: list[str],
 ) -> HTMLResponse:
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temporary_file:
         tmp_path = Path(temporary_file.name)
@@ -243,6 +250,7 @@ async def _handle_conversion_upload(
             "markdown_text": markdown_text,
             "quality": quality,
             "inferred_title": inferred_title,
+            "selected_purposes": purposes,
         },
     )
 

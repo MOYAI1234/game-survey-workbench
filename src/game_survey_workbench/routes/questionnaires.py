@@ -18,19 +18,23 @@ from game_survey_workbench.llm.client import (
     build_llm_client,
 )
 from game_survey_workbench.db import get_engine
-from game_survey_workbench.models.knowledge import KnowledgeDocument
 from game_survey_workbench.models.questionnaire import (
     QuestionnaireDraftRequest,
     QuestionnaireSpecVersion,
 )
 from game_survey_workbench.services.download_utils import strip_markdown
-from game_survey_workbench.services.questionnaires import generate_questionnaire_draft
-from game_survey_workbench.services.questionnaires import refine_questionnaire_draft
+from game_survey_workbench.services.questionnaires import (
+    build_provenance_cards,
+    build_questionnaire_display_markdown,
+    generate_questionnaire_draft,
+    refine_questionnaire_draft,
+)
 from game_survey_workbench.services.questionnaire_versions import (
     diff_versions,
     list_versions,
 )
 from game_survey_workbench.services.projects import get_project
+from game_survey_workbench.services.research_waves import get_current_research_wave
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
@@ -158,6 +162,7 @@ def refine_questionnaire_form(
         project_name=project.name,
         payload=save_payload,
         workspace_root=settings.workspace_root,
+        wave_id=current_version.wave_id,
         markdown_spec=refined.markdown_spec,
         citations=current_version.citations,
         retrieved_snippets=current_version.retrieved_snippets,
@@ -172,9 +177,16 @@ def refine_questionnaire_form(
 def questionnaire_detail(project_slug: str, request: Request):
     settings = get_settings()
     engine = get_engine(settings.workspace_root)
+    current_wave = get_current_research_wave(
+        workspace_root=settings.workspace_root,
+        project_slug=project_slug,
+    )
     with Session(engine) as session:
-        versions = list_versions(session, project_slug)
-        knowledge_count = len(list(session.exec(select(KnowledgeDocument)).all()))
+        versions = list_versions(
+            session,
+            project_slug,
+            wave_id=current_wave.id if current_wave is not None else None,
+        )
 
     latest = None
     if versions:
@@ -186,7 +198,18 @@ def questionnaire_detail(project_slug: str, request: Request):
         {
             "project_slug": project_slug,
             "spec": latest,
+            "current_wave": current_wave,
             "version_count": len(versions),
+            "rendered_markdown": (
+                build_questionnaire_display_markdown(latest.markdown_spec)
+                if latest is not None
+                else None
+            ),
+            "provenance_cards": (
+                build_provenance_cards(latest.retrieved_snippets)
+                if latest is not None
+                else []
+            ),
             "fallback_notice": None,
             "error_message": (
                 LLM_CONFIG_ERROR_MESSAGE
@@ -208,8 +231,16 @@ def questionnaire_history(
 ):
     settings = get_settings()
     engine = get_engine(settings.workspace_root)
+    current_wave = get_current_research_wave(
+        workspace_root=settings.workspace_root,
+        project_slug=project_slug,
+    )
     with Session(engine) as session:
-        versions = list_versions(session, project_slug)
+        versions = list_versions(
+            session,
+            project_slug,
+            wave_id=current_wave.id if current_wave is not None else None,
+        )
         version_diff = None
         if from_version and to_version:
             version_diff = diff_versions(
@@ -217,6 +248,7 @@ def questionnaire_history(
                 project_slug,
                 from_version,
                 to_version,
+                wave_id=current_wave.id if current_wave is not None else None,
             )
 
     return templates.TemplateResponse(
@@ -224,6 +256,7 @@ def questionnaire_history(
         "questionnaires/history.html",
         {
             "project_slug": project_slug,
+            "current_wave": current_wave,
             "versions": versions,
             "version_diff": version_diff,
             "from_version": from_version,

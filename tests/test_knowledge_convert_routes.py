@@ -251,3 +251,26 @@ def test_convert_confirm_persists_epub_source_format(app_client, workspace):
         document = session.exec(select(KnowledgeDocument)).first()
     assert document is not None
     assert document.source_format == "epub"
+
+
+def test_convert_preview_preserves_upload_purposes_without_reasking(app_client, workspace):
+    epub_path = _make_test_epub(workspace)
+    with open(epub_path, "rb") as handle:
+        response = app_client.post(
+            "/knowledge/upload",
+            files={
+                "file": (
+                    "methods.epub",
+                    handle,
+                    "application/epub+zip",
+                )
+            },
+            data={"purposes": ["analysis"]},
+            follow_redirects=True,
+        )
+
+    assert response.status_code == 200
+    assert 'name="purposes"' in response.text
+    assert 'type="hidden"' in response.text
+    assert "问卷分析" in response.text
+    assert 'type="checkbox"' not in response.text

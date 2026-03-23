@@ -171,6 +171,7 @@ def save_report(
     project_slug: str,
     analysis_run_id: str,
     workspace_root: Path,
+    wave_id: int | None = None,
     title: str,
     summary_points: list[str],
     sections: dict[str, list[str]],
@@ -181,6 +182,8 @@ def save_report(
 ) -> Path:
     create_db_and_tables(workspace_root)
     report_dir = workspace_root / "projects" / project_slug / "reports"
+    if wave_id is not None:
+        report_dir = report_dir / "waves" / str(wave_id)
     report_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y-%m-%d-%H%M%S")
     report_path = report_dir / f"report-{timestamp}-{uuid4().hex[:8]}.md"
@@ -203,6 +206,7 @@ def save_report(
             ReportRecord(
                 project_slug=project_slug,
                 analysis_run_id=analysis_run_id,
+                wave_id=wave_id,
                 path=str(report_path),
             )
         )

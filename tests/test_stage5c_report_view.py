@@ -1,7 +1,11 @@
 import pytest
 from fastapi.testclient import TestClient
+from sqlmodel import Session
 
 from game_survey_workbench.app import create_app
+from game_survey_workbench.db import get_engine
+from game_survey_workbench.models.reporting import ReportRecord
+from game_survey_workbench.services.research_waves import create_research_wave
 
 
 @pytest.fixture()
@@ -79,3 +83,56 @@ def test_report_latest_page_shows_content(client, project_with_report):
     html = response.text
     assert "研究报告" in html
     assert "report-content" in html or "narrative" in html.lower() or "Evidence" in html
+
+
+def test_report_latest_page_is_scoped_to_current_wave(client, tmp_path):
+    slug = "report-wave-test"
+    client.post("/projects", json={"slug": slug, "name": "Report Wave Test"})
+    wave_one = create_research_wave(
+        workspace_root=tmp_path,
+        project_slug=slug,
+        name="1.0 版本问卷",
+    )
+    wave_two = create_research_wave(
+        workspace_root=tmp_path,
+        project_slug=slug,
+        name="1.1 版本问卷",
+    )
+
+    report_dir = tmp_path / "projects" / slug / "reports"
+    report_dir.mkdir(parents=True, exist_ok=True)
+    wave_one_path = report_dir / "wave-1.md"
+    wave_one_path.write_text(
+        "# Wave 1 Report\n\n## Executive Summary\n\nWave 1 Insight",
+        encoding="utf-8",
+    )
+    wave_two_path = report_dir / "wave-2.md"
+    wave_two_path.write_text(
+        "# Wave 2 Report\n\n## Executive Summary\n\nWave 2 Insight",
+        encoding="utf-8",
+    )
+
+    engine = get_engine(tmp_path)
+    with Session(engine) as session:
+        session.add(
+            ReportRecord(
+                project_slug=slug,
+                analysis_run_id="run-1",
+                wave_id=wave_one.id,
+                path=str(wave_one_path),
+            )
+        )
+        session.add(
+            ReportRecord(
+                project_slug=slug,
+                analysis_run_id="run-2",
+                wave_id=wave_two.id,
+                path=str(wave_two_path),
+            )
+        )
+        session.commit()
+
+    response = client.get(f"/projects/{slug}/reports/latest")
+
+    assert "Wave 2 Insight" in response.text
+    assert "Wave 1 Insight" not in response.text

@@ -4,6 +4,9 @@
 <header>
   <p class="eyebrow"><a href="/projects/{{ project_slug }}">← 返回项目</a></p>
   <h1>研究报告</h1>
+  {% if current_wave %}
+  <p class="muted">当前轮次：<a href="/projects/{{ project_slug }}/waves/{{ current_wave.id }}">{{ current_wave.name }}</a></p>
+  {% endif %}
   <p><a href="/projects/{{ project_slug }}/reports/history">查看报告历史</a></p>
 </header>
 

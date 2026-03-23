@@ -90,6 +90,41 @@ def test_create_db_and_tables_backfills_knowledge_index_columns(tmp_path: Path):
     assert "chunk_count" in columns
 
 
+def test_create_db_and_tables_backfills_research_wave_table(tmp_path: Path):
+    workspace_root = tmp_path / "legacy-wave-workspace"
+    workspace_root.mkdir()
+    database_path = workspace_root / "app.db"
+
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE projectrecord (
+                slug VARCHAR PRIMARY KEY,
+                name VARCHAR NOT NULL,
+                knowledge_pack JSON NOT NULL DEFAULT '{}'
+            )
+            """
+        )
+
+    create_db_and_tables(workspace_root)
+
+    with sqlite3.connect(database_path) as connection:
+        columns = {
+            row[1] for row in connection.execute("PRAGMA table_info(researchwave)")
+        }
+
+    assert {
+        "id",
+        "project_slug",
+        "name",
+        "goal_summary",
+        "status",
+        "is_current",
+        "created_at",
+        "updated_at",
+    }.issubset(columns)
+
+
 def test_run_bat_uses_python_module_uv_entrypoint():
     script_path = Path(__file__).resolve().parents[1] / "run.bat"
     script = script_path.read_text(encoding="utf-8")

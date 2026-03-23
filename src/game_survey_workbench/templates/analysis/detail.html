@@ -4,11 +4,29 @@
 <header>
   <p class="eyebrow"><a href="/projects/{{ project_slug }}">← 返回项目</a></p>
   <h1>数据分析</h1>
+  {% if current_wave %}
+  <p class="muted">当前轮次：<a href="/projects/{{ project_slug }}/waves/{{ current_wave.id }}">{{ current_wave.name }}</a></p>
+  {% endif %}
 </header>
+
+{% if upload_error %}
+<section class="workflow-alert alert-error">
+  <strong>导入失败：</strong> {{ upload_error }}
+</section>
+{% endif %}
+
+<section class="upload-section">
+  <h2>上传问卷数据</h2>
+  <p class="help-text">上传 CSV 或 Excel 文件。文件必须使用双层表头格式：第 1 行为题目名称，第 2 行为类型标记（metadata / single_choice / multi_select / free_text / scale），第 3 行起为答卷数据。</p>
+  <form action="/projects/{{ project_slug }}/datasets/import-form" method="post" enctype="multipart/form-data">
+    <input type="file" name="file" accept=".csv,.xlsx,.xls" required>
+    <button type="submit" data-loading-text="正在导入数据…">导入数据</button>
+  </form>
+</section>
 
 {% if not run_id %}
 <p class="empty-state">
-  暂无分析记录。请先到<a href="/projects/{{ project_slug }}">项目页面</a>上传问卷数据。
+  暂无{% if current_wave %}本轮{% endif %}分析记录。请先在这里上传问卷数据。
 </p>
 {% else %}
 

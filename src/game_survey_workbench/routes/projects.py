@@ -17,11 +17,19 @@ from game_survey_workbench.services.project_knowledge import (
     replace_project_knowledge_selection,
 )
 from game_survey_workbench.services.projects import create_project, get_project
+from game_survey_workbench.services.research_waves import (
+    create_research_wave,
+    get_current_research_wave,
+    get_research_wave,
+    list_research_waves,
+    set_current_research_wave,
+)
 from game_survey_workbench.services.research_brief import (
     get_research_brief,
     save_research_brief,
 )
 from game_survey_workbench.services.task_plan import get_task_plan, save_task_plan
+from game_survey_workbench.services.workflow_state import build_wave_progress
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
@@ -73,10 +81,6 @@ def project_detail(project_slug: str, request: Request):
         project_slug=project_slug,
         workspace_root=settings.workspace_root,
     )
-    plan = get_task_plan(
-        project_slug=project_slug,
-        workspace_root=settings.workspace_root,
-    )
     engine = get_engine(settings.workspace_root)
     with Session(engine) as session:
         knowledge_documents = list(
@@ -90,6 +94,23 @@ def project_detail(project_slug: str, request: Request):
         project_slug=project_slug,
         workspace_root=settings.workspace_root,
     )
+    current_wave = get_current_research_wave(
+        workspace_root=settings.workspace_root,
+        project_slug=project_slug,
+    )
+    research_waves = list_research_waves(
+        workspace_root=settings.workspace_root,
+        project_slug=project_slug,
+    )
+    wave_progress = (
+        build_wave_progress(
+            workspace_root=settings.workspace_root,
+            project_slug=project_slug,
+            wave_id=current_wave.id,
+        )
+        if current_wave is not None
+        else []
+    )
     return templates.TemplateResponse(
         request,
         "projects/detail.html",
@@ -97,14 +118,128 @@ def project_detail(project_slug: str, request: Request):
             "project": project,
             "project_slug": project_slug,
             "brief": brief,
-            "plan": plan,
             "knowledge_count": len(knowledge_documents),
             "knowledge_documents": knowledge_documents,
             "selected_document_ids": selected_document_ids,
             "selected_documents": selected_documents,
+            "current_wave": current_wave,
+            "research_waves": research_waves,
+            "wave_progress": wave_progress,
             "upload_success": request.query_params.get("upload_success"),
             "upload_error": request.query_params.get("upload_error"),
         },
+    )
+
+
+@router.post("/projects/{project_slug}/waves/create")
+def create_wave_form(
+    project_slug: str,
+    name: str = Form(...),
+    goal_summary: str = Form(""),
+):
+    settings, _project = require_project(project_slug=project_slug)
+    wave = create_research_wave(
+        workspace_root=settings.workspace_root,
+        project_slug=project_slug,
+        name=name,
+        goal_summary=goal_summary,
+    )
+    return RedirectResponse(
+        url=f"/projects/{project_slug}/waves/{wave.id}",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
+
+
+@router.post("/projects/{project_slug}/waves/{wave_id}/activate")
+def activate_wave(project_slug: str, wave_id: int):
+    settings, _project = require_project(project_slug=project_slug)
+    try:
+        set_current_research_wave(
+            workspace_root=settings.workspace_root,
+            project_slug=project_slug,
+            wave_id=wave_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="Research wave not found") from exc
+    return RedirectResponse(
+        url=f"/projects/{project_slug}",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
+
+
+@router.get("/projects/{project_slug}/waves/{wave_id}", response_class=HTMLResponse)
+def wave_detail(project_slug: str, wave_id: int, request: Request):
+    settings, project = require_project(project_slug=project_slug)
+    wave = get_research_wave(
+        workspace_root=settings.workspace_root,
+        project_slug=project_slug,
+        wave_id=wave_id,
+    )
+    if wave is None:
+        raise HTTPException(status_code=404, detail="Research wave not found")
+    return templates.TemplateResponse(
+        request,
+        "projects/wave_detail.html",
+        {
+            "project": project,
+            "project_slug": project_slug,
+            "wave": wave,
+            "research_waves": list_research_waves(
+                workspace_root=settings.workspace_root,
+                project_slug=project_slug,
+            ),
+        },
+    )
+
+
+@router.get("/projects/{project_slug}/waves/{wave_id}/questionnaires")
+def enter_wave_questionnaires(project_slug: str, wave_id: int):
+    settings, _project = require_project(project_slug=project_slug)
+    try:
+        set_current_research_wave(
+            workspace_root=settings.workspace_root,
+            project_slug=project_slug,
+            wave_id=wave_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="Research wave not found") from exc
+    return RedirectResponse(
+        url=f"/projects/{project_slug}/questionnaires/latest",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
+
+
+@router.get("/projects/{project_slug}/waves/{wave_id}/analysis")
+def enter_wave_analysis(project_slug: str, wave_id: int):
+    settings, _project = require_project(project_slug=project_slug)
+    try:
+        set_current_research_wave(
+            workspace_root=settings.workspace_root,
+            project_slug=project_slug,
+            wave_id=wave_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="Research wave not found") from exc
+    return RedirectResponse(
+        url=f"/projects/{project_slug}/analysis/latest",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
+
+
+@router.get("/projects/{project_slug}/waves/{wave_id}/reports")
+def enter_wave_reports(project_slug: str, wave_id: int):
+    settings, _project = require_project(project_slug=project_slug)
+    try:
+        set_current_research_wave(
+            workspace_root=settings.workspace_root,
+            project_slug=project_slug,
+            wave_id=wave_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="Research wave not found") from exc
+    return RedirectResponse(
+        url=f"/projects/{project_slug}/reports/latest",
+        status_code=status.HTTP_303_SEE_OTHER,
     )
 
 

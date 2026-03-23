@@ -21,7 +21,9 @@ from game_survey_workbench.services.questionnaires import (
     build_questionnaire_markdown,
     generate_questionnaire_draft,
     load_questionnaire_prompt,
+    save_questionnaire_draft,
 )
+from game_survey_workbench.services.research_waves import create_research_wave
 
 STAGE2_CLOSEOUT_FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "stage2_closeout"
 
@@ -89,6 +91,34 @@ def test_build_questionnaire_markdown_appends_knowledge_basis_section():
 
     assert "## Knowledge Basis" in markdown
     assert "Questionnaire Principles" in markdown
+
+
+def test_save_questionnaire_draft_persists_wave_id(tmp_path: Path):
+    create_project(
+        ProjectCreate(
+            slug="returners",
+            name="Returners",
+        ),
+        workspace_root=tmp_path,
+    )
+    wave = create_research_wave(
+        workspace_root=tmp_path,
+        project_slug="returners",
+        name="1.1 版本问卷",
+    )
+
+    version = save_questionnaire_draft(
+        project_slug="returners",
+        project_name="Returners",
+        payload=QuestionnaireDraftRequest(
+            research_goal="Understand why players came back",
+        ),
+        workspace_root=tmp_path,
+        wave_id=wave.id,
+        markdown_spec="# Questionnaire Draft",
+    )
+
+    assert version.wave_id == wave.id
 
 
 def test_generate_questionnaire_draft_uses_project_retrieval_and_persists_citations(

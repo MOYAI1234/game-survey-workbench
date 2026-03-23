@@ -7,8 +7,10 @@ from pathlib import Path
 
 from sqlmodel import Session, select
 
-from game_survey_workbench.db import get_engine
+from game_survey_workbench.db import create_db_and_tables, get_engine
 from game_survey_workbench.models.analysis_run import AnalysisRunRecord
+from game_survey_workbench.models.questionnaire import QuestionnaireSpecVersion
+from game_survey_workbench.models.reporting import ReportRecord
 
 
 _TRANSITIONS: dict[str, tuple[str, str]] = {
@@ -42,6 +44,13 @@ class WorkflowState:
             completed_phases=list(data.get("completed_phases", [])),
             last_error=data.get("last_error"),
         )
+
+
+@dataclass
+class WaveProgressItem:
+    key: str
+    label: str
+    status: str
 
 
 def get_workflow_state(workflow_json: dict[str, object] | None) -> WorkflowState:
@@ -118,3 +127,70 @@ def record_workflow_event(
         session.commit()
         session.refresh(run)
         return state
+
+
+def build_wave_progress(
+    *,
+    workspace_root: Path,
+    project_slug: str,
+    wave_id: int,
+) -> list[WaveProgressItem]:
+    create_db_and_tables(workspace_root)
+    engine = get_engine(workspace_root)
+    with Session(engine) as session:
+        has_questionnaire = session.exec(
+            select(QuestionnaireSpecVersion.id).where(
+                QuestionnaireSpecVersion.project_slug == project_slug,
+                QuestionnaireSpecVersion.wave_id == wave_id,
+            )
+        ).first() is not None
+        runs = list(
+            session.exec(
+                select(AnalysisRunRecord).where(
+                    AnalysisRunRecord.project_slug == project_slug,
+                    AnalysisRunRecord.wave_id == wave_id,
+                )
+            ).all()
+        )
+        has_report = session.exec(
+            select(ReportRecord.id).where(
+                ReportRecord.project_slug == project_slug,
+                ReportRecord.wave_id == wave_id,
+            )
+        ).first() is not None
+
+    latest_run = sorted(runs, key=lambda item: item.created_at, reverse=True)[0] if runs else None
+    workflow = get_workflow_state(latest_run.workflow_state if latest_run is not None else None)
+    completed = set(workflow.completed_phases)
+
+    return [
+        WaveProgressItem(
+            key="questionnaire_draft",
+            label="问卷草稿",
+            status="done" if has_questionnaire else "pending",
+        ),
+        WaveProgressItem(
+            key="dataset_imported",
+            label="数据导入",
+            status="done" if latest_run is not None else "pending",
+        ),
+        WaveProgressItem(
+            key="coding_complete",
+            label="文本编码",
+            status="done" if "coding_complete" in completed else "pending",
+        ),
+        WaveProgressItem(
+            key="insights_complete",
+            label="洞察合成",
+            status="done" if "insights_complete" in completed else "pending",
+        ),
+        WaveProgressItem(
+            key="report_generated",
+            label="报告生成",
+            status=(
+                "done"
+                if has_report or "report_complete" in completed or workflow.current_phase == "report_generated"
+                else "pending"
+            ),
+        ),
+    ]

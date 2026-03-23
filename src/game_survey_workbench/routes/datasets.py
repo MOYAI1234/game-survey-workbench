@@ -27,6 +27,10 @@ from game_survey_workbench.services.reporting import (
     get_latest_insight_record,
     list_insight_records,
 )
+from game_survey_workbench.services.research_waves import (
+    get_current_research_wave,
+    get_research_wave,
+)
 from game_survey_workbench.services.workflow_state import get_workflow_state
 
 router = APIRouter()
@@ -79,7 +83,7 @@ async def import_dataset_form(project_slug: str, file: UploadFile = File(...)):
         dataset = await _import_uploaded_dataset(project_slug=project_slug, file=file)
     except HTTPException as exc:
         return RedirectResponse(
-            url=f"/projects/{project_slug}?upload_error={exc.detail}",
+            url=f"/projects/{project_slug}/analysis/latest?upload_error={exc.detail}",
             status_code=status.HTTP_303_SEE_OTHER,
         )
     return RedirectResponse(
@@ -150,7 +154,7 @@ async def confirm_import(project_slug: str, request: Request):
         )
     except ValueError as exc:
         return RedirectResponse(
-            url=f"/projects/{project_slug}?upload_error={exc}",
+            url=f"/projects/{project_slug}/analysis/latest?upload_error={exc}",
             status_code=status.HTTP_303_SEE_OTHER,
         )
     finally:
@@ -164,28 +168,39 @@ async def confirm_import(project_slug: str, request: Request):
 
 def _find_latest_analysis_run_id(*, project_slug: str, workspace_root: Path) -> str | None:
     engine = get_engine(workspace_root)
+    current_wave = get_current_research_wave(
+        workspace_root=workspace_root,
+        project_slug=project_slug,
+    )
     with Session(engine) as session:
-        runs = session.exec(
-            select(AnalysisRunRecord).where(AnalysisRunRecord.project_slug == project_slug)
-        ).all()
+        statement = select(AnalysisRunRecord).where(AnalysisRunRecord.project_slug == project_slug)
+        if current_wave is not None:
+            statement = statement.where(AnalysisRunRecord.wave_id == current_wave.id)
+        runs = session.exec(statement).all()
     if not runs:
         return None
     return sorted(runs, key=lambda item: item.created_at, reverse=True)[0].analysis_run_id
 
 
 def _render_analysis_detail(*, project_slug: str, analysis_run_id: str | None, request: Request):
+    settings = get_settings()
+    current_wave = get_current_research_wave(
+        workspace_root=settings.workspace_root,
+        project_slug=project_slug,
+    )
     context = {
         "project_slug": project_slug,
         "run_id": analysis_run_id,
+        "current_wave": current_wave,
         "findings": [],
         "schema": {},
         "coding_results": [],
         "insight": None,
+        "upload_error": request.query_params.get("upload_error"),
     }
     if analysis_run_id is None:
         return templates.TemplateResponse(request, "analysis/detail.html", context)
 
-    settings = get_settings()
     loaded_context = load_analysis_run_context(
         analysis_run_id=analysis_run_id,
         workspace_root=settings.workspace_root,
@@ -214,6 +229,12 @@ def _render_analysis_detail(*, project_slug: str, analysis_run_id: str | None, r
     context["workflow_phase"] = workflow.current_phase
     context["workflow_error"] = workflow.last_error
     context["workflow_completed"] = workflow.completed_phases
+    if loaded_context.analysis_run.wave_id is not None:
+        context["current_wave"] = get_research_wave(
+            workspace_root=settings.workspace_root,
+            project_slug=project_slug,
+            wave_id=loaded_context.analysis_run.wave_id,
+        )
     engine = get_engine(settings.workspace_root)
     with Session(engine) as session:
         knowledge_count = len(list(session.exec(select(KnowledgeDocument)).all()))

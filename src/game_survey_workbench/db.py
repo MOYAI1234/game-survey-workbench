@@ -11,6 +11,7 @@ from game_survey_workbench.models import analysis_run as _analysis_run_models
 from game_survey_workbench.models import analysis as _analysis_models
 from game_survey_workbench.models import insight as _insight_models
 from game_survey_workbench.models import research_brief as _research_brief_models
+from game_survey_workbench.models import research_wave as _research_wave_models
 from game_survey_workbench.models import reporting as _reporting_models
 from game_survey_workbench.models import task_plan as _task_plan_models
 from game_survey_workbench.models import text_coding as _text_coding_models
@@ -76,6 +77,10 @@ def _ensure_analysisrunrecord_stage6a_columns(engine) -> None:
             connection.exec_driver_sql(
                 "UPDATE analysisrunrecord SET workflow_state = '{}' WHERE workflow_state IS NULL"
             )
+        if "wave_id" not in columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE analysisrunrecord ADD COLUMN wave_id INTEGER"
+            )
 
 
 def _ensure_questionnairespecversion_stage7_columns(engine) -> None:
@@ -103,6 +108,11 @@ def _ensure_questionnairespecversion_stage7_columns(engine) -> None:
                 "UPDATE questionnairespecversion SET retrieved_snippets = '[]' WHERE retrieved_snippets IS NULL"
             )
 
+        if "wave_id" not in columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE questionnairespecversion ADD COLUMN wave_id INTEGER"
+            )
+
 
 def _ensure_knowledgedocument_source_format_column(engine) -> None:
     with engine.begin() as connection:
@@ -115,6 +125,20 @@ def _ensure_knowledgedocument_source_format_column(engine) -> None:
         if "source_format" not in columns:
             connection.exec_driver_sql(
                 "ALTER TABLE knowledgedocument ADD COLUMN source_format VARCHAR"
+            )
+
+
+def _ensure_reportrecord_wave_column(engine) -> None:
+    with engine.begin() as connection:
+        columns = {
+            row[1] for row in connection.exec_driver_sql("PRAGMA table_info(reportrecord)")
+        }
+        if not columns:
+            return
+
+        if "wave_id" not in columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE reportrecord ADD COLUMN wave_id INTEGER"
             )
 
 
@@ -150,3 +174,4 @@ def create_db_and_tables(workspace_root: Path) -> None:
     _ensure_questionnairespecversion_stage7_columns(engine)
     _ensure_knowledgedocument_source_format_column(engine)
     _ensure_knowledgedocument_index_columns(engine)
+    _ensure_reportrecord_wave_column(engine)

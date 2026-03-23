@@ -38,10 +38,20 @@
     </select>
 
     <fieldset>
-      <legend>适用阶段（可多选）</legend>
-      <label><input type="checkbox" name="purposes" value="questionnaire_design"> 问卷设计</label>
-      <label><input type="checkbox" name="purposes" value="analysis"> 问卷分析</label>
-      <label><input type="checkbox" name="purposes" value="reporting"> 报告写作</label>
+      <legend>适用阶段</legend>
+      {% if selected_purposes %}
+      {% for purpose in selected_purposes %}
+      <input type="hidden" name="purposes" value="{{ purpose }}">
+      {% endfor %}
+      <p class="help-text">
+        {% for purpose in selected_purposes %}
+        {% if purpose == "questionnaire_design" %}问卷设计{% elif purpose == "analysis" %}问卷分析{% elif purpose == "reporting" %}报告写作{% else %}{{ purpose }}{% endif %}{% if not loop.last %}、{% endif %}
+        {% endfor %}
+      </p>
+      <p class="help-text">上传时已选择这些用途，如需修改请返回上一步重新上传。</p>
+      {% else %}
+      <p class="help-text">本次未选择适用阶段，入库后将作为通用知识文档处理。</p>
+      {% endif %}
     </fieldset>
 
     <button type="submit">确认入库</button>
