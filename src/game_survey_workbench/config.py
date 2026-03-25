@@ -10,6 +10,7 @@ class Settings:
     llm_model: str | None
     llm_api_key: str | None
     llm_base_url: str | None
+    text_coding_model: str | None = None
     embedding_api_key: str | None = None
     embedding_base_url: str = "https://api.openai.com/v1"
     embedding_model: str = "text-embedding-3-small"
@@ -39,6 +40,7 @@ def get_settings() -> Settings:
         llm_model=os.getenv("GAME_SURVEY_WORKBENCH_LLM_MODEL"),
         llm_api_key=os.getenv("GAME_SURVEY_WORKBENCH_LLM_API_KEY"),
         llm_base_url=os.getenv("GAME_SURVEY_WORKBENCH_LLM_BASE_URL"),
+        text_coding_model=os.getenv("GAME_SURVEY_WORKBENCH_TEXT_CODING_MODEL"),
         embedding_api_key=os.getenv("GAME_SURVEY_WORKBENCH_EMBEDDING_API_KEY"),
         embedding_base_url=os.getenv(
             "GAME_SURVEY_WORKBENCH_EMBEDDING_BASE_URL",

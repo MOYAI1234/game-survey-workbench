@@ -9,7 +9,7 @@ from game_survey_workbench.errors import (
 )
 from game_survey_workbench.llm.client import (
     MissingLLMConfigurationError,
-    build_llm_client,
+    build_text_coding_client,
 )
 from game_survey_workbench.models.analysis_run import get_analysis_run
 from game_survey_workbench.models.dataset import QuestionColumnSchema
@@ -57,7 +57,7 @@ def code_text_route(
         raise HTTPException(status_code=404, detail="Analysis run not found")
 
     try:
-        client = build_llm_client(settings)
+        client = build_text_coding_client(settings)
         responses = load_free_text_responses_for_question(
             analysis_run_id=analysis_run_id,
             question_column=payload.question_column,
@@ -105,7 +105,7 @@ def code_text_all(project_slug: str, analysis_run_id: str):
         raise HTTPException(status_code=404, detail="Analysis run not found")
 
     try:
-        client = build_llm_client(settings)
+        client = build_text_coding_client(settings)
         context = load_analysis_run_context(
             analysis_run_id=analysis_run_id,
             workspace_root=settings.workspace_root,

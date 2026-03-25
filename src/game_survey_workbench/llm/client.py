@@ -88,13 +88,14 @@ class OpenAICompatibleLLMClient:
         raise RuntimeError("OpenAI-compatible response did not include output_text.")
 
 
-def build_llm_client(settings: Settings) -> LLMClient:
+def build_llm_client(settings: Settings, *, model_override: str | None = None) -> LLMClient:
     if settings.llm_provider == "fake":
         return FakeLLMClient()
 
+    effective_model = model_override or settings.llm_model
     if (
         not settings.llm_provider
-        or not settings.llm_model
+        or not effective_model
         or not settings.llm_api_key
         or not settings.llm_base_url
     ):
@@ -102,11 +103,18 @@ def build_llm_client(settings: Settings) -> LLMClient:
 
     if settings.llm_provider == "openai_compatible":
         return OpenAICompatibleLLMClient(
-            model=settings.llm_model,
+            model=effective_model,
             api_key=settings.llm_api_key,
             base_url=settings.llm_base_url,
         )
 
     raise MissingLLMConfigurationError(
         f"Unsupported LLM provider: {settings.llm_provider}"
+    )
+
+
+def build_text_coding_client(settings: Settings) -> LLMClient:
+    return build_llm_client(
+        settings,
+        model_override=settings.text_coding_model,
     )

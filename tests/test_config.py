@@ -13,6 +13,7 @@ def test_get_settings_reads_embedding_runtime_configuration(monkeypatch, tmp_pat
     monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_MODEL", "gpt-4.1-mini")
     monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_API_KEY", "test-key")
     monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_BASE_URL", "https://example.com/v1")
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_TEXT_CODING_MODEL", "Qwen/Qwen3.5-35B-A3B")
     monkeypatch.setenv("GAME_SURVEY_WORKBENCH_EMBEDDING_API_KEY", "embed-key")
     monkeypatch.setenv("GAME_SURVEY_WORKBENCH_EMBEDDING_BASE_URL", "https://embeddings.example.com/v1")
     monkeypatch.setenv("GAME_SURVEY_WORKBENCH_EMBEDDING_MODEL", "text-embedding-3-large")
@@ -26,6 +27,7 @@ def test_get_settings_reads_embedding_runtime_configuration(monkeypatch, tmp_pat
     assert settings.llm_model == "gpt-4.1-mini"
     assert settings.llm_api_key == "test-key"
     assert settings.llm_base_url == "https://example.com/v1"
+    assert settings.text_coding_model == "Qwen/Qwen3.5-35B-A3B"
     assert settings.embedding_api_key == "embed-key"
     assert settings.embedding_base_url == "https://embeddings.example.com/v1"
     assert settings.embedding_model == "text-embedding-3-large"

@@ -261,3 +261,70 @@ def test_code_text_route_degrades_without_knowledge(tmp_path: Path, monkeypatch)
     payload = response.json()
     assert payload["themes"][0]["theme_name"] == "Boredom"
     assert payload["citations"] == []
+
+
+def test_code_text_route_uses_dedicated_text_coding_model(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT", str(tmp_path))
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_PROVIDER", "openai_compatible")
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_MODEL", "general-model")
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_TEXT_CODING_MODEL", "Qwen/Qwen3.5-35B-A3B")
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_API_KEY", "test-key")
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_BASE_URL", "https://example.com/v1")
+
+    captured: dict[str, str] = {}
+
+    def fake_generate(self, prompt: str) -> str:
+        captured["model"] = self.model
+        return (
+            '{"themes": [{"theme_name": "Boredom", "count": 2, '
+            '"example_responses": ["got bored", "nothing to do"]}], "uncoded_count": 0}'
+        )
+
+    monkeypatch.setattr(OpenAICompatibleLLMClient, "generate", fake_generate)
+
+    source = tmp_path / "churn.md"
+    source.write_text(
+        "---\n"
+        "title: Churn Framework\n"
+        "doc_type: theory\n"
+        "stage:\n"
+        "  - analysis\n"
+        "---\n"
+        "Boredom and difficulty are the top churn drivers.\n",
+        encoding="utf-8",
+    )
+    ingest_knowledge_file(source, project_root=tmp_path)
+
+    client = TestClient(create_app())
+    client.post(
+        "/projects",
+        json={
+            "slug": "coding-model-test",
+            "name": "Coding Model Test",
+            "knowledge_pack": {},
+        },
+    )
+    replace_project_knowledge_selection(
+        workspace_root=tmp_path,
+        project_slug="coding-model-test",
+        knowledge_document_ids=[1],
+    )
+
+    dataset = client.post(
+        "/projects/coding-model-test/datasets/import",
+        files={
+            "file": (
+                "dataset.csv",
+                "Q1,Why did you leave?\nmetadata,free_text\n1,got bored\n2,nothing to do\n",
+                "text/csv",
+            )
+        },
+    ).json()
+
+    response = client.post(
+        f"/projects/coding-model-test/analysis/{dataset['analysis_run_id']}/code-text",
+        json={"question_column": "Why did you leave?"},
+    )
+
+    assert response.status_code == 201
+    assert captured["model"] == "Qwen/Qwen3.5-35B-A3B"

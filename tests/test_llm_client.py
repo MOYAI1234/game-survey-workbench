@@ -6,6 +6,7 @@ from game_survey_workbench.llm.client import (
     MissingLLMConfigurationError,
     OpenAICompatibleLLMClient,
     build_llm_client,
+    build_text_coding_client,
 )
 
 
@@ -34,6 +35,38 @@ def test_build_llm_client_returns_openai_compatible_client():
     client = build_llm_client(settings)
 
     assert client.__class__.__name__ == "OpenAICompatibleLLMClient"
+
+
+def test_build_text_coding_client_prefers_dedicated_model_override():
+    settings = Settings(
+        workspace_root="workspace",
+        llm_provider="openai_compatible",
+        llm_model="demo-model",
+        llm_api_key="test-key",
+        llm_base_url="https://example.com/v1",
+        text_coding_model="Qwen/Qwen3.5-35B-A3B",
+    )
+
+    client = build_text_coding_client(settings)
+
+    assert isinstance(client, OpenAICompatibleLLMClient)
+    assert client.model == "Qwen/Qwen3.5-35B-A3B"
+
+
+def test_build_text_coding_client_falls_back_to_default_model():
+    settings = Settings(
+        workspace_root="workspace",
+        llm_provider="openai_compatible",
+        llm_model="demo-model",
+        llm_api_key="test-key",
+        llm_base_url="https://example.com/v1",
+        text_coding_model=None,
+    )
+
+    client = build_text_coding_client(settings)
+
+    assert isinstance(client, OpenAICompatibleLLMClient)
+    assert client.model == "demo-model"
 
 
 def test_openai_compatible_client_posts_prompt_and_returns_text(monkeypatch):
