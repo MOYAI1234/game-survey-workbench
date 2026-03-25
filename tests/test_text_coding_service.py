@@ -291,3 +291,46 @@ def test_code_open_text_column_uses_single_call_for_small_datasets(tmp_path: Pat
 
     assert mock_client.generate.call_count == 1
     assert result.themes
+
+
+def test_code_open_text_column_defaults_to_at_most_20_citations(tmp_path: Path):
+    for index in range(25):
+        source = tmp_path / f"coding-{index}.md"
+        source.write_text(
+            "---\n"
+            f"title: Coding Theory {index}\n"
+            "doc_type: theory\n"
+            "stage:\n"
+            "  - analysis\n"
+            "---\n"
+            f"Stress coding note {index}.\n",
+            encoding="utf-8",
+        )
+        ingest_knowledge_file(source, project_root=tmp_path)
+
+    create_project(
+        ProjectCreate(
+            slug="coding-study",
+            name="Coding Study",
+            knowledge_pack={},
+        ),
+        workspace_root=tmp_path,
+    )
+    replace_project_knowledge_selection(
+        workspace_root=tmp_path,
+        project_slug="coding-study",
+        knowledge_document_ids=list(range(1, 26)),
+    )
+
+    result = code_open_text_column(
+        project_slug="coding-study",
+        analysis_run_id="run-1",
+        question_column="What feels stressful?",
+        responses=["Resource pressure", "Bankruptcy feels punishing"],
+        workspace_root=tmp_path,
+        client=FakeLLMClient(
+            '{"themes": [{"theme_name": "Pressure", "count": 2, "example_responses": ["Resource pressure", "Bankruptcy feels punishing"]}], "uncoded_count": 0}'
+        ),
+    )
+
+    assert len(result.citations) == 20

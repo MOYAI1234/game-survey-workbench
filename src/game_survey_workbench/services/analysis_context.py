@@ -53,7 +53,10 @@ def load_analysis_run_context(*, analysis_run_id: str, workspace_root: Path) -> 
     if dataset_record is None:
         raise ValueError("Dataset record not found.")
 
-    dataframe = load_imported_dataset_dataframe(Path(dataset_record.source_path))
+    dataframe = load_imported_dataset_dataframe(
+        Path(dataset_record.source_path),
+        format_type=dataset_record.format_type,
+    )
     return AnalysisRunContext(
         analysis_run=analysis_run,
         dataset_record=dataset_record,

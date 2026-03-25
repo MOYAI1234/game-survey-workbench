@@ -13,6 +13,7 @@ from game_survey_workbench.errors import (
 )
 from game_survey_workbench.llm.client import LLMClient
 from game_survey_workbench.models.insight import InsightRecord
+from game_survey_workbench.retrieval.store import DEFAULT_PROJECT_KNOWLEDGE_TOP_K
 from game_survey_workbench.services.knowledge_ingest import retrieve_project_knowledge
 from game_survey_workbench.services.project_knowledge import (
     list_selected_knowledge_document_ids,
@@ -154,7 +155,7 @@ def generate_analysis_insights(
     coded_themes: list[str | dict],
     workspace_root: Path,
     client: LLMClient,
-    top_k: int = 10,
+    top_k: int = DEFAULT_PROJECT_KNOWLEDGE_TOP_K,
     crosstab_findings: list[str | dict] | None = None,
     matrix_findings: list[str | dict] | None = None,
     ranking_findings: list[str | dict] | None = None,

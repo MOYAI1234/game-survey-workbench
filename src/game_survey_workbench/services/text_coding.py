@@ -12,6 +12,7 @@ from game_survey_workbench.errors import (
 )
 from game_survey_workbench.llm.client import LLMClient
 from game_survey_workbench.models.text_coding import CodingResult
+from game_survey_workbench.retrieval.store import DEFAULT_PROJECT_KNOWLEDGE_TOP_K
 from game_survey_workbench.services.analysis_context import NoFreeTextResponsesFoundError
 from game_survey_workbench.services.knowledge_ingest import retrieve_project_knowledge
 from game_survey_workbench.services.projects import get_project
@@ -114,7 +115,7 @@ def code_open_text_column(
     responses: list[str],
     workspace_root: Path,
     client: LLMClient,
-    top_k: int = 10,
+    top_k: int = DEFAULT_PROJECT_KNOWLEDGE_TOP_K,
 ) -> CodingResult:
     clean_responses = [response.strip() for response in responses if response and response.strip()]
     if not clean_responses:
@@ -194,7 +195,7 @@ def _code_single_batch(
     responses: list[str],
     workspace_root: Path,
     client: LLMClient,
-    top_k: int = 10,
+    top_k: int = DEFAULT_PROJECT_KNOWLEDGE_TOP_K,
 ) -> CodingResult:
     snippets = retrieve_project_knowledge(
         workspace_root=workspace_root,

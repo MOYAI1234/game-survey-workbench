@@ -164,6 +164,24 @@ def _ensure_knowledgedocument_index_columns(engine) -> None:
             )
 
 
+def _ensure_datasetrecord_stage7b_columns(engine) -> None:
+    with engine.begin() as connection:
+        columns = {
+            row[1] for row in connection.exec_driver_sql("PRAGMA table_info(datasetrecord)")
+        }
+        if not columns:
+            return
+
+        if "format_type" not in columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE datasetrecord ADD COLUMN format_type VARCHAR"
+            )
+        if "column_overrides_json" not in columns:
+            connection.exec_driver_sql(
+                "ALTER TABLE datasetrecord ADD COLUMN column_overrides_json JSON"
+            )
+
+
 def create_db_and_tables(workspace_root: Path) -> None:
     bootstrap_workspace(workspace_root)
     engine = get_engine(workspace_root)
@@ -175,3 +193,4 @@ def create_db_and_tables(workspace_root: Path) -> None:
     _ensure_knowledgedocument_source_format_column(engine)
     _ensure_knowledgedocument_index_columns(engine)
     _ensure_reportrecord_wave_column(engine)
+    _ensure_datasetrecord_stage7b_columns(engine)

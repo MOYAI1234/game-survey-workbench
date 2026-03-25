@@ -122,3 +122,41 @@ def test_retrieve_project_knowledge_forwards_top_k_limit(tmp_path: Path):
     )
 
     assert len(results) == 2
+
+
+def test_retrieve_project_knowledge_defaults_to_at_most_20_results(tmp_path: Path):
+    for index in range(25):
+        source = tmp_path / f"guide-{index}.md"
+        source.write_text(
+            "---\n"
+            f"title: Guide {index}\n"
+            "doc_type: guide\n"
+            "stage:\n"
+            "  - design\n"
+            "---\n"
+            f"Use satisfaction diagnostics for version feedback {index}.\n",
+            encoding="utf-8",
+        )
+        ingest_knowledge_file(source, project_root=tmp_path)
+
+    create_project(
+        ProjectCreate(
+            slug="demo",
+            name="Demo",
+        ),
+        workspace_root=tmp_path,
+    )
+    replace_project_knowledge_selection(
+        workspace_root=tmp_path,
+        project_slug="demo",
+        knowledge_document_ids=list(range(1, 26)),
+    )
+
+    results = retrieve_project_knowledge(
+        workspace_root=tmp_path,
+        project_slug="demo",
+        query="version satisfaction feedback",
+        stages=["design"],
+    )
+
+    assert len(results) == 20

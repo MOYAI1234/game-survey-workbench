@@ -18,6 +18,7 @@ from game_survey_workbench.retrieval.embeddings import (
 )
 from game_survey_workbench.retrieval.chunking import ChunkResult, split_markdown
 from game_survey_workbench.retrieval.store import (
+    DEFAULT_PROJECT_KNOWLEDGE_TOP_K,
     ChromaVectorStore,
     LocalVectorStore,
     StoredChunk,
@@ -366,7 +367,7 @@ def retrieve_project_knowledge(
     project_slug: str,
     query: str,
     stages: list[str] | None = None,
-    top_k: int | None = None,
+    top_k: int | None = DEFAULT_PROJECT_KNOWLEDGE_TOP_K,
 ) -> list[dict]:
     project = get_project(workspace_root=workspace_root, project_slug=project_slug)
     if project is None:
@@ -384,7 +385,8 @@ def retrieve_project_knowledge(
         query=query,
         selected_document_titles=[document.title for document in selected_documents],
         task_stages=stages or [],
-        top_domain_k=top_k or 5,
+        top_method_k=top_k or DEFAULT_PROJECT_KNOWLEDGE_TOP_K,
+        top_domain_k=top_k or DEFAULT_PROJECT_KNOWLEDGE_TOP_K,
     )
     return results[:top_k] if top_k is not None else results
 

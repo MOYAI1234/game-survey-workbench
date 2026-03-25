@@ -278,3 +278,45 @@ def test_generate_analysis_insights_with_realistic_fixture_persists_visible_evid
 
     assert result.evidence_section.startswith("## Evidence Basis")
     assert "Live Ops Survey Design Guide" in result.evidence_section or "Free-Text Interpretation Notes" in result.evidence_section
+
+
+def test_generate_analysis_insights_defaults_to_at_most_20_citations(tmp_path: Path):
+    for index in range(25):
+        source = tmp_path / f"analysis-{index}.md"
+        source.write_text(
+            "---\n"
+            f"title: Analysis Theory {index}\n"
+            "doc_type: theory\n"
+            "stage:\n"
+            "  - analysis\n"
+            "---\n"
+            f"Satisfaction and pressure findings {index}.\n",
+            encoding="utf-8",
+        )
+        ingest_knowledge_file(source, project_root=tmp_path)
+
+    create_project(
+        ProjectCreate(
+            slug="insight-study",
+            name="Insight Study",
+            knowledge_pack={},
+        ),
+        workspace_root=tmp_path,
+    )
+    replace_project_knowledge_selection(
+        workspace_root=tmp_path,
+        project_slug="insight-study",
+        knowledge_document_ids=list(range(1, 26)),
+    )
+
+    result = generate_analysis_insights(
+        project_slug="insight-study",
+        analysis_run_id="run-1",
+        research_goal="Understand satisfaction and stress drivers",
+        statistical_findings=["Pressure score is elevated."],
+        coded_themes=[{"theme_name": "Pressure", "count": 6}],
+        workspace_root=tmp_path,
+        client=FakeLLMClient("Pressure and reward friction dominate."),
+    )
+
+    assert len(result.citations) == 20

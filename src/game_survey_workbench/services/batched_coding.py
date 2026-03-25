@@ -11,6 +11,7 @@ from sqlmodel import Session, select
 from game_survey_workbench.db import create_db_and_tables, get_engine
 from game_survey_workbench.llm.client import LLMClient
 from game_survey_workbench.models.coding_job import CodingBatch, CodingJob
+from game_survey_workbench.retrieval.store import DEFAULT_PROJECT_KNOWLEDGE_TOP_K
 from game_survey_workbench.services.knowledge_ingest import retrieve_project_knowledge
 from game_survey_workbench.services.text_coding import (
     build_coding_context,
@@ -97,7 +98,7 @@ def run_coding_job(
     workspace_root: Path,
     job_id: int,
     client: LLMClient,
-    top_k: int = 10,
+    top_k: int = DEFAULT_PROJECT_KNOWLEDGE_TOP_K,
 ) -> None:
     engine = get_engine(workspace_root)
 

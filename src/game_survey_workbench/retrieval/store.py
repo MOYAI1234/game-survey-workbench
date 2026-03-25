@@ -10,6 +10,8 @@ from typing import Any
 
 from game_survey_workbench.retrieval.chunking import ChunkResult
 
+DEFAULT_PROJECT_KNOWLEDGE_TOP_K = 20
+
 
 @dataclass
 class StoredChunk:
@@ -109,8 +111,8 @@ class LocalVectorStore:
         *,
         selected_document_titles: list[str],
         task_stages: list[str],
-        top_method_k: int = 3,
-        top_domain_k: int = 5,
+        top_method_k: int = DEFAULT_PROJECT_KNOWLEDGE_TOP_K,
+        top_domain_k: int = DEFAULT_PROJECT_KNOWLEDGE_TOP_K,
     ) -> list[dict]:
         selected_titles = set(selected_document_titles)
         if not selected_titles:
@@ -283,8 +285,8 @@ class ChromaVectorStore:
         *,
         selected_document_titles: list[str],
         task_stages: list[str],
-        top_method_k: int = 3,
-        top_domain_k: int = 5,
+        top_method_k: int = DEFAULT_PROJECT_KNOWLEDGE_TOP_K,
+        top_domain_k: int = DEFAULT_PROJECT_KNOWLEDGE_TOP_K,
     ) -> list[dict]:
         if not selected_document_titles:
             return []

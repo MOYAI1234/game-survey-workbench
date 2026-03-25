@@ -79,10 +79,12 @@ def _load_tabular_file(path: Path, *, header: int | None = 0) -> pd.DataFrame:
     raise ValueError(f"Unsupported dataset format: {path.suffix}")
 
 
-def load_imported_dataset_dataframe(path: Path) -> pd.DataFrame:
+def load_imported_dataset_dataframe(path: Path, *, format_type: str | None = None) -> pd.DataFrame:
     raw = _load_tabular_file(path, header=None)
     column_titles = raw.iloc[0].fillna("").astype(str).tolist()
-    dataframe = raw.iloc[2:].copy()
+    effective_format = format_type or detect_format(path).format_type
+    start_row = 2 if effective_format == "dual_header" else 1
+    dataframe = raw.iloc[start_row:].copy()
     dataframe.columns = column_titles
     return dataframe.reset_index(drop=True)
 
