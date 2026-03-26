@@ -18,6 +18,7 @@ from game_survey_workbench.services.projects import create_project
 from game_survey_workbench.services.text_coding import (
     build_coding_context,
     code_open_text_column,
+    code_open_text_column_with_status,
     load_coding_prompt,
     parse_coding_response,
 )
@@ -78,6 +79,83 @@ def test_parse_coding_response_extracts_themes():
 def test_parse_coding_response_raises_typed_error_on_invalid_json():
     with pytest.raises(CodingResponseFormatError):
         parse_coding_response("not-json")
+
+
+def test_parse_coding_response_extracts_json_from_markdown_code_fence():
+    raw = (
+        "这里是归纳结果：\n"
+        "```json\n"
+        '{"themes": [{"theme_name": "Boredom", "count": 2, "example_responses": ["got bored"]}], "uncoded_count": 0}\n'
+        "```"
+    )
+
+    result = parse_coding_response(raw)
+
+    assert result["themes"][0]["theme_name"] == "Boredom"
+    assert result["themes"][0]["count"] == 2
+
+
+def test_parse_coding_response_extracts_first_json_object_from_explanatory_text():
+    raw = (
+        "Below is the coding result.\n\n"
+        '{"themes": [{"theme_name": "Ads", "count": 3, "example_responses": ["too many ads"]}], "uncoded_count": 1}\n\n'
+        "Hope this helps."
+    )
+
+    result = parse_coding_response(raw)
+
+    assert result["themes"][0]["theme_name"] == "Ads"
+    assert result["uncoded_count"] == 1
+
+
+def test_parse_coding_response_normalizes_string_numbers_and_single_example_string():
+    raw = (
+        '{"themes": [{"theme_name": "Rewards", "count": "12", "example_responses": "low rewards"}]}'
+    )
+
+    result = parse_coding_response(raw)
+
+    assert result["themes"] == [
+        {
+            "theme_name": "Rewards",
+            "count": 12,
+            "example_responses": ["low rewards"],
+        }
+    ]
+    assert result["uncoded_count"] == 0
+
+
+def test_parse_coding_response_salvages_complete_themes_from_truncated_json():
+    raw = (
+        '{\n'
+        '  "themes": [\n'
+        '    {"theme_name": "Coins", "count": 12, "example_responses": ["no coins"]},\n'
+        '    {"theme_name": "Ads", "count": 5, "example_responses": ["too many ads"]},\n'
+        '    {"theme_name": "Bugs", "count": 2, "example_responses": ["game crashed"]}\n'
+        '  ,\n'
+        '  "uncoded_count"'
+    )
+
+    result = parse_coding_response(raw)
+
+    assert result["themes"] == [
+        {
+            "theme_name": "Coins",
+            "count": 12,
+            "example_responses": ["no coins"],
+        },
+        {
+            "theme_name": "Ads",
+            "count": 5,
+            "example_responses": ["too many ads"],
+        },
+        {
+            "theme_name": "Bugs",
+            "count": 2,
+            "example_responses": ["game crashed"],
+        },
+    ]
+    assert result["uncoded_count"] == 0
 
 
 def test_code_open_text_column_retrieves_knowledge_and_persists_result(tmp_path: Path):
@@ -249,7 +327,7 @@ def test_code_open_text_column_uses_batched_path_for_large_datasets(tmp_path: Pa
     mock_client.generate.return_value = (
         '{"themes": [{"theme_name": "Positive", "count": 5, "example_responses": ["good"]}], "uncoded_count": 0}'
     )
-    responses = [f"response {index}" for index in range(200)]
+    responses = [f"response {index}" for index in range(201)]
 
     result = code_open_text_column(
         project_slug="demo",
@@ -334,3 +412,135 @@ def test_code_open_text_column_defaults_to_at_most_20_citations(tmp_path: Path):
     )
 
     assert len(result.citations) == 20
+
+
+def test_code_open_text_column_with_status_reports_partial_for_failed_batches(tmp_path: Path):
+    create_project(
+        ProjectCreate(
+            slug="demo",
+            name="Demo",
+            knowledge_pack={"doc_types": ["theory"], "scenarios": ["churn"]},
+        ),
+        workspace_root=tmp_path,
+    )
+
+    mock_client = MagicMock()
+    mock_client.generate.side_effect = [
+        '{"themes": [{"theme_name": "Theme A", "count": 3, "example_responses": ["a"]}], "uncoded_count": 0}',
+        Exception("API error"),
+        Exception("API error"),
+        Exception("API error"),
+    ]
+    responses = [f"response {index}" for index in range(260)]
+
+    result, execution_status = code_open_text_column_with_status(
+        project_slug="demo",
+        analysis_run_id="run-1",
+        question_column="Q1",
+        responses=responses,
+        workspace_root=tmp_path,
+        client=mock_client,
+    )
+
+    assert execution_status == "partial"
+    assert result.themes
+
+
+def test_code_open_text_column_uses_single_call_when_unique_responses_fit_in_batch(
+    tmp_path: Path,
+):
+    create_project(
+        ProjectCreate(
+            slug="demo",
+            name="Demo",
+            knowledge_pack={"doc_types": ["theory"], "scenarios": ["churn"]},
+        ),
+        workspace_root=tmp_path,
+    )
+
+    mock_client = MagicMock()
+    mock_client.generate.return_value = (
+        '{"themes": [{"theme_name": "Positive", "count": 2, "example_responses": ["same response"]}], "uncoded_count": 0}'
+    )
+    responses = ["same response" for _ in range(200)]
+
+    result, execution_status = code_open_text_column_with_status(
+        project_slug="demo",
+        analysis_run_id="run-1",
+        question_column="Q1",
+        responses=responses,
+        workspace_root=tmp_path,
+        client=mock_client,
+    )
+
+    assert execution_status == "done"
+    assert mock_client.generate.call_count == 1
+    assert result.themes == [
+        {
+            "theme_name": "Positive",
+            "count": 2,
+            "example_responses": ["same response"],
+        }
+    ]
+
+
+def test_code_open_text_column_uses_single_call_for_exactly_120_unique_responses(
+    tmp_path: Path,
+):
+    create_project(
+        ProjectCreate(
+            slug="demo",
+            name="Demo",
+            knowledge_pack={"doc_types": ["theory"], "scenarios": ["churn"]},
+        ),
+        workspace_root=tmp_path,
+    )
+
+    mock_client = MagicMock()
+    mock_client.generate.return_value = (
+        '{"themes": [{"theme_name": "Positive", "count": 5, "example_responses": ["good"]}], "uncoded_count": 0}'
+    )
+    responses = [f"response {index}" for index in range(120)]
+
+    result = code_open_text_column(
+        project_slug="demo",
+        analysis_run_id="run-1",
+        question_column="Q1",
+        responses=responses,
+        workspace_root=tmp_path,
+        client=mock_client,
+    )
+
+    assert mock_client.generate.call_count == 1
+    assert result.themes
+
+
+def test_code_open_text_column_uses_batched_path_for_121_unique_responses(
+    tmp_path: Path,
+):
+    create_project(
+        ProjectCreate(
+            slug="demo",
+            name="Demo",
+            knowledge_pack={"doc_types": ["theory"], "scenarios": ["churn"]},
+        ),
+        workspace_root=tmp_path,
+    )
+
+    mock_client = MagicMock()
+    mock_client.generate.return_value = (
+        '{"themes": [{"theme_name": "Positive", "count": 5, "example_responses": ["good"]}], "uncoded_count": 0}'
+    )
+    responses = [f"response {index}" for index in range(121)]
+
+    result = code_open_text_column(
+        project_slug="demo",
+        analysis_run_id="run-1",
+        question_column="Q1",
+        responses=responses,
+        workspace_root=tmp_path,
+        client=mock_client,
+    )
+
+    assert mock_client.generate.call_count > 1
+    assert result.themes

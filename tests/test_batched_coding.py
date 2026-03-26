@@ -2,7 +2,12 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import httpx
+from sqlmodel import Session, select
+
+from game_survey_workbench.db import get_engine
 from game_survey_workbench.db import create_db_and_tables
+from game_survey_workbench.models.coding_job import CodingBatch
 from game_survey_workbench.models.project import ProjectCreate
 from game_survey_workbench.services.batched_coding import (
     create_coding_job,
@@ -125,3 +130,48 @@ def test_run_coding_job_handles_batch_failure_gracefully(tmp_path: Path):
     assert status["status"] == "partial"
     assert status["completed_batches"] == 1
     assert status["failed_batches"] == 1
+
+
+def test_run_coding_job_does_not_retry_dns_resolution_errors(tmp_path: Path):
+    create_db_and_tables(tmp_path)
+    create_project(ProjectCreate(slug="demo", name="Demo"), workspace_root=tmp_path)
+    responses = [f"response {i}" for i in range(160)]
+    mock_client = MagicMock()
+    mock_client.generate.side_effect = [
+        httpx.ConnectError(
+            "[Errno 11001] getaddrinfo failed",
+            request=httpx.Request("POST", "https://example.com/v1/chat/completions"),
+        ),
+        _fake_llm_response(),
+    ]
+
+    job, _batches = create_coding_job(
+        workspace_root=tmp_path,
+        project_slug="demo",
+        analysis_run_id="run-1",
+        question_column="Q1",
+        responses=responses,
+        batch_size=80,
+    )
+
+    run_coding_job(
+        workspace_root=tmp_path,
+        job_id=job.id,
+        client=mock_client,
+    )
+
+    status = get_coding_job_status(workspace_root=tmp_path, job_id=job.id)
+    engine = get_engine(tmp_path)
+    with Session(engine) as session:
+        failed_batch = session.exec(
+            select(CodingBatch).where(
+                CodingBatch.job_id == job.id,
+                CodingBatch.batch_index == 0,
+            )
+        ).one()
+
+    assert status["status"] == "partial"
+    assert status["completed_batches"] == 1
+    assert status["failed_batches"] == 1
+    assert mock_client.generate.call_count == 2
+    assert failed_batch.retry_count == 0

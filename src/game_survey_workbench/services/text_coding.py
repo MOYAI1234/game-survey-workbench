@@ -54,14 +54,22 @@ def parse_coding_response(raw_output: str) -> dict:
     try:
         payload = json.loads(raw_output)
     except json.JSONDecodeError as exc:
-        raise CodingResponseFormatError("LLM coding response was not valid JSON.") from exc
+        try:
+            payload = _extract_json_object(raw_output)
+        except json.JSONDecodeError as nested_exc:
+            raise CodingResponseFormatError("LLM coding response was not valid JSON.") from nested_exc
 
     themes = payload.get("themes")
     if not isinstance(themes, list):
-        raise CodingResponseFormatError("LLM coding response must include a themes list.")
+        salvaged_payload = _salvage_truncated_themes_payload(raw_output)
+        if salvaged_payload is not None:
+            payload = salvaged_payload
+            themes = payload["themes"]
+        else:
+            raise CodingResponseFormatError("LLM coding response must include a themes list.")
 
-    uncoded_count = payload.get("uncoded_count", 0)
-    if not isinstance(uncoded_count, int):
+    uncoded_count = _coerce_int(payload.get("uncoded_count", 0))
+    if uncoded_count is None:
         raise CodingResponseFormatError("LLM coding response uncoded_count must be an integer.")
 
     normalized_themes: list[dict] = []
@@ -70,15 +78,13 @@ def parse_coding_response(raw_output: str) -> dict:
             raise CodingResponseFormatError("Each coded theme must be an object.")
 
         theme_name = theme.get("theme_name")
-        count = theme.get("count")
-        example_responses = theme.get("example_responses")
+        count = _coerce_int(theme.get("count"))
+        example_responses = _normalize_example_responses(theme.get("example_responses"))
         if not isinstance(theme_name, str) or not theme_name.strip():
             raise CodingResponseFormatError("Each coded theme must include a non-empty theme_name.")
-        if not isinstance(count, int):
+        if count is None:
             raise CodingResponseFormatError("Each coded theme must include an integer count.")
-        if not isinstance(example_responses, list) or not all(
-            isinstance(response, str) for response in example_responses
-        ):
+        if example_responses is None:
             raise CodingResponseFormatError(
                 "Each coded theme must include example_responses as a list of strings."
             )
@@ -93,6 +99,109 @@ def parse_coding_response(raw_output: str) -> dict:
 
     return {
         "themes": normalized_themes,
+        "uncoded_count": uncoded_count,
+    }
+
+
+def _extract_json_object(raw_output: str) -> dict:
+    candidate = raw_output.strip()
+    if "```" in candidate:
+        candidate = candidate.replace("```json", "```").replace("```JSON", "```")
+        segments = candidate.split("```")
+        for segment in segments:
+            stripped = segment.strip()
+            if not stripped:
+                continue
+            try:
+                return json.loads(stripped)
+            except json.JSONDecodeError:
+                continue
+
+    decoder = json.JSONDecoder()
+    for index, char in enumerate(candidate):
+        if char != "{":
+            continue
+        try:
+            payload, _end = decoder.raw_decode(candidate[index:])
+        except json.JSONDecodeError:
+            continue
+        if isinstance(payload, dict):
+            return payload
+    raise json.JSONDecodeError("No JSON object found", raw_output, 0)
+
+
+def _coerce_int(value: object) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        stripped = value.strip()
+        if stripped.isdigit():
+            return int(stripped)
+    return None
+
+
+def _normalize_example_responses(value: object) -> list[str] | None:
+    if isinstance(value, str):
+        stripped = value.strip()
+        return [stripped] if stripped else []
+    if isinstance(value, list) and all(isinstance(response, str) for response in value):
+        return value
+    return None
+
+
+def _salvage_truncated_themes_payload(raw_output: str) -> dict | None:
+    themes_key_index = raw_output.find('"themes"')
+    if themes_key_index == -1:
+        return None
+
+    list_start = raw_output.find("[", themes_key_index)
+    if list_start == -1:
+        return None
+
+    decoder = json.JSONDecoder()
+    cursor = list_start + 1
+    themes: list[dict] = []
+    length = len(raw_output)
+
+    while cursor < length:
+        while cursor < length and raw_output[cursor] in " \t\r\n,":
+            cursor += 1
+        if cursor >= length:
+            break
+        if raw_output[cursor] == "]":
+            break
+        if raw_output[cursor] != "{":
+            break
+        try:
+            theme, offset = decoder.raw_decode(raw_output[cursor:])
+        except json.JSONDecodeError:
+            break
+        if isinstance(theme, dict):
+            themes.append(theme)
+        cursor += offset
+
+    if not themes:
+        return None
+
+    uncoded_count = 0
+    marker = raw_output.find('"uncoded_count"')
+    if marker != -1:
+        colon = raw_output.find(":", marker)
+        if colon != -1:
+            digits: list[str] = []
+            for char in raw_output[colon + 1 :]:
+                if char.isdigit():
+                    digits.append(char)
+                    continue
+                if digits:
+                    break
+            if digits:
+                uncoded_count = int("".join(digits))
+
+    return {
+        "themes": themes,
         "uncoded_count": uncoded_count,
     }
 
@@ -117,6 +226,28 @@ def code_open_text_column(
     client: LLMClient,
     top_k: int = DEFAULT_PROJECT_KNOWLEDGE_TOP_K,
 ) -> CodingResult:
+    result, _execution_status = code_open_text_column_with_status(
+        project_slug=project_slug,
+        analysis_run_id=analysis_run_id,
+        question_column=question_column,
+        responses=responses,
+        workspace_root=workspace_root,
+        client=client,
+        top_k=top_k,
+    )
+    return result
+
+
+def code_open_text_column_with_status(
+    *,
+    project_slug: str,
+    analysis_run_id: str,
+    question_column: str,
+    responses: list[str],
+    workspace_root: Path,
+    client: LLMClient,
+    top_k: int = DEFAULT_PROJECT_KNOWLEDGE_TOP_K,
+) -> tuple[CodingResult, str]:
     clean_responses = [response.strip() for response in responses if response and response.strip()]
     if not clean_responses:
         raise NoFreeTextResponsesFoundError(f"No free-text responses found for '{question_column}'.")
@@ -128,19 +259,25 @@ def code_open_text_column(
     from game_survey_workbench.services.batched_coding import (
         DEFAULT_BATCH_SIZE,
         create_coding_job,
+        deduplicate_responses,
         get_coding_job_status,
         run_coding_job,
     )
 
-    if len(clean_responses) <= DEFAULT_BATCH_SIZE:
-        return _code_single_batch(
-            project_slug=project_slug,
-            analysis_run_id=analysis_run_id,
-            question_column=question_column,
-            responses=clean_responses,
-            workspace_root=workspace_root,
-            client=client,
-            top_k=top_k,
+    unique_responses, _mapping = deduplicate_responses(clean_responses)
+
+    if len(unique_responses) <= DEFAULT_BATCH_SIZE:
+        return (
+            _code_single_batch(
+                project_slug=project_slug,
+                analysis_run_id=analysis_run_id,
+                question_column=question_column,
+                responses=clean_responses,
+                workspace_root=workspace_root,
+                client=client,
+                top_k=top_k,
+            ),
+            "done",
         )
 
     job, _batches = create_coding_job(
@@ -184,7 +321,10 @@ def code_open_text_column(
         ),
         citations=snippets,
     )
-    return save_coding_result(workspace_root=workspace_root, result=result)
+    return (
+        save_coding_result(workspace_root=workspace_root, result=result),
+        str(status.get("status", "failed")),
+    )
 
 
 def _code_single_batch(

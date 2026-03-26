@@ -95,12 +95,26 @@
 
 <section class="coding-section">
   <h2>文本编码结果</h2>
+  {% if has_free_text_questions %}
+  <div
+    id="coding-progress-shell"
+    class="workflow-alert"
+    data-coding-status-url="{{ coding_status_url }}"
+    hidden
+  >
+    <strong id="coding-progress-text">正在准备文本编码任务…</strong>
+    <progress id="coding-progress-bar" value="0" max="100">0%</progress>
+    <p class="help-text" id="coding-progress-meta">已完成 0/0 个批次</p>
+  </div>
+  {% endif %}
   {% if coding_fallback_notice %}
   <section class="workflow-alert alert-success">
     <strong>{{ coding_fallback_notice }}</strong>
   </section>
   {% endif %}
-  {% if coding_results %}
+  {% if not has_free_text_questions %}
+  <p class="empty-state">当前数据中没有开放题，无需执行文本编码。</p>
+  {% elif coding_results %}
     {% for result in coding_results %}
     <article>
       <h3>{{ result.question_column }}</h3>
@@ -118,8 +132,8 @@
     {% endfor %}
   {% else %}
   <p class="empty-state">尚未执行文本编码。</p>
-  <form action="/projects/{{ project_slug }}/analysis/latest/code-text-all" method="post">
-    <button type="submit" data-loading-text="正在编码…">执行文本编码（所有开放题）</button>
+  <form action="./code-text-all/start" method="post">
+    <button type="submit" data-loading-text="正在启动编码…">执行文本编码（所有开放题）</button>
   </form>
   <p class="help-text">系统将使用 LLM 对所有 free_text 类型的题目进行主题编码。</p>
   {% endif %}
@@ -194,5 +208,71 @@
   </form>
   <p class="help-text"><a href="/projects/{{ project_slug }}/reports/latest">查看最新报告</a></p>
 </section>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+{% if has_free_text_questions and coding_status_url %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const shell = document.getElementById("coding-progress-shell");
+  if (!shell) return;
+
+  const textEl = document.getElementById("coding-progress-text");
+  const barEl = document.getElementById("coding-progress-bar");
+  const metaEl = document.getElementById("coding-progress-meta");
+  const statusUrl = shell.dataset.codingStatusUrl;
+  let timerId = null;
+
+  function renderStatus(payload) {
+    if (!payload) return;
+
+    const progressValue = Number(payload.progress_percent || 0);
+    const status = payload.status || "idle";
+    const shouldShow = status !== "idle";
+    shell.hidden = !shouldShow;
+    textEl.textContent = payload.status_text || "尚未开始文本编码。";
+    barEl.value = progressValue;
+    metaEl.textContent =
+      "开放题 " +
+      (payload.completed_questions || 0) +
+      "/" +
+      (payload.total_questions || 0) +
+      "，批次 " +
+      (payload.completed_batches || 0) +
+      "/" +
+      (payload.total_batches || 0) +
+      "，回答 " +
+      (payload.coded_responses || 0) +
+      "/" +
+      (payload.total_responses || 0);
+
+    if (payload.polling) {
+      if (timerId === null) {
+        timerId = window.setTimeout(fetchStatus, 3000);
+      }
+    } else if (status === "complete") {
+      window.setTimeout(function () {
+        window.location.reload();
+      }, 1200);
+    }
+  }
+
+  function fetchStatus() {
+    timerId = null;
+    fetch(statusUrl, { headers: { Accept: "application/json" } })
+      .then(function (response) {
+        if (!response.ok) throw new Error("status fetch failed");
+        return response.json();
+      })
+      .then(renderStatus)
+      .catch(function () {
+        shell.hidden = false;
+        textEl.textContent = "暂时无法刷新文本编码状态，请稍后手动刷新页面。";
+      });
+  }
+
+  fetchStatus();
+});
+</script>
 {% endif %}
 {% endblock %}

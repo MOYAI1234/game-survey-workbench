@@ -14,6 +14,9 @@ def test_get_settings_reads_embedding_runtime_configuration(monkeypatch, tmp_pat
     monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_API_KEY", "test-key")
     monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_BASE_URL", "https://example.com/v1")
     monkeypatch.setenv("GAME_SURVEY_WORKBENCH_TEXT_CODING_MODEL", "Qwen/Qwen3.5-35B-A3B")
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_TEXT_CODING_TIMEOUT_SECONDS", "120")
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_TEXT_CODING_REQUEST_MODE", "chat_completions")
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_TEXT_CODING_MAX_WORKERS", "2")
     monkeypatch.setenv("GAME_SURVEY_WORKBENCH_EMBEDDING_API_KEY", "embed-key")
     monkeypatch.setenv("GAME_SURVEY_WORKBENCH_EMBEDDING_BASE_URL", "https://embeddings.example.com/v1")
     monkeypatch.setenv("GAME_SURVEY_WORKBENCH_EMBEDDING_MODEL", "text-embedding-3-large")
@@ -28,6 +31,9 @@ def test_get_settings_reads_embedding_runtime_configuration(monkeypatch, tmp_pat
     assert settings.llm_api_key == "test-key"
     assert settings.llm_base_url == "https://example.com/v1"
     assert settings.text_coding_model == "Qwen/Qwen3.5-35B-A3B"
+    assert settings.text_coding_timeout_seconds == 120.0
+    assert settings.text_coding_request_mode == "chat_completions"
+    assert settings.text_coding_max_workers == 2
     assert settings.embedding_api_key == "embed-key"
     assert settings.embedding_base_url == "https://embeddings.example.com/v1"
     assert settings.embedding_model == "text-embedding-3-large"

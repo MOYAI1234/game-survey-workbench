@@ -195,6 +195,8 @@ def _render_analysis_detail(*, project_slug: str, analysis_run_id: str | None, r
         "findings": [],
         "schema": {},
         "coding_results": [],
+        "has_free_text_questions": False,
+        "coding_status_url": None,
         "insight": None,
         "upload_error": request.query_params.get("upload_error"),
     }
@@ -213,6 +215,11 @@ def _render_analysis_detail(*, project_slug: str, analysis_run_id: str | None, r
         workspace_root=settings.workspace_root,
     )
     context["schema"] = loaded_context.dataset_record.dataset_schema
+    context["has_free_text_questions"] = any(
+        isinstance(payload, dict) and payload.get("question_type") == "free_text"
+        for payload in context["schema"].values()
+    )
+    context["coding_status_url"] = "./coding-status"
     context["coding_results"] = get_coding_results(
         analysis_run_id=analysis_run_id,
         workspace_root=settings.workspace_root,

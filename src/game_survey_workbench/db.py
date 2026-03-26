@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from sqlalchemy import event
 from sqlmodel import SQLModel, create_engine
 
 from game_survey_workbench.models import knowledge as _knowledge_models
@@ -21,7 +22,22 @@ from game_survey_workbench.services.workspace import bootstrap_workspace
 
 def get_engine(workspace_root: Path):
     database_path = workspace_root / "app.db"
-    return create_engine(f"sqlite:///{database_path}")
+    engine = create_engine(
+        f"sqlite:///{database_path}",
+        connect_args={
+            "check_same_thread": False,
+            "timeout": 30,
+        },
+    )
+
+    @event.listens_for(engine, "connect")
+    def _configure_sqlite_connection(dbapi_connection, _connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA busy_timeout=30000")
+        cursor.close()
+
+    return engine
 
 
 def _ensure_projectrecord_stage3a_columns(engine) -> None:

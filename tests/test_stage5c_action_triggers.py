@@ -88,3 +88,13 @@ def test_latest_insights_route_uses_latest_analysis_run(client, project_with_ana
 
     assert response.status_code == 303
     assert response.headers["location"] == f"/projects/{slug}/analysis/latest"
+
+
+def test_analysis_detail_shows_text_coding_status_shell(client, project_with_analysis):
+    slug, run_id = project_with_analysis
+
+    response = client.get(f"/projects/{slug}/analysis/{run_id}")
+
+    assert response.status_code == 200
+    assert 'data-coding-status-url=' in response.text
+    assert 'coding-progress-shell' in response.text

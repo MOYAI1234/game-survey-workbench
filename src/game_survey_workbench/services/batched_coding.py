@@ -6,6 +6,7 @@ import time
 from datetime import UTC, datetime
 from pathlib import Path
 
+import httpx
 from sqlmodel import Session, select
 
 from game_survey_workbench.db import create_db_and_tables, get_engine
@@ -19,7 +20,7 @@ from game_survey_workbench.services.text_coding import (
     parse_coding_response,
 )
 
-DEFAULT_BATCH_SIZE = 80
+DEFAULT_BATCH_SIZE = 120
 MAX_RETRIES = 2
 
 
@@ -217,7 +218,7 @@ def _run_single_batch(
                 session.commit()
             return
         except Exception as exc:
-            if attempt < MAX_RETRIES:
+            if attempt < MAX_RETRIES and _should_retry_batch_error(exc):
                 time.sleep(2**attempt)
                 with Session(engine) as session:
                     batch_record = session.exec(select(CodingBatch).where(CodingBatch.id == batch.id)).first()
@@ -237,6 +238,14 @@ def _run_single_batch(
                 session.add(batch_record)
                 session.commit()
             return
+
+
+def _should_retry_batch_error(exc: Exception) -> bool:
+    if isinstance(exc, httpx.ConnectError):
+        message = str(exc).lower()
+        if "getaddrinfo failed" in message:
+            return False
+    return True
 
 
 def get_coding_job_status(*, workspace_root: Path, job_id: int) -> dict:

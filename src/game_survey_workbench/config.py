@@ -11,6 +11,9 @@ class Settings:
     llm_api_key: str | None
     llm_base_url: str | None
     text_coding_model: str | None = None
+    text_coding_timeout_seconds: float = 90.0
+    text_coding_request_mode: str = "chat_completions"
+    text_coding_max_workers: int = 1
     embedding_api_key: str | None = None
     embedding_base_url: str = "https://api.openai.com/v1"
     embedding_model: str = "text-embedding-3-small"
@@ -34,6 +37,8 @@ def get_settings() -> Settings:
         os.getenv("GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT", "workspace")
     )
     embedding_dimensions = os.getenv("GAME_SURVEY_WORKBENCH_EMBEDDING_DIMENSIONS")
+    text_coding_timeout = os.getenv("GAME_SURVEY_WORKBENCH_TEXT_CODING_TIMEOUT_SECONDS")
+    text_coding_max_workers = os.getenv("GAME_SURVEY_WORKBENCH_TEXT_CODING_MAX_WORKERS")
     return Settings(
         workspace_root=workspace_root,
         llm_provider=os.getenv("GAME_SURVEY_WORKBENCH_LLM_PROVIDER"),
@@ -41,6 +46,12 @@ def get_settings() -> Settings:
         llm_api_key=os.getenv("GAME_SURVEY_WORKBENCH_LLM_API_KEY"),
         llm_base_url=os.getenv("GAME_SURVEY_WORKBENCH_LLM_BASE_URL"),
         text_coding_model=os.getenv("GAME_SURVEY_WORKBENCH_TEXT_CODING_MODEL"),
+        text_coding_timeout_seconds=float(text_coding_timeout) if text_coding_timeout else 90.0,
+        text_coding_request_mode=os.getenv(
+            "GAME_SURVEY_WORKBENCH_TEXT_CODING_REQUEST_MODE",
+            "chat_completions",
+        ),
+        text_coding_max_workers=int(text_coding_max_workers) if text_coding_max_workers else 1,
         embedding_api_key=os.getenv("GAME_SURVEY_WORKBENCH_EMBEDDING_API_KEY"),
         embedding_base_url=os.getenv(
             "GAME_SURVEY_WORKBENCH_EMBEDDING_BASE_URL",
