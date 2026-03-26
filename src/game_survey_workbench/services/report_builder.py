@@ -393,12 +393,12 @@ def _build_bar(value: float) -> str:
 
 def _extract_reference_title(line: str) -> str | None:
     stripped = line.strip()
-    if not stripped or stripped.startswith("## "):
+    if not stripped or stripped.startswith("## ") or not stripped.startswith("- "):
         return None
     normalized = stripped.removeprefix("- ").strip()
     normalized = normalized.strip("*").strip()
     if ":" in normalized:
-        normalized = normalized.split(":", 1)[0].strip()
+        return normalized.split(":", 1)[0].strip() or None
     if "：" in normalized:
-        normalized = normalized.split("：", 1)[0].strip()
+        return normalized.split("：", 1)[0].strip() or None
     return normalized or None
