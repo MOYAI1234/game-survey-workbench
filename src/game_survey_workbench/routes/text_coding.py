@@ -62,6 +62,18 @@ def start_code_text_all_latest(project_slug: str):
     return start_code_text_all(project_slug=project_slug, analysis_run_id=latest_run_id)
 
 
+@router.get("/projects/{project_slug}/analysis/latest/coding-status")
+def coding_status_latest(project_slug: str):
+    settings = get_settings()
+    latest_run_id = _find_latest_analysis_run_id(
+        project_slug=project_slug,
+        workspace_root=settings.workspace_root,
+    )
+    if latest_run_id is None:
+        raise HTTPException(status_code=404, detail="Analysis run not found")
+    return coding_status(project_slug=project_slug, analysis_run_id=latest_run_id)
+
+
 @router.post(
     "/projects/{project_slug}/analysis/{analysis_run_id}/code-text",
     status_code=status.HTTP_201_CREATED,

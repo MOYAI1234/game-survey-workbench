@@ -450,3 +450,65 @@ def test_coding_status_route_returns_aggregated_progress(tmp_path: Path, monkeyp
     assert payload["coded_responses"] == 240
     assert payload["total_responses"] == 360
     assert payload["polling"] is True
+
+
+def test_latest_coding_status_route_uses_latest_analysis_run(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT", str(tmp_path))
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_LLM_PROVIDER", "fake")
+
+    client = TestClient(create_app())
+    client.post(
+        "/projects",
+        json={"slug": "status-latest", "name": "Status Latest"},
+    )
+    dataset = client.post(
+        "/projects/status-latest/datasets/import",
+        files={
+            "file": (
+                "dataset.csv",
+                (
+                    "Q1_Feedback,Q2_Feedback\n"
+                    "free_text,free_text\n"
+                    "good,fun\n"
+                    "bad,boring\n"
+                ),
+                "text/csv",
+            )
+        },
+    ).json()
+
+    engine = get_engine(tmp_path)
+    with Session(engine) as session:
+        job_one = CodingJob(
+            project_slug="status-latest",
+            analysis_run_id=dataset["analysis_run_id"],
+            question_column="Q1_Feedback",
+            status="done",
+            total_responses=120,
+            coded_responses=120,
+            batch_size=120,
+        )
+        job_two = CodingJob(
+            project_slug="status-latest",
+            analysis_run_id=dataset["analysis_run_id"],
+            question_column="Q2_Feedback",
+            status="done",
+            total_responses=120,
+            coded_responses=120,
+            batch_size=120,
+        )
+        session.add(job_one)
+        session.add(job_two)
+        session.commit()
+        session.refresh(job_one)
+        session.refresh(job_two)
+        session.add(CodingBatch(job_id=job_one.id, batch_index=0, status="done", input_texts_json=["a"]))
+        session.add(CodingBatch(job_id=job_two.id, batch_index=0, status="done", input_texts_json=["b"]))
+        session.commit()
+
+    response = client.get("/projects/status-latest/analysis/latest/coding-status")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "complete"
+    assert payload["completed_questions"] == 2

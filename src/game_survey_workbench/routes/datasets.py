@@ -219,7 +219,7 @@ def _render_analysis_detail(*, project_slug: str, analysis_run_id: str | None, r
         isinstance(payload, dict) and payload.get("question_type") == "free_text"
         for payload in context["schema"].values()
     )
-    context["coding_status_url"] = "./coding-status"
+    context["coding_status_url"] = f"/projects/{project_slug}/analysis/latest/coding-status"
     context["coding_results"] = get_coding_results(
         analysis_run_id=analysis_run_id,
         workspace_root=settings.workspace_root,
