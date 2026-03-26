@@ -52,7 +52,7 @@ def _setup_project_with_brief_and_dataset(client: TestClient, tmp_path: Path) ->
     return response.json()["analysis_run_id"]
 
 
-def test_structured_report_has_methodology_section(client: TestClient, tmp_path: Path):
+def test_structured_report_uses_business_report_sections(client: TestClient, tmp_path: Path):
     run_id = _setup_project_with_brief_and_dataset(client, tmp_path)
 
     response = client.post(
@@ -63,7 +63,14 @@ def test_structured_report_has_methodology_section(client: TestClient, tmp_path:
     report_path = Path(response.json()["path"])
     content = report_path.read_text(encoding="utf-8")
 
-    assert "## 研究方法" in content
+    assert "## 一页摘要" in content
+    assert "## 核心洞察" in content
+    assert "## 关键图表说明" in content
+    assert "## 建议动作" in content
+    assert "## 参考来源" in content
+    assert "## 研究方法" not in content
+    assert "## 统计发现" not in content
+    assert "## 定性主题" not in content
 
 
 def test_structured_report_includes_brief_context(client: TestClient, tmp_path: Path):
@@ -78,3 +85,4 @@ def test_structured_report_includes_brief_context(client: TestClient, tmp_path: 
     content = report_path.read_text(encoding="utf-8")
 
     assert "satisfaction study" in content.lower() or "churn risk" in content.lower()
+    assert "## 核心洞察" in content

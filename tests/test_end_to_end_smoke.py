@@ -99,17 +99,17 @@ def test_end_to_end_flow_creates_report(client, seeded_workspace, monkeypatch):
     assert "## Evidence Basis" not in insights["narrative"]
     assert insights["evidence_section"].startswith("## Evidence Basis")
     assert "Churn" in insights["citations"][0]["document_title"] or insights["citations"]
-    assert report_markdown.count("## 证据基础") == 1
+    assert report_markdown.count("## 参考来源") == 1
     assert "Boredom emerged as the dominant churn factor" in report_markdown
     assert "Client-controlled insight should not appear." not in report_markdown
 
 
-def test_stage2_closeout_flow_produces_coding_insight_and_single_report_evidence_section():
+def test_stage2_closeout_flow_produces_coding_insight_and_single_report_reference_section():
     results = run_stage2_closeout_assessment()
 
     assert Path(results["QUESTIONNAIRE_PATH"]).exists()
     assert results["QUESTIONNAIRE_HAS_KNOWLEDGE_BASIS"] is True
     assert results["CODING_THEMES_PRESENT"] is True
     assert results["INSIGHT_EVIDENCE_PRESENT"] is True
-    assert results["REPORT_EVIDENCE_SECTION_COUNT"] == 1
+    assert results["REPORT_REFERENCE_SECTION_COUNT"] == 1
     assert Path(results["REPORT_PATH"]).exists()

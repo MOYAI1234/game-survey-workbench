@@ -15,11 +15,11 @@ def test_report_sections_use_chinese_titles_when_language_is_zh():
     )
     sections = registry.ordered_sections()
     titles = [section.title for section in sections]
-    assert "执行摘要" in titles
-    assert "研究方法" in titles
-    assert "统计发现" in titles
-    assert "分析叙述" in titles
-    assert "行动建议" in titles
+    assert "一页摘要" in titles
+    assert "核心洞察" in titles
+    assert "关键图表说明" in titles
+    assert "建议动作" in titles
+    assert "参考来源" in titles
 
 
 def test_report_sections_use_english_titles_when_language_is_en():
@@ -36,7 +36,10 @@ def test_report_sections_use_english_titles_when_language_is_en():
     sections = registry.ordered_sections()
     titles = [section.title for section in sections]
     assert "Executive Summary" in titles
-    assert "Methodology" in titles
+    assert "Business Insights" in titles
+    assert "Chart Callouts" in titles
+    assert "Recommendations" in titles
+    assert "References" in titles
 
 
 def test_report_sections_default_to_chinese_when_language_omitted():
@@ -51,7 +54,7 @@ def test_report_sections_default_to_chinese_when_language_omitted():
     )
     sections = registry.ordered_sections()
     titles = [section.title for section in sections]
-    assert "执行摘要" in titles
+    assert "一页摘要" in titles
 
 
 def test_assembled_report_markdown_contains_chinese_headings():
@@ -70,6 +73,6 @@ def test_assembled_report_markdown_contains_chinese_headings():
         date="2026-03-19",
         registry=registry,
     )
-    assert "## 执行摘要" in markdown
-    assert "## 研究方法" in markdown
-    assert "## 行动建议" in markdown
+    assert "## 一页摘要" in markdown
+    assert "## 核心洞察" in markdown
+    assert "## 建议动作" in markdown
