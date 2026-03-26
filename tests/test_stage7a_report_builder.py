@@ -134,6 +134,7 @@ def test_builder_folds_findings_and_themes_into_business_insights():
     assert "Reward frustration" in insights.content
     assert "统计发现" not in insights.content
     assert "定性主题" not in insights.content
+    assert "业务关注点" not in insights.content
 
 
 def test_builder_creates_chart_callouts_from_statistical_findings():
@@ -141,8 +142,8 @@ def test_builder_creates_chart_callouts_from_statistical_findings():
         brief=None,
         dataset_meta={"row_count": 100, "question_count": 5, "question_types": {}},
         statistical_findings=[
-            "Top-box satisfaction dropped from 62% to 48%.",
-            "Ad dislike was highest among 14+ day users.",
+            "How much time do you spend in Bravo Bingo each day?: top choice '1~2 hours' (939 responses, 45.7%)",
+            "To get resources, where do you check most frequently in the game?: most selected item 'Daily Check-In' (524 selections)",
         ],
         coded_themes=[],
         insight_narrative=None,
@@ -153,7 +154,40 @@ def test_builder_creates_chart_callouts_from_statistical_findings():
     chart_callouts = registry.get("chart_callouts")
 
     assert chart_callouts is not None
-    assert "Top-box" in chart_callouts.content or "62%" in chart_callouts.content
+    assert "图表 1" in chart_callouts.content
+    assert "最高选择为" in chart_callouts.content
+    assert "████" in chart_callouts.content
+
+
+def test_builder_localizes_findings_and_themes_for_chinese_report():
+    registry = build_report_sections(
+        brief=None,
+        dataset_meta={"row_count": 100, "question_count": 5, "question_types": {}},
+        statistical_findings=[
+            "How much time do you spend in Bravo Bingo each day?: top choice '1~2 hours' (939 responses, 45.7%)",
+            "Satisfaction: mean 4.100; Top box 78.0%",
+        ],
+        coded_themes=[
+            {
+                "theme_name": "Lack of in-game currency (coins/chips) to play",
+                "count": 31,
+                "example_responses": ["not enough coins"],
+            }
+        ],
+        insight_narrative="Players remain engaged but resource pressure is building.",
+        evidence_section=None,
+        recommendations=[],
+    )
+
+    summary = registry.get("executive_summary")
+    insights = registry.get("business_insights")
+
+    assert summary is not None
+    assert "最高选择为" in summary.content
+    assert "平均分为" in summary.content
+    assert insights is not None
+    assert "缺少游戏内货币" in insights.content
+    assert "Lack of in-game currency" not in insights.content
 
 
 def test_builder_creates_recommendations_section():
@@ -193,3 +227,26 @@ def test_builder_moves_evidence_into_concise_references():
     assert references is not None
     assert "Churn Framework" in references.content
     assert "Evidence Basis" not in references.content
+
+
+def test_builder_deduplicates_chunk_level_references_into_document_titles():
+    registry = build_report_sections(
+        brief=None,
+        dataset_meta={"row_count": 100, "question_count": 5, "question_types": {}},
+        statistical_findings=[],
+        coded_themes=[],
+        insight_narrative=None,
+        evidence_section=(
+            "## Evidence Basis\n"
+            "- **用户运营方法论**: chunk 1 内容\n"
+            "- **用户运营方法论**: chunk 2 内容\n"
+            "- **奖励设计指南**: chunk A 内容"
+        ),
+        recommendations=[],
+    )
+
+    references = registry.get("references")
+
+    assert references is not None
+    assert references.content.count("用户运营方法论") == 1
+    assert "chunk 1 内容" not in references.content
