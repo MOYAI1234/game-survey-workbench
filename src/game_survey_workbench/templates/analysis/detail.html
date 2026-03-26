@@ -222,6 +222,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const metaEl = document.getElementById("coding-progress-meta");
   const statusUrl = shell.dataset.codingStatusUrl;
   let timerId = null;
+  let sawPolling = false;
 
   function renderStatus(payload) {
     if (!payload) return;
@@ -247,10 +248,12 @@ document.addEventListener("DOMContentLoaded", function () {
       (payload.total_responses || 0);
 
     if (payload.polling) {
+      sawPolling = true;
       if (timerId === null) {
         timerId = window.setTimeout(fetchStatus, 3000);
       }
-    } else if (status === "complete") {
+    } else if (status === "complete" && sawPolling) {
+      sawPolling = false;
       window.setTimeout(function () {
         window.location.reload();
       }, 1200);
