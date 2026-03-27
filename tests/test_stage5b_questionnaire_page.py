@@ -45,6 +45,14 @@ def test_questionnaire_page_has_draft_form(client, project_slug):
 
     assert response.status_code == 200
     html = response.text
+    assert "questionnaire-workspace" in html
+    assert "questionnaire-sidebar" in html
+    assert "data-running-message=" in html
+    assert "data-sidebar-open" in html
+    assert "data-sidebar-close" in html
+    assert "status-summary-card" in html
+    assert "status-token" in html
+    assert "empty-state-card" in html
     assert 'name="research_goal"' in html
     assert "生成草稿" in html or "问卷设计" in html
 
@@ -74,6 +82,8 @@ def test_questionnaire_page_shows_latest_draft(client, project_slug):
         or "Knowledge Basis" in html
         or "Player" in html
     )
+    assert "最新草稿" in html
+    assert "questionnaire-content" in html
 
 
 def test_questionnaire_latest_page_is_scoped_to_current_wave(client, tmp_path):
@@ -127,6 +137,7 @@ def test_questionnaire_page_shows_retrieval_pool_metadata_for_used_knowledge(
     html = response.text
     assert "Survey Guide" in html
     assert "方法论池" in html
+    assert "参考知识来源" in html
 
 
 def test_questionnaire_page_hides_knowledge_basis_body_from_main_content(client, tmp_path):
@@ -277,3 +288,17 @@ def test_questionnaire_draft_form_reports_no_design_knowledge_hits(
 
     assert latest_page.status_code == 200
     assert "已选知识中没有命中当前问卷任务所需的内容" in latest_page.text
+
+
+def test_questionnaire_history_uses_workspace_table(client, project_slug):
+    client.post(
+        f"/projects/{project_slug}/questionnaires/draft",
+        json={"research_goal": "Player satisfaction"},
+    )
+
+    response = client.get(f"/projects/{project_slug}/questionnaires/history")
+
+    assert response.status_code == 200
+    html = response.text
+    assert 'class="workspace-panel questionnaire-history-panel"' in html
+    assert 'class="data-table questionnaire-history-table"' in html

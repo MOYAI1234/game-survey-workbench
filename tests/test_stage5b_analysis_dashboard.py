@@ -42,6 +42,14 @@ def test_analysis_page_shows_deterministic_findings(client, project_with_dataset
 
     assert response.status_code == 200
     html = response.text
+    assert "analysis-workspace" in html
+    assert "workflow-stepper" in html
+    assert "workspace-panel" in html
+    assert "data-running-message=" in html
+    assert "data-sidebar-open" in html
+    assert "data-sidebar-close" in html
+    assert "status-summary-card" in html
+    assert "status-token" in html
     assert "Q1_Satisfaction" in html or "Satisfaction" in html
     assert "mean" in html.lower() or "average" in html.lower() or "top" in html.lower()
 
@@ -52,6 +60,7 @@ def test_analysis_page_shows_dataset_schema(client, project_with_dataset):
     response = client.get(f"/projects/{slug}/analysis/{run_id}")
 
     html = response.text
+    assert 'class="schema-table data-table"' in html
     assert "scale" in html
     assert "single_choice" in html or "single choice" in html.lower()
     assert "free_text" in html or "free text" in html.lower()
@@ -117,3 +126,15 @@ def test_analysis_page_shows_used_knowledge_snippets_for_insight_basis(client, t
     html = page.text
     assert "Analysis Guide" in html
     assert "方法论池" in html
+
+
+def test_analysis_page_shows_sidebar_task_panels(client, project_with_dataset):
+    slug, run_id = project_with_dataset
+
+    response = client.get(f"/projects/{slug}/analysis/{run_id}")
+
+    assert response.status_code == 200
+    html = response.text
+    assert "当前任务" in html
+    assert "下一步建议" in html
+    assert 'class="task-sidebar"' in html

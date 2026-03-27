@@ -11,37 +11,93 @@
 </header>
 
 {% if report_content %}
-<section class="report-content">
-  {% if report_display and report_display.generated_on %}
-  <p class="muted">生成时间：{{ report_display.generated_on }}</p>
-  {% endif %}
-  {% for section in report_display.sections if report_display %}
-  <section class="report-section">
-    <h2>{{ section.title }}</h2>
-    {% for paragraph in section.paragraphs %}
-    <p>{{ paragraph }}</p>
-    {% endfor %}
-    {% if section.bullets %}
-    <ul>
-      {% for bullet in section.bullets %}
-      <li>{{ bullet }}</li>
-      {% endfor %}
-    </ul>
+<div class="report-workspace split-workspace" data-sidebar-toggle-root>
+  <section class="report-body workspace-panel report-content">
+    <div class="workspace-inline-actions">
+      <button type="button" class="secondary" data-sidebar-open hidden>显示侧栏</button>
+    </div>
+    {% if report_display and report_display.generated_on %}
+    <p class="muted">生成时间：{{ report_display.generated_on }}</p>
     {% endif %}
+    {% for section in report_display.sections if report_display %}
+    <section class="report-section">
+      <h2>{{ section.title }}</h2>
+      {% for paragraph in section.paragraphs %}
+      <p>{{ paragraph }}</p>
+      {% endfor %}
+      {% if section.bullets %}
+      <ul>
+        {% for bullet in section.bullets %}
+        <li>{{ bullet }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </section>
+    {% endfor %}
   </section>
-  {% endfor %}
-</section>
-<section class="download-actions">
-  <h3>下载报告</h3>
-  <p class="muted">
-    <a href="/projects/{{ project_slug }}/reports/latest/download?fmt=md">下载 Markdown (.md)</a>
-    ｜<a href="/projects/{{ project_slug }}/reports/latest/download?fmt=txt">下载纯文本 (.txt)</a>
-  </p>
-</section>
+
+  <aside class="report-sidebar" data-sidebar-panel>
+    <div class="sidebar-panel-header">
+      <button type="button" class="secondary" data-sidebar-close>收起侧栏</button>
+    </div>
+    <section class="workspace-panel task-panel">
+      <h2>当前状态</h2>
+      <ul class="task-list">
+        <li>报告已生成，可继续复查内容和下载版本。</li>
+        {% if current_wave %}
+        <li>当前轮次：{{ current_wave.name }}</li>
+        {% endif %}
+        {% if report_display and report_display.generated_on %}
+        <li>生成时间：{{ report_display.generated_on }}</li>
+        {% endif %}
+      </ul>
+    </section>
+
+    <section class="workspace-panel task-panel status-summary-card">
+      <h2>状态总览</h2>
+      <div class="status-summary-list">
+        <div class="status-summary-item">
+          <span>报告正文</span>
+          <span class="status-token status-token-ready">已生成</span>
+        </div>
+        <div class="status-summary-item">
+          <span>下载版本</span>
+          <span class="status-token status-token-ready">Markdown / 纯文本</span>
+        </div>
+        <div class="status-summary-item">
+          <span>汇报准备</span>
+          <span class="status-token status-token-running">待复核</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace-panel task-panel">
+      <h2>下一步建议</h2>
+      <ul class="task-list">
+        <li>先确认“一页摘要”和“建议动作”是否符合业务汇报口径。</li>
+        <li><a href="/projects/{{ project_slug }}/analysis/latest">返回数据分析页补充洞察素材</a></li>
+        <li><a href="/projects/{{ project_slug }}/reports/history">查看历史报告版本</a></li>
+      </ul>
+    </section>
+
+    <section class="workspace-panel task-panel download-actions">
+      <h2>下载报告</h2>
+      <p class="muted">
+        <a href="/projects/{{ project_slug }}/reports/latest/download?fmt=md">下载 Markdown (.md)</a>
+        ｜<a href="/projects/{{ project_slug }}/reports/latest/download?fmt=txt">下载纯文本 (.txt)</a>
+      </p>
+    </section>
+  </aside>
+</div>
 {% else %}
-<p class="empty-state">
-  尚未生成报告。请到<a href="/projects/{{ project_slug }}/analysis/latest">数据分析页</a>
-  完成分析后生成报告。
-</p>
+<section class="report-empty workspace-panel">
+  <div class="empty-state-card centered">
+    <p class="empty-state-title">尚未生成报告</p>
+    <p class="empty-state-copy">先到数据分析页完成洞察整理，再返回这里生成业务汇报版研究报告。</p>
+    <div class="empty-state-actions">
+      <a href="/projects/{{ project_slug }}/analysis/latest" role="button">前往数据分析页</a>
+    </div>
+  </div>
+</section>
 {% endif %}
 {% endblock %}

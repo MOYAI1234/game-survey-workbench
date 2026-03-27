@@ -1,49 +1,85 @@
 {% extends "layout.html" %}
+{% block title %}编码合并审查 — {{ project_slug }}{% endblock %}
 {% block content %}
-<h2>编码合并审查</h2>
-<p>以下是编码主题列表。如有近义主题需要合并，请选择目标名称和要合并的来源。</p>
+<header>
+  <p class="eyebrow"><a href="/projects/{{ project_slug }}/analysis/latest">← 返回数据分析</a></p>
+  <h1>编码合并审查</h1>
+  <p>以下是编码主题列表。如有近义主题需要合并，请选择目标名称和要合并的来源。</p>
+</header>
 
-<form method="post" action="/projects/{{ project_slug }}/coding-jobs/{{ job_id }}/merge-confirm">
-  <table>
-    <thead>
-      <tr>
-        <th>主题名</th>
-        <th>计数</th>
-        <th>示例</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for theme in themes %}
-      <tr>
-        <td>{{ theme.theme_name }}</td>
-        <td>{{ theme.count }}</td>
-        <td>{{ theme.example_responses | join(', ') }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-  <h3>合并设置（可选）</h3>
-  <div id="merge-groups">
-    <div class="merge-group">
-      <label>目标主题名:
-        <select name="merge_group_0_target">
-          {% for theme in themes %}
-          <option value="{{ theme.theme_name }}">{{ theme.theme_name }}</option>
-          {% endfor %}
-        </select>
-      </label>
-      <label>合并来源:
-        <select name="merge_group_0_sources" multiple>
-          {% for theme in themes %}
-          <option value="{{ theme.theme_name }}">{{ theme.theme_name }}</option>
-          {% endfor %}
-        </select>
-      </label>
+<div class="merge-review-workspace split-workspace" data-sidebar-toggle-root>
+  <section class="workspace-panel merge-review-main">
+    <div class="workspace-inline-actions">
+      <button type="button" class="secondary" data-sidebar-open hidden>显示侧栏</button>
     </div>
-  </div>
+    <form method="post" action="/projects/{{ project_slug }}/coding-jobs/{{ job_id }}/merge-confirm">
+      <div class="data-table">
+        <table>
+          <thead>
+            <tr>
+              <th>主题名</th>
+              <th>计数</th>
+              <th>示例</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for theme in themes %}
+            <tr>
+              <td>{{ theme.theme_name }}</td>
+              <td>{{ theme.count }}</td>
+              <td>{{ theme.example_responses | join(', ') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
 
-  <button type="submit" data-loading-text="正在合并…">确认合并</button>
-  <a href="/projects/{{ project_slug }}/analysis/latest">跳过，直接使用</a>
-</form>
+      <h3>合并设置（可选）</h3>
+      <div id="merge-groups">
+        <div class="merge-group">
+          <label>目标主题名:
+            <select name="merge_group_0_target">
+              {% for theme in themes %}
+              <option value="{{ theme.theme_name }}">{{ theme.theme_name }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>合并来源:
+            <select name="merge_group_0_sources" multiple>
+              {% for theme in themes %}
+              <option value="{{ theme.theme_name }}">{{ theme.theme_name }}</option>
+              {% endfor %}
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="merge-review-actions">
+        <button type="submit" data-loading-text="正在合并…">确认合并</button>
+        <a href="/projects/{{ project_slug }}/analysis/latest">跳过，直接使用</a>
+      </div>
+    </form>
+  </section>
+
+  <aside class="merge-review-sidebar" data-sidebar-panel>
+    <div class="sidebar-panel-header">
+      <button type="button" class="secondary" data-sidebar-close>收起侧栏</button>
+    </div>
+    <section class="workspace-panel task-panel">
+      <h2>合并建议</h2>
+      <ul class="task-list">
+        <li>优先合并语义接近、措辞不同的主题，避免报告阶段出现重复表达。</li>
+        <li>如果当前主题已经足够清晰，也可以直接跳过，后续在分析页继续使用。</li>
+      </ul>
+    </section>
+
+    <section class="workspace-panel task-panel">
+      <h2>当前状态</h2>
+      <ul class="task-list">
+        <li>主题数：{{ themes | length }}</li>
+        <li>本页只做人工收口，不会重新跑编码任务。</li>
+      </ul>
+    </section>
+  </aside>
+</div>
 {% endblock %}

@@ -128,6 +128,8 @@ def test_upload_non_markdown_redirects_to_convert_preview(app_client, workspace)
     assert response.status_code == 200
     html = response.text
     assert "转换预览" in html or "convert" in html.lower()
+    assert "convert-preview-workspace" in html
+    assert "convert-preview-actions" in html
     assert "Survey Methods" in html or "methods.docx" in html
 
 
@@ -144,6 +146,7 @@ def test_upload_epub_redirects_to_convert_preview(app_client, workspace):
     assert response.status_code == 200
     html = response.text
     assert "转换预览" in html or "convert" in html.lower()
+    assert "convert-preview-workspace" in html
     assert "user-ops.epub" in html or "Test EPUB" in html
 
 

@@ -9,24 +9,61 @@
   {% endif %}
 </header>
 
-{% if versions %}
-<table>
-  <thead>
-    <tr>
-      <th>序号</th>
-      <th>生成时间</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for version in versions %}
-    <tr>
-      <td>第 {{ loop.index }} 版</td>
-      <td>{{ version.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-{% else %}
-<p class="empty-state">暂无报告历史记录。</p>
-{% endif %}
+<div class="report-history-workspace split-workspace" data-sidebar-toggle-root>
+  <section class="workspace-panel report-history-panel">
+    <div class="workspace-inline-actions">
+      <button type="button" class="secondary" data-sidebar-open hidden>显示侧栏</button>
+    </div>
+    {% if versions %}
+    <div class="data-table">
+      <table>
+        <thead>
+          <tr>
+            <th>序号</th>
+            <th>生成时间</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for version in versions %}
+          <tr>
+            <td>第 {{ loop.index }} 版</td>
+            <td>{{ version.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state-card centered">
+      <p class="empty-state-title">还没有历史报告版本</p>
+      <p class="empty-state-copy">当前轮次还未沉淀历史版本，生成第一份报告后，这里会逐步积累可对照的汇报稿。</p>
+    </div>
+    {% endif %}
+  </section>
+
+  <aside class="report-history-sidebar" data-sidebar-panel>
+    <div class="sidebar-panel-header">
+      <button type="button" class="secondary" data-sidebar-close>收起侧栏</button>
+    </div>
+    <section class="workspace-panel task-panel">
+      <h2>当前状态</h2>
+      <ul class="task-list">
+        <li>历史版本：{{ versions | length if versions else 0 }} 份</li>
+        <li><a href="/projects/{{ project_slug }}/reports/latest">返回最新报告</a></li>
+      </ul>
+    </section>
+
+    <section class="workspace-panel task-panel">
+      <h2>下一步建议</h2>
+      <ul class="task-list">
+        {% if versions %}
+        <li>优先对照最新报告与上一版，确认汇报口径是否稳定。</li>
+        {% else %}
+        <li>当前还没有历史版本，可以先生成第一份报告。</li>
+        {% endif %}
+        <li><a href="/projects/{{ project_slug }}/analysis/latest">返回数据分析页</a></li>
+      </ul>
+    </section>
+  </aside>
+</div>
 {% endblock %}

@@ -10,91 +10,147 @@
 </header>
 
 {% if error_message %}
-<section class="workflow-alert alert-error">
+<section class="workflow-alert alert-error alert-card">
   <strong>操作失败：</strong> {{ error_message }}
 </section>
 {% endif %}
 
 {% if fallback_notice %}
-<section class="workflow-alert alert-success">
+<section class="workflow-alert alert-success alert-card">
   <strong>{{ fallback_notice }}</strong>
 </section>
 {% endif %}
 
-{% if spec %}
-<section class="questionnaire-content">
-  <h2>{% if current_wave %}本轮最新草稿{% else %}最新草稿{% endif %}</h2>
-  <p class="muted">
-    版本：{{ spec.version_id }} ｜ 研究目标：{{ spec.research_goal }}
-  </p>
-  <p class="muted">
-    <a href="/projects/{{ project_slug }}/questionnaires/history">查看{% if current_wave %}本轮{% endif %}版本历史{% if version_count %} ({{ version_count }} 个版本){% endif %}</a>
-  </p>
-  <div class="prose questionnaire-rendered">{{ rendered_markdown | markdown | safe }}</div>
-  <section class="download-actions">
-    <h3>下载问卷</h3>
-    <p class="muted">
-      <a href="/projects/{{ project_slug }}/questionnaires/{{ spec.version_id }}/download?fmt=md">下载 Markdown (.md)</a>
-      ｜<a href="/projects/{{ project_slug }}/questionnaires/{{ spec.version_id }}/download?fmt=txt">下载纯文本 (.txt)</a>
-    </p>
-  </section>
-  {% if provenance_cards %}
-  <details>
-    <summary>参考知识来源（{{ spec.retrieved_snippets | length }} 篇）</summary>
-    <ul>
-      {% for card in provenance_cards %}
-      <li>
-        <strong>{{ card.title }}</strong>
-        <span class="help-text">｜{{ card.pool_label }}</span>
-        {% if card.excerpt %}
-        <div class="help-text">{{ card.excerpt }}</div>
-        {% endif %}
-      </li>
-      {% endfor %}
-    </ul>
-  </details>
-  {% endif %}
-</section>
-<hr>
-{% endif %}
+<div class="questionnaire-workspace split-workspace" data-sidebar-toggle-root>
+  <div class="questionnaire-main-column">
+    <div class="workspace-inline-actions">
+      <button type="button" class="secondary" data-sidebar-open hidden>显示侧栏</button>
+    </div>
+    {% if spec %}
+    <section class="questionnaire-content workspace-panel">
+      <div class="section-heading">
+        <div>
+          <h2>{% if current_wave %}本轮最新草稿{% else %}最新草稿{% endif %}</h2>
+          <p class="muted">
+            版本：{{ spec.version_id }} ｜ 研究目标：{{ spec.research_goal }}
+          </p>
+        </div>
+        <p class="muted">
+          <a href="/projects/{{ project_slug }}/questionnaires/history">查看{% if current_wave %}本轮{% endif %}版本历史{% if version_count %} ({{ version_count }} 个版本){% endif %}</a>
+        </p>
+      </div>
+      <div class="prose questionnaire-rendered">{{ rendered_markdown | markdown | safe }}</div>
+      <section class="download-actions questionnaire-downloads">
+        <h3>下载问卷</h3>
+        <p class="muted">
+          <a href="/projects/{{ project_slug }}/questionnaires/{{ spec.version_id }}/download?fmt=md">下载 Markdown (.md)</a>
+          ｜<a href="/projects/{{ project_slug }}/questionnaires/{{ spec.version_id }}/download?fmt=txt">下载纯文本 (.txt)</a>
+        </p>
+      </section>
+    </section>
+    {% else %}
+    <section class="workspace-panel questionnaire-content">
+      <div class="empty-state-card centered">
+        <p class="empty-state-title">当前还没有问卷草稿</p>
+        <p class="empty-state-copy">先在右侧填写研究目标，生成第一版问卷草稿；生成后这里会显示可继续迭代的正文。</p>
+      </div>
+    </section>
+    {% endif %}
+  </div>
 
-<section class="draft-form">
-  <h2>{% if spec %}生成新的草稿{% else %}生成问卷草稿{% endif %}</h2>
-  <p class="help-text">系统将结合项目知识库和研究简报，由 LLM 生成问卷草稿。</p>
-  <form action="/projects/{{ project_slug }}/questionnaires/draft-form" method="post">
-    <label for="research_goal">研究目标</label>
-    <input
-      type="text"
-      id="research_goal"
-      name="research_goal"
-      required
-      placeholder="如：了解玩家对新赛季通行证的购买意愿和定价敏感度"
-      value="{{ spec.research_goal if spec else '' }}"
-    >
-    <label>
-      <input type="checkbox" name="bilingual" value="true">
-      生成中英双语问卷
-    </label>
-    <button type="submit" data-loading-text="正在生成草稿…">生成草稿</button>
-  </form>
-</section>
+  <aside class="questionnaire-sidebar" data-sidebar-panel>
+    <div class="sidebar-panel-header">
+      <button type="button" class="secondary" data-sidebar-close>收起侧栏</button>
+    </div>
+    <section class="draft-form workspace-panel">
+      <h2>{% if spec %}生成新的草稿{% else %}生成问卷草稿{% endif %}</h2>
+      <p class="help-text">系统将结合项目知识库和研究简报，由 LLM 生成问卷草稿。</p>
+      <form action="/projects/{{ project_slug }}/questionnaires/draft-form" method="post" data-running-message="问卷草稿任务已提交，系统正在结合知识库生成内容，请稍候刷新或继续浏览其他页面。">
+        <label for="research_goal">研究目标</label>
+        <input
+          type="text"
+          id="research_goal"
+          name="research_goal"
+          required
+          placeholder="如：了解玩家对新赛季通行证的购买意愿和定价敏感度"
+          value="{{ spec.research_goal if spec else '' }}"
+        >
+        <label>
+          <input type="checkbox" name="bilingual" value="true">
+          生成中英双语问卷
+        </label>
+        <button type="submit" data-loading-text="正在生成草稿…">生成草稿</button>
+      </form>
+    </section>
 
-{% if spec %}
-<section class="draft-form">
-  <h2>迭代改进当前草稿</h2>
-  <p class="help-text">保留当前草稿中满意的部分，告诉系统需要修改或补充的方向。</p>
-  <form action="/projects/{{ project_slug }}/questionnaires/refine-form" method="post">
-    <input type="hidden" name="version_id" value="{{ spec.version_id }}">
-    <label for="feedback">修改意见</label>
-    <textarea
-      id="feedback"
-      name="feedback"
-      rows="4"
-      required
-      placeholder="如：增加一道关于消费习惯的题目，简化第 3 题的措辞"
-    ></textarea>
-    <button type="submit" data-loading-text="正在改进草稿…">改进草稿</button>
-  </form>
-</section>
-{% endif %}
+    {% if spec %}
+    <section class="draft-form workspace-panel">
+      <h2>迭代改进当前草稿</h2>
+      <p class="help-text">保留当前草稿中满意的部分，告诉系统需要修改或补充的方向。</p>
+      <form action="/projects/{{ project_slug }}/questionnaires/refine-form" method="post" data-running-message="改稿任务已提交，系统正在根据你的反馈重写问卷草稿，请稍候刷新查看最新版本。">
+        <input type="hidden" name="version_id" value="{{ spec.version_id }}">
+        <label for="feedback">修改意见</label>
+        <textarea
+          id="feedback"
+          name="feedback"
+          rows="4"
+          required
+          placeholder="如：增加一道关于消费习惯的题目，简化第 3 题的措辞"
+        ></textarea>
+        <button type="submit" data-loading-text="正在改进草稿…">改进草稿</button>
+      </form>
+    </section>
+    {% endif %}
+
+    <section class="workspace-panel task-panel status-summary-card">
+      <h2>状态总览</h2>
+      <div class="status-summary-list">
+        <div class="status-summary-item">
+          <span>当前草稿</span>
+          {% if spec %}
+          <span class="status-token status-token-ready">已生成</span>
+          {% else %}
+          <span class="status-token status-token-pending">待生成</span>
+          {% endif %}
+        </div>
+        <div class="status-summary-item">
+          <span>版本历史</span>
+          {% if version_count and version_count > 1 %}
+          <span class="status-token status-token-ready">{{ version_count }} 个版本</span>
+          {% elif version_count %}
+          <span class="status-token status-token-running">首个版本</span>
+          {% else %}
+          <span class="status-token status-token-pending">暂无</span>
+          {% endif %}
+        </div>
+        <div class="status-summary-item">
+          <span>知识依据</span>
+          {% if provenance_cards %}
+          <span class="status-token status-token-ready">已挂载</span>
+          {% else %}
+          <span class="status-token status-token-pending">待引用</span>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    {% if provenance_cards %}
+    <section class="workspace-panel questionnaire-sources">
+      <h2>参考知识来源（{{ spec.retrieved_snippets | length }} 篇）</h2>
+      <p class="help-text">展示本次问卷草稿使用到的核心知识依据，便于追踪来源而不打断正文阅读。</p>
+      <ul class="task-list">
+        {% for card in provenance_cards %}
+        <li>
+          <strong>{{ card.title }}</strong>
+          <span class="help-text">｜{{ card.pool_label }}</span>
+          {% if card.excerpt %}
+          <div class="help-text">{{ card.excerpt }}</div>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+  </aside>
+</div>
 {% endblock %}

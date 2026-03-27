@@ -8,29 +8,177 @@
   <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
+  {% set current_path = request.url.path if request is defined else "" %}
+  {% set page_content %}{% block content %}{% endblock %}{% endset %}
   <nav class="top-nav">
     <a href="/" class="nav-brand">极光问卷</a>
     <a href="/knowledge" class="nav-link">共享知识库</a>
   </nav>
-  {% if project_slug %}
-  <nav class="project-nav">
-    <span class="project-nav-name">{{ project_slug }}</span>
-    <a href="/projects/{{ project_slug }}/questionnaires/latest">问卷设计</a>
-    <a href="/projects/{{ project_slug }}/analysis/latest">数据分析</a>
-    <a href="/projects/{{ project_slug }}/reports/latest">报告生成</a>
-  </nav>
-  {% endif %}
-  <main class="container page">
-    {% block content %}{% endblock %}
+  <main class="container page{% if project_slug %} page-project{% endif %}">
+    {% if project_slug %}
+    <div class="workspace-shell">
+      <aside class="project-sidebar">
+        <div class="project-sidebar-header">
+          <p class="project-sidebar-eyebrow">项目工作台</p>
+          <a href="/projects/{{ project_slug }}" class="project-sidebar-title">{{ project_slug }}</a>
+          <p class="project-sidebar-note">研究波次与知识配置统一在项目概览页管理。</p>
+        </div>
+        <nav class="project-sidebar-nav" aria-label="项目导航">
+          <a
+            href="/projects/{{ project_slug }}"
+            class="project-sidebar-link{% if current_path == '/projects/' ~ project_slug %} active{% endif %}"
+          >
+            <span class="project-sidebar-icon">●</span>
+            <span>项目概览</span>
+          </a>
+          <a
+            href="/projects/{{ project_slug }}/questionnaires/latest"
+            class="project-sidebar-link{% if '/projects/' ~ project_slug ~ '/questionnaires/' in current_path %} active{% endif %}"
+          >
+            <span class="project-sidebar-icon">●</span>
+            <span>问卷设计</span>
+          </a>
+          <a
+            href="/projects/{{ project_slug }}/analysis/latest"
+            class="project-sidebar-link{% if '/projects/' ~ project_slug ~ '/analysis/' in current_path or '/coding-jobs/' in current_path %} active{% endif %}"
+          >
+            <span class="project-sidebar-icon">●</span>
+            <span>数据分析</span>
+          </a>
+          <a
+            href="/projects/{{ project_slug }}/reports/latest"
+            class="project-sidebar-link{% if '/projects/' ~ project_slug ~ '/reports/' in current_path %} active{% endif %}"
+          >
+            <span class="project-sidebar-icon">●</span>
+            <span>报告生成</span>
+          </a>
+        </nav>
+        <div class="project-sidebar-footer">
+          <a href="/" class="project-sidebar-secondary">切换项目</a>
+        </div>
+      </aside>
+      <section class="workspace-main">
+        {{ page_content }}
+      </section>
+    </div>
+    {% else %}
+    {{ page_content }}
+    {% endif %}
   </main>
+  <div id="confirm-dialog-shell" class="confirm-dialog-shell" hidden>
+    <div class="confirm-dialog-backdrop" data-confirm-dismiss="true"></div>
+    <div class="confirm-dialog-panel" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
+      <p class="eyebrow">确认操作</p>
+      <h2 id="confirm-dialog-title">请确认是否继续</h2>
+      <p id="confirm-dialog-message" class="muted">这个操作将修改当前内容。</p>
+      <div class="confirm-dialog-actions">
+        <button type="button" class="secondary" id="confirm-dialog-cancel">取消</button>
+        <button type="button" id="confirm-dialog-confirm">确认继续</button>
+      </div>
+    </div>
+  </div>
   <script>
   document.addEventListener("DOMContentLoaded", function () {
-    document.querySelectorAll("button[data-loading-text]").forEach(function (btn) {
-      btn.closest("form").addEventListener("submit", function () {
-        btn.disabled = true;
-        btn.textContent = btn.getAttribute("data-loading-text");
-        btn.classList.add("btn-loading");
+    var confirmShell = document.getElementById("confirm-dialog-shell");
+    var confirmMessage = document.getElementById("confirm-dialog-message");
+    var confirmCancel = document.getElementById("confirm-dialog-cancel");
+    var confirmButton = document.getElementById("confirm-dialog-confirm");
+    var pendingConfirmation = null;
+
+    function closeConfirmDialog() {
+      pendingConfirmation = null;
+      confirmShell.hidden = true;
+    }
+
+    function openConfirmDialog(message, form, submitter) {
+      pendingConfirmation = { form: form, submitter: submitter };
+      confirmMessage.textContent = message;
+      confirmShell.hidden = false;
+      confirmButton.focus();
+    }
+
+    confirmShell.addEventListener("click", function (event) {
+      if (event.target && event.target.dataset.confirmDismiss === "true") {
+        closeConfirmDialog();
+      }
+    });
+
+    confirmCancel.addEventListener("click", closeConfirmDialog);
+    confirmButton.addEventListener("click", function () {
+      if (!pendingConfirmation) {
+        closeConfirmDialog();
+        return;
+      }
+      var form = pendingConfirmation.form;
+      var submitter = pendingConfirmation.submitter;
+      form.dataset.confirmBypassed = "true";
+      closeConfirmDialog();
+      if (submitter && form.requestSubmit) {
+        form.requestSubmit(submitter);
+      } else if (form.requestSubmit) {
+        form.requestSubmit();
+      } else {
+        form.submit();
+      }
+    });
+
+    document.querySelectorAll("form").forEach(function (form) {
+      form.addEventListener("submit", function (event) {
+        var submitter = event.submitter || form.querySelector("button[type='submit']");
+        var confirmText = form.dataset.confirmText || (submitter && submitter.dataset.confirmText);
+        if (form.dataset.confirmBypassed === "true") {
+          delete form.dataset.confirmBypassed;
+        } else if (confirmText) {
+          event.preventDefault();
+          openConfirmDialog(confirmText, form, submitter);
+          return;
+        }
+
+        if (submitter && submitter.dataset.loadingText) {
+          submitter.disabled = true;
+          submitter.textContent = submitter.getAttribute("data-loading-text");
+          submitter.classList.add("btn-loading");
+        }
+
+        var runningMessage = form.dataset.runningMessage || (submitter && submitter.dataset.runningMessage);
+        if (runningMessage) {
+          var note = form.querySelector("[data-form-status-note]");
+          if (!note) {
+            note = document.createElement("p");
+            note.className = "inline-status-note";
+            note.setAttribute("data-form-status-note", "true");
+            form.appendChild(note);
+          }
+          note.textContent = runningMessage;
+          note.hidden = false;
+        }
       });
+    });
+
+    document.querySelectorAll("[data-sidebar-toggle-root]").forEach(function (workspace) {
+      var openButtons = workspace.querySelectorAll("[data-sidebar-open]");
+      var closeButtons = workspace.querySelectorAll("[data-sidebar-close]");
+
+      function setCollapsed(collapsed) {
+        workspace.dataset.sidebarCollapsed = collapsed ? "true" : "false";
+        openButtons.forEach(function (button) {
+          button.hidden = !collapsed;
+        });
+      }
+
+      openButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
+          setCollapsed(false);
+        });
+      });
+
+      closeButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
+          setCollapsed(true);
+        });
+      });
+
+      setCollapsed(false);
     });
   });
   </script>

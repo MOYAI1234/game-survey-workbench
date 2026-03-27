@@ -6,31 +6,90 @@
   <p>智能问卷设计、数据分析与研究报告一站式工作台。</p>
 </section>
 
-<section class="project-list">
-  <h2>项目列表</h2>
-  {% if projects %}
-  <ul>
+<section class="home-overview">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow">Projects</p>
+      <h2>项目工作台</h2>
+      <p class="muted">从这里进入项目概览、问卷设计、数据分析与报告生成。</p>
+    </div>
+    <a href="/knowledge" class="badge badge-info">共享知识库 {{ knowledge_count }} 篇</a>
+  </div>
+
+  <div class="project-card-grid">
     {% for project in projects %}
-    <li>
-      <a href="/projects/{{ project.slug }}">{{ project.name }}</a>
+    <article class="project-card">
+      <div class="project-card-header">
+        <div>
+          <h3><a href="/projects/{{ project.slug }}">{{ project.name }}</a></h3>
+          <p class="project-card-slug">{{ project.slug }}</p>
+        </div>
+        <span class="status-badge">{{ project.status }}</span>
+      </div>
       {% if project.description %}
-      <span class="project-desc">- {{ project.description }}</span>
+      <p class="project-card-description">{{ project.description }}</p>
+      {% else %}
+      <p class="project-card-description muted">还没有填写项目说明，可以在项目概览中补充研究背景与目标。</p>
       {% endif %}
-      <span class="status-badge">{{ project.status }}</span>
-    </li>
+      <div class="project-card-actions">
+        <a href="/projects/{{ project.slug }}">进入项目</a>
+        <a href="/projects/{{ project.slug }}/analysis/latest">查看分析</a>
+      </div>
+    </article>
     {% endfor %}
-  </ul>
-  {% else %}
-  <p class="empty-state">暂无项目，请使用下方表单创建第一个项目。</p>
+
+    <article class="project-card project-card-create">
+      <div class="project-card-header">
+        <div>
+          <p class="eyebrow">New</p>
+          <h3>新建项目</h3>
+        </div>
+      </div>
+      <p class="project-card-description">创建一个新的研究项目，后续在项目内管理知识选择、研究波次和分析流程。</p>
+      <form action="/projects/create" method="post" class="project-form">
+        <label for="slug">项目标识（仅限小写字母、数字、短横线，用于 URL）</label>
+        <input
+          type="text"
+          id="slug"
+          name="slug"
+          required
+          pattern="[a-z0-9\-]+"
+          placeholder="my-research-project"
+        >
+
+        <label for="name">项目名称</label>
+        <input
+          type="text"
+          id="name"
+          name="name"
+          required
+          placeholder="如：2026年Q1玩家满意度调研"
+        >
+
+        <label for="description">项目说明（选填）</label>
+        <textarea
+          id="description"
+          name="description"
+          rows="2"
+          placeholder="简要描述研究目标和范围"
+        ></textarea>
+
+        <button type="submit">创建项目</button>
+      </form>
+    </article>
+  </div>
+
+  {% if not projects %}
+  <p class="empty-state">暂无项目，先创建一个项目开始第一轮问卷研究。</p>
   {% endif %}
 </section>
 
-<section class="knowledge-summary">
-  <h2>共享知识库</h2>
+<details class="knowledge-summary-panel">
+  <summary>共享知识库概览</summary>
   <p>已入库知识文档 {{ knowledge_count }} 篇，多个项目会共享使用同一套知识库。</p>
   {% if recent_knowledge_documents %}
   <ul>
-    {% for document in recent_knowledge_documents %}
+    {% for document in recent_knowledge_documents[:3] %}
     <li>{{ document.title }}</li>
     {% endfor %}
   </ul>
@@ -38,40 +97,6 @@
   <p class="empty-state">当前还没有知识文档，可先进入共享知识库上传研究方法、行业资料或历史报告。</p>
   {% endif %}
   <p><a href="/knowledge">进入共享知识库</a></p>
-</section>
-
-<section class="create-project">
-  <h2>新建项目</h2>
-  <form action="/projects/create" method="post" class="project-form">
-    <label for="slug">项目标识（仅限小写字母、数字、短横线，用于 URL）</label>
-    <input
-      type="text"
-      id="slug"
-      name="slug"
-      required
-      pattern="[a-z0-9\-]+"
-      placeholder="my-research-project"
-    >
-
-    <label for="name">项目名称</label>
-    <input
-      type="text"
-      id="name"
-      name="name"
-      required
-      placeholder="如：2026年Q1玩家满意度调研"
-    >
-
-    <label for="description">项目说明（选填）</label>
-    <textarea
-      id="description"
-      name="description"
-      rows="2"
-      placeholder="简要描述研究目标和范围"
-    ></textarea>
-
-    <button type="submit">创建项目</button>
-  </form>
-</section>
+</details>
 
 {% endblock %}

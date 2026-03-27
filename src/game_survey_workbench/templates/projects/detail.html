@@ -21,197 +21,234 @@
 </section>
 {% endif %}
 
-<details class="project-config" {% if not brief %}open{% endif %}>
-  <summary>项目配置</summary>
+<div class="project-overview-workspace split-workspace" data-sidebar-toggle-root>
+  <div class="project-overview-main">
+    <div class="workspace-inline-actions">
+      <button type="button" class="secondary" data-sidebar-open hidden>显示侧栏</button>
+    </div>
+    <details class="project-config" {% if not brief %}open{% endif %}>
+      <summary>项目配置</summary>
 
-  <section class="project-settings">
-    <h2>项目设置</h2>
-    <form action="/projects/{{ project_slug }}/settings" method="post">
-      <label for="language">输出语言</label>
-      <select name="language" id="language">
-        <option value="zh" {% if project.language == "zh" %}selected{% endif %}>中文</option>
-        <option value="en" {% if project.language == "en" %}selected{% endif %}>English</option>
-      </select>
-      <button type="submit">保存设置</button>
-    </form>
-  </section>
+      <section class="project-settings workspace-panel">
+        <h2>项目设置</h2>
+        <form action="/projects/{{ project_slug }}/settings" method="post">
+          <label for="language">输出语言</label>
+          <select name="language" id="language">
+            <option value="zh" {% if project.language == "zh" %}selected{% endif %}>中文</option>
+            <option value="en" {% if project.language == "en" %}selected{% endif %}>English</option>
+          </select>
+          <button type="submit">保存设置</button>
+        </form>
+      </section>
 
-  <section class="brief-section">
-    <h2>研究简报</h2>
-    {% if brief %}
-    <dl>
-      <dt>研究背景</dt>
-      <dd>{{ brief.background }}</dd>
-      <dt>研究目标</dt>
-      <dd>
-        <ul>
-          {% for objective in brief.objectives %}
-          <li>{{ objective }}</li>
-          {% endfor %}
-        </ul>
-      </dd>
-      {% if brief.hypotheses %}
-      <dt>研究假设</dt>
-      <dd>
-        <ul>
-          {% for hypothesis in brief.hypotheses %}
-          <li>{{ hypothesis }}</li>
-          {% endfor %}
-        </ul>
-      </dd>
-      {% endif %}
-      {% if brief.target_audience %}
-      <dt>目标受众</dt>
-      <dd>{{ brief.target_audience }}</dd>
-      {% endif %}
-      {% if brief.success_criteria %}
-      <dt>成功标准</dt>
-      <dd>{{ brief.success_criteria }}</dd>
-      {% endif %}
-    </dl>
-    {% else %}
-    <p class="empty-state">尚未填写研究简报，请在下方表单中填写。</p>
-    {% endif %}
-    <form action="/projects/{{ project_slug }}/brief/save" method="post" class="brief-form">
-      <label for="background">研究背景</label>
-      <textarea id="background" name="background" rows="3" placeholder="描述研究的业务背景和动因">{{ brief.background if brief else '' }}</textarea>
+      <section class="brief-section workspace-panel">
+        <h2>研究简报</h2>
+        {% if brief %}
+        <dl>
+          <dt>研究背景</dt>
+          <dd>{{ brief.background }}</dd>
+          <dt>研究目标</dt>
+          <dd>
+            <ul>
+              {% for objective in brief.objectives %}
+              <li>{{ objective }}</li>
+              {% endfor %}
+            </ul>
+          </dd>
+          {% if brief.hypotheses %}
+          <dt>研究假设</dt>
+          <dd>
+            <ul>
+              {% for hypothesis in brief.hypotheses %}
+              <li>{{ hypothesis }}</li>
+              {% endfor %}
+            </ul>
+          </dd>
+          {% endif %}
+          {% if brief.target_audience %}
+          <dt>目标受众</dt>
+          <dd>{{ brief.target_audience }}</dd>
+          {% endif %}
+          {% if brief.success_criteria %}
+          <dt>成功标准</dt>
+          <dd>{{ brief.success_criteria }}</dd>
+          {% endif %}
+        </dl>
+        {% else %}
+        <p class="empty-state">尚未填写研究简报，请在下方表单中填写。</p>
+        {% endif %}
+        <form action="/projects/{{ project_slug }}/brief/save" method="post" class="brief-form">
+          <label for="background">研究背景</label>
+          <textarea id="background" name="background" rows="3" placeholder="描述研究的业务背景和动因">{{ brief.background if brief else '' }}</textarea>
 
-      <label for="objectives">研究目标（每行一条）</label>
-      <textarea id="objectives" name="objectives" rows="3" placeholder="如：了解玩家对新付费模式的接受度&#10;评估当前游戏内经济系统的满意度">{{ brief.objectives | join('\n') if brief and brief.objectives else '' }}</textarea>
+          <label for="objectives">研究目标（每行一条）</label>
+          <textarea id="objectives" name="objectives" rows="3" placeholder="如：了解玩家对新付费模式的接受度&#10;评估当前游戏内经济系统的满意度">{{ brief.objectives | join('\n') if brief and brief.objectives else '' }}</textarea>
 
-      <label for="hypotheses">研究假设（每行一条，选填）</label>
-      <textarea id="hypotheses" name="hypotheses" rows="2" placeholder="如：高付费玩家对社交功能的需求高于免费玩家">{{ brief.hypotheses | join('\n') if brief and brief.hypotheses else '' }}</textarea>
+          <label for="hypotheses">研究假设（每行一条，选填）</label>
+          <textarea id="hypotheses" name="hypotheses" rows="2" placeholder="如：高付费玩家对社交功能的需求高于免费玩家">{{ brief.hypotheses | join('\n') if brief and brief.hypotheses else '' }}</textarea>
 
-      <label for="target_audience">目标受众</label>
-      <input
-        type="text"
-        id="target_audience"
-        name="target_audience"
-        value="{{ brief.target_audience if brief else '' }}"
-        placeholder="如：过去30天有活跃登录的玩家"
-      >
+          <label for="target_audience">目标受众</label>
+          <input
+            type="text"
+            id="target_audience"
+            name="target_audience"
+            value="{{ brief.target_audience if brief else '' }}"
+            placeholder="如：过去30天有活跃登录的玩家"
+          >
 
-      <label for="success_criteria">成功标准</label>
-      <input
-        type="text"
-        id="success_criteria"
-        name="success_criteria"
-        value="{{ brief.success_criteria if brief else '' }}"
-        placeholder="如：获得可支持产品决策的定量+定性洞察"
-      >
+          <label for="success_criteria">成功标准</label>
+          <input
+            type="text"
+            id="success_criteria"
+            name="success_criteria"
+            value="{{ brief.success_criteria if brief else '' }}"
+            placeholder="如：获得可支持产品决策的定量+定性洞察"
+          >
 
-      <button type="submit">保存简报</button>
-    </form>
-  </section>
-</details>
+          <button type="submit">保存简报</button>
+        </form>
+      </section>
+    </details>
 
-<section class="upload-section">
-  <h2>项目知识选择</h2>
-  <p class="help-text">当前项目会从共享知识库中检索相关知识。当前共享知识文档 {{ knowledge_count }} 篇，但只有你在这里选中的文档会参与本项目的问卷、洞察和报告生成。</p>
-  <p class="help-text"><a href="/knowledge">前往共享知识库管理页</a></p>
+    <section class="upload-section workspace-panel">
+      <h2>项目知识选择</h2>
+      <p class="help-text">当前项目会从共享知识库中检索相关知识。当前共享知识文档 {{ knowledge_count }} 篇，但只有你在这里选中的文档会参与本项目的问卷、洞察和报告生成。</p>
+      <p class="help-text"><a href="/knowledge">前往共享知识库管理页</a></p>
 
-  <h3>当前已选知识</h3>
-  {% if selected_documents %}
-  <ul>
-    {% for document in selected_documents %}
-    <li>
-      <strong>{{ document.title }}</strong>
-      <span class="help-text">｜{{ document.doc_type }}</span>
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p class="empty-state">当前项目还没有选中任何知识文档。请先从下方列表中勾选。</p>
-  {% endif %}
-
-  <form action="/projects/{{ project_slug }}/knowledge-selection" method="post">
-    {% if knowledge_documents %}
-    <fieldset>
-      <legend>从共享知识库中选择本项目要使用的文档</legend>
-      {% for document in knowledge_documents %}
-      <label>
-        <input
-          type="checkbox"
-          name="knowledge_document_ids"
-          value="{{ document.id }}"
-          {% if document.id in selected_document_ids %}checked{% endif %}
-        >
-        {{ document.title }}（{{ document.doc_type }}）
-      </label>
-      {% endfor %}
-    </fieldset>
-    <button type="submit">保存项目知识选择</button>
-    {% else %}
-    <p class="empty-state">共享知识库还没有文档，请先去知识库管理页上传资料。</p>
-    {% endif %}
-  </form>
-</section>
-
-<section class="workflow-links">
-  <h2>研究轮次工作台</h2>
-  {% if current_wave %}
-  <article>
-    <h3><a href="/projects/{{ project_slug }}/waves/{{ current_wave.id }}">{{ current_wave.name }}</a></h3>
-    {% if current_wave.goal_summary %}
-    <p class="help-text">{{ current_wave.goal_summary }}</p>
-    {% endif %}
-    <ul>
-      <li><a href="/projects/{{ project_slug }}/waves/{{ current_wave.id }}/questionnaires">问卷设计</a></li>
-      <li><a href="/projects/{{ project_slug }}/waves/{{ current_wave.id }}/analysis">数据分析</a></li>
-      <li><a href="/projects/{{ project_slug }}/waves/{{ current_wave.id }}/reports">报告生成</a></li>
-    </ul>
-  </article>
-  {% if wave_progress %}
-  <section class="wave-progress">
-    <h3>当前轮次进度</h3>
-    <ol>
-      {% for item in wave_progress %}
-      <li>
-        {{ item.label }}
-        <span class="help-text">｜{{ "已完成" if item.status == "done" else "待开始" }}</span>
-      </li>
-      {% endfor %}
-    </ol>
-  </section>
-  {% endif %}
-  {% else %}
-  <p class="empty-state">当前项目还没有研究轮次。请先新建一轮研究，再进入问卷设计、数据分析和报告生成流程。</p>
-  {% endif %}
-  <form action="/projects/{{ project_slug }}/waves/create" method="post" class="wave-form">
-    <label for="wave-name">轮次名称</label>
-    <input
-      type="text"
-      id="wave-name"
-      name="name"
-      placeholder="如：1.1 版本问卷 / 商业化专项"
-      required
-    >
-
-    <label for="wave-goal-summary">轮次目标</label>
-    <textarea
-      id="wave-goal-summary"
-      name="goal_summary"
-      rows="2"
-      placeholder="描述这一轮想验证的版本、主题或决策问题"
-    ></textarea>
-
-    <button type="submit">新建一轮研究</button>
-  </form>
-  {% if research_waves %}
-  <ul>
-    {% for wave in research_waves %}
-    <li>
-      <a href="/projects/{{ project_slug }}/waves/{{ wave.id }}">{{ wave.name }}</a>
-      {% if wave.is_current %}
-      <span class="help-text">｜当前轮次</span>
+      <h3>当前已选知识</h3>
+      {% if selected_documents %}
+      <ul class="task-list">
+        {% for document in selected_documents %}
+        <li>
+          <strong>{{ document.title }}</strong>
+          <span class="help-text">｜{{ document.doc_type }}</span>
+        </li>
+        {% endfor %}
+      </ul>
       {% else %}
-      <form action="/projects/{{ project_slug }}/waves/{{ wave.id }}/activate" method="post">
-        <button type="submit" class="secondary">设为当前轮次</button>
-      </form>
+      <p class="empty-state">当前项目还没有选中任何知识文档。请先从下方列表中勾选。</p>
       {% endif %}
-    </li>
-    {% endfor %}
-  </ul>
-  {% endif %}
-</section>
+
+      <form action="/projects/{{ project_slug }}/knowledge-selection" method="post">
+        {% if knowledge_documents %}
+        <fieldset>
+          <legend>从共享知识库中选择本项目要使用的文档</legend>
+          {% for document in knowledge_documents %}
+          <label>
+            <input
+              type="checkbox"
+              name="knowledge_document_ids"
+              value="{{ document.id }}"
+              {% if document.id in selected_document_ids %}checked{% endif %}
+            >
+            {{ document.title }}（{{ document.doc_type }}）
+          </label>
+          {% endfor %}
+        </fieldset>
+        <button type="submit">保存项目知识选择</button>
+        {% else %}
+        <p class="empty-state">共享知识库还没有文档，请先去知识库管理页上传资料。</p>
+        {% endif %}
+      </form>
+    </section>
+
+    <section class="workflow-links workspace-panel">
+      <h2>研究轮次工作台</h2>
+      {% if current_wave %}
+      <article class="current-wave-card">
+        <h3><a href="/projects/{{ project_slug }}/waves/{{ current_wave.id }}">{{ current_wave.name }}</a></h3>
+        {% if current_wave.goal_summary %}
+        <p class="help-text">{{ current_wave.goal_summary }}</p>
+        {% endif %}
+        <ul class="task-list">
+          <li><a href="/projects/{{ project_slug }}/waves/{{ current_wave.id }}/questionnaires">问卷设计</a></li>
+          <li><a href="/projects/{{ project_slug }}/waves/{{ current_wave.id }}/analysis">数据分析</a></li>
+          <li><a href="/projects/{{ project_slug }}/waves/{{ current_wave.id }}/reports">报告生成</a></li>
+        </ul>
+      </article>
+      {% if wave_progress %}
+      <section class="wave-progress">
+        <h3>当前轮次进度</h3>
+        <ol class="task-list">
+          {% for item in wave_progress %}
+          <li>
+            {{ item.label }}
+            <span class="help-text">｜{{ "已完成" if item.status == "done" else "待开始" }}</span>
+          </li>
+          {% endfor %}
+        </ol>
+      </section>
+      {% endif %}
+      {% else %}
+      <p class="empty-state">当前项目还没有研究轮次。请先新建一轮研究，再进入问卷设计、数据分析和报告生成流程。</p>
+      {% endif %}
+      <form action="/projects/{{ project_slug }}/waves/create" method="post" class="wave-form">
+        <label for="wave-name">轮次名称</label>
+        <input
+          type="text"
+          id="wave-name"
+          name="name"
+          placeholder="如：1.1 版本问卷 / 商业化专项"
+          required
+        >
+
+        <label for="wave-goal-summary">轮次目标</label>
+        <textarea
+          id="wave-goal-summary"
+          name="goal_summary"
+          rows="2"
+          placeholder="描述这一轮想验证的版本、主题或决策问题"
+        ></textarea>
+
+        <button type="submit">新建一轮研究</button>
+      </form>
+      {% if research_waves %}
+      <ul class="task-list">
+        {% for wave in research_waves %}
+        <li>
+          <a href="/projects/{{ project_slug }}/waves/{{ wave.id }}">{{ wave.name }}</a>
+          {% if wave.is_current %}
+          <span class="help-text">｜当前轮次</span>
+          {% else %}
+          <form action="/projects/{{ project_slug }}/waves/{{ wave.id }}/activate" method="post" data-confirm-text="确认将这个轮次设为当前轮次吗？">
+            <button type="submit" class="secondary">设为当前轮次</button>
+          </form>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </section>
+  </div>
+
+  <aside class="project-overview-sidebar" data-sidebar-panel>
+    <div class="sidebar-panel-header">
+      <button type="button" class="secondary" data-sidebar-close>收起侧栏</button>
+    </div>
+    <section class="workspace-panel task-panel">
+      <h2>当前状态</h2>
+      <ul class="task-list">
+        <li>知识文档：{{ selected_documents | length if selected_documents else 0 }} 篇已选</li>
+        <li>研究轮次：{{ research_waves | length if research_waves else 0 }} 个</li>
+        <li>研究简报：{{ "已填写" if brief else "待补充" }}</li>
+      </ul>
+    </section>
+
+    <section class="workspace-panel task-panel">
+      <h2>下一步建议</h2>
+      <ul class="task-list">
+        {% if not brief %}
+        <li>先补全研究简报，明确背景、目标与成功标准。</li>
+        {% elif not selected_documents %}
+        <li>建议先选择本项目要使用的知识文档，避免后续生成缺少上下文。</li>
+        {% elif not current_wave %}
+        <li>项目准备已就绪，下一步建议新建一轮研究并进入问卷设计。</li>
+        {% else %}
+        <li>当前轮次已就绪，可继续进入问卷设计、数据分析或报告生成。</li>
+        {% endif %}
+        <li><a href="/projects/{{ project_slug }}/questionnaires/latest">进入问卷设计</a></li>
+      </ul>
+    </section>
+  </aside>
+</div>
 {% endblock %}

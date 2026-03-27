@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 {% block title %}共享知识库管理{% endblock %}
 {% block content %}
-<header>
+<header class="knowledge-hero">
   <p class="eyebrow"><a href="/">← 返回首页</a></p>
   <h1>共享知识库管理</h1>
   <p>多个项目会共享使用这里的知识文档。你可以先整理方法论、行业资料和历史报告，再在项目中复用。</p>
@@ -19,65 +19,92 @@
 </section>
 {% endif %}
 
-<section class="upload-section">
-  <h2>筛选知识文档</h2>
-  <form action="/knowledge" method="get">
-    <label for="search">标题或路径关键词</label>
-    <input type="text" id="search" name="search" value="{{ filters.search }}" placeholder="如：方法论 / season pass">
+<section class="knowledge-toolbar">
+  <article class="upload-section">
+    <div class="section-heading">
+      <div>
+        <h2>筛选知识文档</h2>
+        <p class="help-text">先用阶段、类型和标签把资料收束到当前要处理的研究场景。</p>
+      </div>
+    </div>
+    <form action="/knowledge" method="get" class="knowledge-filter-form">
+      <label for="search">标题或路径关键词</label>
+      <input type="text" id="search" name="search" value="{{ filters.search }}" placeholder="如：方法论 / season pass">
 
-    <label for="stage">适用阶段</label>
-    <select id="stage" name="stage">
-      <option value="">全部阶段</option>
-      <option value="design" {% if filters.stage == "design" %}selected{% endif %}>问卷设计</option>
-      <option value="analysis" {% if filters.stage == "analysis" %}selected{% endif %}>问卷分析</option>
-      <option value="report" {% if filters.stage == "report" %}selected{% endif %}>报告写作</option>
-    </select>
+      <label for="stage">适用阶段</label>
+      <select id="stage" name="stage">
+        <option value="">全部阶段</option>
+        <option value="design" {% if filters.stage == "design" %}selected{% endif %}>问卷设计</option>
+        <option value="analysis" {% if filters.stage == "analysis" %}selected{% endif %}>问卷分析</option>
+        <option value="report" {% if filters.stage == "report" %}selected{% endif %}>报告写作</option>
+      </select>
 
-    <label for="doc_type">文档类型</label>
-    <input type="text" id="doc_type" name="doc_type" value="{{ filters.doc_type }}" placeholder="如：guide / research">
+      <label for="doc_type">文档类型</label>
+      <input type="text" id="doc_type" name="doc_type" value="{{ filters.doc_type }}" placeholder="如：guide / research">
 
-    <label for="tag">标签</label>
-    <input type="text" id="tag" name="tag" value="{{ filters.tag }}" placeholder="如：retention / method">
+      <label for="tag">标签</label>
+      <input type="text" id="tag" name="tag" value="{{ filters.tag }}" placeholder="如：retention / method">
 
-    <button type="submit">应用筛选</button>
-  </form>
+      <button type="submit">应用筛选</button>
+    </form>
+  </article>
+
+  <article class="upload-section">
+    <div class="section-heading">
+      <div>
+        <h2>上传知识文档</h2>
+        <p class="help-text">支持 Markdown (.md)、EPUB (.epub)、PDF (.pdf)、Word (.docx) 和 PowerPoint (.pptx) 文档。</p>
+      </div>
+    </div>
+    <p class="help-text">非 Markdown 文件会自动转换并提供预览。图片型 PDF 目前不支持自动提取正文，请先用专门软件完成 OCR 或转成可复制文本后再上传。</p>
+    <form action="/knowledge/upload" method="post" enctype="multipart/form-data">
+      <input type="file" name="file" accept=".md,.txt,.epub,.pdf,.docx,.pptx" required>
+      <fieldset>
+        <legend>用途分类（可多选）</legend>
+        <label><input type="checkbox" name="purposes" value="questionnaire_design"> 问卷设计</label>
+        <label><input type="checkbox" name="purposes" value="analysis"> 问卷分析</label>
+        <label><input type="checkbox" name="purposes" value="reporting"> 报告写作</label>
+      </fieldset>
+      <button type="submit">上传知识文档</button>
+    </form>
+  </article>
 </section>
 
-<section class="upload-section">
-  <h2>上传知识文档</h2>
-  <p class="help-text">支持 Markdown (.md)、EPUB (.epub)、PDF (.pdf)、Word (.docx) 和 PowerPoint (.pptx) 文档。非 Markdown 文件会自动转换并提供预览。图片型 PDF 目前不支持自动提取正文，请先用专门软件完成 OCR 或转成可复制文本后再上传。</p>
-  <form action="/knowledge/upload" method="post" enctype="multipart/form-data">
-    <input type="file" name="file" accept=".md,.txt,.epub,.pdf,.docx,.pptx" required>
-    <fieldset>
-      <legend>用途分类（可多选）</legend>
-      <label><input type="checkbox" name="purposes" value="questionnaire_design"> 问卷设计</label>
-      <label><input type="checkbox" name="purposes" value="analysis"> 问卷分析</label>
-      <label><input type="checkbox" name="purposes" value="reporting"> 报告写作</label>
-    </fieldset>
-    <button type="submit">上传知识文档</button>
-  </form>
-</section>
-
-<section class="knowledge-list">
+<section class="knowledge-document-list">
   <h2>当前知识文档</h2>
   {% if has_indexing_documents %}
   <p class="help-text">存在正在建立索引的文档，页面会在你手动刷新后显示最新状态。</p>
   {% endif %}
   {% if documents %}
-  <ul>
+  <div class="knowledge-card-grid">
     {% for document in documents %}
-    <li>
-      <strong>{{ document.title }}</strong>
+    <article class="knowledge-document-card">
+      <div class="knowledge-document-header">
+        <div>
+          <strong>{{ document.title }}</strong>
+          <div class="help-text">文档类型：{{ document.doc_type }} ｜ 优先级：{{ document.priority }}</div>
+        </div>
+        <div class="knowledge-status-group">
+          {% if document.index_status == "indexing" %}
+          <span class="status-pill status-pill-running">建立索引中</span>
+          {% elif document.index_status == "ready" %}
+          <span class="status-pill status-pill-ready">已就绪</span>
+          {% elif document.index_status == "index_failed" %}
+          <span class="status-pill status-pill-error">索引失败</span>
+          {% endif %}
+          {% if document.source_format and document.source_format != "md" %}
+          <span class="badge">{{ document.source_format | upper }}</span>
+          {% endif %}
+        </div>
+      </div>
       {% if document.source_format and document.source_format != "md" %}
-      <span class="badge">{{ document.source_format | upper }}</span>
       {% endif %}
-      <div class="help-text">文档类型：{{ document.doc_type }} ｜ 优先级：{{ document.priority }}</div>
       {% if document.index_status == "indexing" %}
-      <div class="help-text">🔄 正在建立索引...</div>
+      <div class="help-text">正在建立索引...</div>
       {% elif document.index_status == "ready" %}
-      <div class="help-text">✅ 已就绪 · {{ "{:,}".format(document.chunk_count or 0) }} chunks</div>
+      <div class="help-text">已就绪 · {{ "{:,}".format(document.chunk_count or 0) }} chunks</div>
       {% elif document.index_status == "index_failed" %}
-      <div class="help-text">❌ 索引失败</div>
+      <div class="help-text">索引失败</div>
       {% if document.index_error %}
       <div class="help-text">{{ document.index_error }}</div>
       {% endif %}
@@ -96,12 +123,14 @@
       <div class="help-text">标签：{{ document.tags | join('、') }}</div>
       {% endif %}
       <div class="help-text">{{ document.source_path }}</div>
-      <form action="/knowledge/{{ document.id }}/delete" method="post">
-        <button type="submit">移出共享知识库</button>
-      </form>
-    </li>
+      <div class="knowledge-document-actions">
+        <form action="/knowledge/{{ document.id }}/delete" method="post" data-confirm-text="确认将这篇文档移出共享知识库吗？">
+          <button type="submit">移出共享知识库</button>
+        </form>
+      </div>
+    </article>
     {% endfor %}
-  </ul>
+  </div>
   {% else %}
   <p class="empty-state">当前没有符合筛选条件的知识文档，请调整筛选条件或先上传至少一篇研究资料。</p>
   {% endif %}

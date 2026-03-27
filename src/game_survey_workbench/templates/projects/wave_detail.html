@@ -11,44 +11,73 @@
 </header>
 
 {% if wave.goal_summary %}
-<section>
+<section class="workspace-panel">
   <h2>轮次目标</h2>
   <p>{{ wave.goal_summary }}</p>
 </section>
 {% endif %}
 
-<section class="workflow-links">
-  <h2>本轮工作区</h2>
-  <ul>
-    <li><a href="/projects/{{ project_slug }}/waves/{{ wave.id }}/questionnaires">问卷设计</a></li>
-    <li><a href="/projects/{{ project_slug }}/waves/{{ wave.id }}/analysis">数据分析</a></li>
-    <li><a href="/projects/{{ project_slug }}/waves/{{ wave.id }}/reports">报告生成</a></li>
-  </ul>
-  <p class="help-text">进入任一模块时，系统会先将这一轮设为当前轮次，再进入对应工作流。</p>
-</section>
+<div class="wave-workspace split-workspace" data-sidebar-toggle-root>
+  <div class="wave-main-column">
+    <div class="workspace-inline-actions">
+      <button type="button" class="secondary" data-sidebar-open hidden>显示侧栏</button>
+    </div>
+    <section class="workflow-links workspace-panel">
+      <h2>本轮工作区</h2>
+      <ul class="task-list">
+        <li><a href="/projects/{{ project_slug }}/waves/{{ wave.id }}/questionnaires">问卷设计</a></li>
+        <li><a href="/projects/{{ project_slug }}/waves/{{ wave.id }}/analysis">数据分析</a></li>
+        <li><a href="/projects/{{ project_slug }}/waves/{{ wave.id }}/reports">报告生成</a></li>
+      </ul>
+      <p class="help-text">进入任一模块时，系统会先将这一轮设为当前轮次，再进入对应工作流。</p>
+    </section>
 
-<section>
-  <h2>本轮历史索引</h2>
-  <ul>
-    <li><a href="/projects/{{ project_slug }}/questionnaires/history">问卷版本历史</a></li>
-    <li><a href="/projects/{{ project_slug }}/reports/history">报告历史</a></li>
-  </ul>
-  <p class="help-text">后续步骤会把这些历史进一步收口到“仅看本轮”。</p>
-</section>
+    <section class="workspace-panel">
+      <h2>本轮历史索引</h2>
+      <ul class="task-list">
+        <li><a href="/projects/{{ project_slug }}/questionnaires/history">问卷版本历史</a></li>
+        <li><a href="/projects/{{ project_slug }}/reports/history">报告历史</a></li>
+      </ul>
+      <p class="help-text">后续步骤会把这些历史进一步收口到“仅看本轮”。</p>
+    </section>
 
-{% if research_waves %}
-<section>
-  <h2>项目轮次</h2>
-  <ul>
-    {% for item in research_waves %}
-    <li>
-      <a href="/projects/{{ project_slug }}/waves/{{ item.id }}">{{ item.name }}</a>
-      {% if item.is_current %}
-      <span class="help-text">｜当前轮次</span>
-      {% endif %}
-    </li>
-    {% endfor %}
-  </ul>
-</section>
-{% endif %}
+    {% if research_waves %}
+    <section class="workspace-panel">
+      <h2>项目轮次</h2>
+      <ul class="task-list">
+        {% for item in research_waves %}
+        <li>
+          <a href="/projects/{{ project_slug }}/waves/{{ item.id }}">{{ item.name }}</a>
+          {% if item.is_current %}
+          <span class="help-text">｜当前轮次</span>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+  </div>
+
+  <aside class="wave-sidebar" data-sidebar-panel>
+    <div class="sidebar-panel-header">
+      <button type="button" class="secondary" data-sidebar-close>收起侧栏</button>
+    </div>
+    <section class="workspace-panel task-panel">
+      <h2>当前状态</h2>
+      <ul class="task-list">
+        <li>所属项目：{{ project.name if project else project_slug }}</li>
+        <li>{{ "当前轮次" if wave.is_current else "历史轮次" }}</li>
+        <li>可直接进入问卷、分析、报告三个工作区。</li>
+      </ul>
+    </section>
+
+    <section class="workspace-panel task-panel">
+      <h2>下一步建议</h2>
+      <ul class="task-list">
+        <li>如果本轮目标已明确，建议先进入问卷设计确认题目草稿。</li>
+        <li>若已有数据，可直接进入数据分析继续推进编码和洞察。</li>
+      </ul>
+    </section>
+  </aside>
+</div>
 {% endblock %}

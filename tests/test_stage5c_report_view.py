@@ -82,6 +82,11 @@ def test_report_latest_page_shows_content(client, project_with_report):
     assert response.status_code == 200
     html = response.text
     assert "研究报告" in html
+    assert "report-workspace" in html
+    assert "report-body" in html
+    assert 'class="report-sidebar"' in html
+    assert "status-summary-card" in html
+    assert "status-token" in html
     assert "report-content" in html or "narrative" in html.lower() or "Evidence" in html
 
 
@@ -136,3 +141,40 @@ def test_report_latest_page_is_scoped_to_current_wave(client, tmp_path):
 
     assert "Wave 2 Insight" in response.text
     assert "Wave 1 Insight" not in response.text
+
+
+def test_report_latest_page_shows_empty_workspace_state(client):
+    slug = "report-empty-test"
+    client.post("/projects", json={"slug": slug, "name": "Report Empty Test"})
+
+    response = client.get(f"/projects/{slug}/reports/latest")
+
+    assert response.status_code == 200
+    html = response.text
+    assert 'class="report-empty workspace-panel"' in html
+    assert "empty-state-card" in html
+    assert "尚未生成报告" in html
+
+
+def test_report_history_uses_workspace_layout(client, project_with_report):
+    slug, _ = project_with_report
+
+    response = client.get(f"/projects/{slug}/reports/history")
+
+    assert response.status_code == 200
+    html = response.text
+    assert "report-history-workspace" in html
+    assert 'class="workspace-panel report-history-panel"' in html
+    assert 'class="report-history-sidebar"' in html
+
+
+def test_report_history_shows_empty_state_card(client):
+    slug = "report-history-empty"
+    client.post("/projects", json={"slug": slug, "name": "Report History Empty"})
+
+    response = client.get(f"/projects/{slug}/reports/history")
+
+    assert response.status_code == 200
+    html = response.text
+    assert "empty-state-card" in html
+    assert "还没有历史报告版本" in html

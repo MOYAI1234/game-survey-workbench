@@ -10,7 +10,7 @@
 </header>
 
 {% if upload_error %}
-<section class="workflow-alert alert-error">
+<section class="workflow-alert alert-error alert-card">
   <strong>导入失败：</strong> {{ upload_error }}
 </section>
 {% endif %}
@@ -25,189 +25,304 @@
 </section>
 
 {% if not run_id %}
-<p class="empty-state">
-  暂无{% if current_wave %}本轮{% endif %}分析记录。请先在这里上传问卷数据。
-</p>
+<section class="workspace-panel report-empty">
+  <div class="empty-state-card centered">
+    <p class="empty-state-title">还没有分析记录</p>
+    <p class="empty-state-copy">先上传本轮问卷数据，系统会自动建立分析记录，并继续进入文本编码、洞察合成和报告生成流程。</p>
+  </div>
+</section>
 {% else %}
 
 {% if workflow_error %}
-<section class="workflow-alert alert-error">
+<section class="workflow-alert alert-error alert-card">
   <strong>上一步操作失败：</strong> {{ workflow_error }}
   <p>您可以使用下方按钮重新执行该步骤。</p>
 </section>
 {% endif %}
 
-<section class="workflow-steps">
+<section class="workflow-steps workflow-stepper">
   <h2>研究进度</h2>
   <ol>
     <li class="step-item done">
-      ✓ 数据已导入
+      <span class="step-dot">01</span>
+      <div>
+        <strong>数据已导入</strong>
+        <div class="help-text">数据结构已确认，可以开始生成分析资产。</div>
+      </div>
     </li>
     <li class="step-item {% if 'coding_complete' in workflow_completed %}done{% elif workflow_phase == 'imported' %}current{% else %}pending{% endif %}">
-      {% if 'coding_complete' in workflow_completed %}✓{% endif %} 文本编码
+      <span class="step-dot">02</span>
+      <div>
+        <strong>文本编码</strong>
       {% if workflow_phase == 'imported' %}<span class="step-hint">← 当前步骤</span>{% endif %}
+      </div>
     </li>
     <li class="step-item {% if 'insights_complete' in workflow_completed %}done{% elif workflow_phase == 'coded' %}current{% else %}pending{% endif %}">
-      {% if 'insights_complete' in workflow_completed %}✓{% endif %} 洞察合成
+      <span class="step-dot">03</span>
+      <div>
+        <strong>洞察合成</strong>
       {% if workflow_phase == 'coded' %}<span class="step-hint">← 当前步骤</span>{% endif %}
+      </div>
     </li>
     <li class="step-item {% if 'report_complete' in workflow_completed %}done{% elif workflow_phase == 'insights_ready' %}current{% else %}pending{% endif %}">
-      {% if 'report_complete' in workflow_completed %}✓{% endif %} 报告生成
+      <span class="step-dot">04</span>
+      <div>
+        <strong>报告生成</strong>
       {% if workflow_phase == 'insights_ready' %}<span class="step-hint">← 当前步骤</span>{% endif %}
+      </div>
     </li>
   </ol>
 </section>
 
-<section class="schema-overview">
-  <h2>数据概览</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>列名</th>
-        <th>题型</th>
-        <th>纳入分析</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for col_name, col_info in schema.items() %}
-      <tr>
-        <td>{{ col_name }}</td>
-        <td>{{ col_info.question_type if col_info is mapping else col_info }}</td>
-        <td>{{ '是' if col_info is mapping and col_info.include_in_analysis else '否' }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</section>
+<div class="analysis-workspace split-workspace" data-sidebar-toggle-root>
+  <div class="analysis-main-column">
+    <div class="workspace-inline-actions">
+      <button type="button" class="secondary" data-sidebar-open hidden>显示侧栏</button>
+    </div>
+    <section class="schema-overview workspace-panel">
+      <div class="section-heading">
+        <div>
+          <h2>数据概览</h2>
+          <p class="help-text">先确认题型结构和字段是否进入后续分析链路。</p>
+        </div>
+      </div>
+      <div class="schema-table data-table">
+        <table>
+          <thead>
+            <tr>
+              <th>列名</th>
+              <th>题型</th>
+              <th>纳入分析</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for col_name, col_info in schema.items() %}
+            <tr>
+              <td>{{ col_name }}</td>
+              <td>{{ col_info.question_type if col_info is mapping else col_info }}</td>
+              <td>{{ '是' if col_info is mapping and col_info.include_in_analysis else '否' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
 
-<section class="findings-section">
-  <h2>确定性分析结果</h2>
-  {% if findings %}
-  <ul class="findings-list">
-    {% for finding in findings %}
-    <li>{{ finding }}</li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p class="empty-state">数据上传后将自动计算基础统计指标。</p>
-  {% endif %}
-</section>
-
-<section class="coding-section">
-  <h2>文本编码结果</h2>
-  {% if has_free_text_questions %}
-  <div
-    id="coding-progress-shell"
-    class="workflow-alert"
-    data-coding-status-url="{{ coding_status_url }}"
-    hidden
-  >
-    <strong id="coding-progress-text">正在准备文本编码任务…</strong>
-    <progress id="coding-progress-bar" value="0" max="100">0%</progress>
-    <p class="help-text" id="coding-progress-meta">已完成 0/0 个批次</p>
-  </div>
-  {% endif %}
-  {% if coding_fallback_notice %}
-  <section class="workflow-alert alert-success">
-    <strong>{{ coding_fallback_notice }}</strong>
-  </section>
-  {% endif %}
-  {% if not has_free_text_questions %}
-  <p class="empty-state">当前数据中没有开放题，无需执行文本编码。</p>
-  {% elif coding_results %}
-    {% for result in coding_results %}
-    <article>
-      <h3>{{ result.question_column }}</h3>
-      <ul>
-        {% for theme in result.themes %}
-        <li>
-          <strong>{{ theme.theme_name if theme is mapping else theme }}</strong>
-          {% if theme is mapping and theme.count is defined %}
-          （{{ theme.count }} 条回答）
-          {% endif %}
-        </li>
+    <section class="findings-section workspace-panel">
+      <div class="section-heading">
+        <div>
+          <h2>确定性分析结果</h2>
+          <p class="help-text">这里保留可直接复核的统计结论，方便后续生成洞察和报告。</p>
+        </div>
+      </div>
+      {% if findings %}
+      <ul class="findings-list">
+        {% for finding in findings %}
+        <li>{{ finding }}</li>
         {% endfor %}
       </ul>
-    </article>
-    {% endfor %}
-  {% else %}
-  <p class="empty-state">尚未执行文本编码。</p>
-  <form action="/projects/{{ project_slug }}/analysis/latest/code-text-all/start" method="post">
-    <button type="submit" data-loading-text="正在启动编码…">执行文本编码（所有开放题）</button>
-  </form>
-  <p class="help-text">系统将使用 LLM 对所有 free_text 类型的题目进行主题编码。</p>
-  {% endif %}
-</section>
+      {% else %}
+      <p class="empty-state">数据上传后将自动计算基础统计指标。</p>
+      {% endif %}
+    </section>
 
-<section class="insight-section">
-  <h2>洞察合成</h2>
-  {% if insight_fallback_notice %}
-  <section class="workflow-alert alert-success">
-    <strong>{{ insight_fallback_notice }}</strong>
-  </section>
-  {% endif %}
-  {% if insight %}
-  <div class="insight-narrative">{{ insight.narrative }}</div>
-  {% if insight.evidence_section %}
-  <details>
-    <summary>证据依据</summary>
-    <div class="evidence">{{ insight.evidence_section }}</div>
-  </details>
-  {% endif %}
-  {% if insight.citations %}
-  <details>
-    <summary>本次知识依据</summary>
-    <ul>
-      {% for citation in insight.citations %}
-      <li>
-        <strong>{{ citation.document_title if citation is mapping else citation }}</strong>
-        {% if citation is mapping and citation.retrieval_pool %}
-        ｜{{ "方法论池" if citation.retrieval_pool == "method" else "领域知识池" }}
-        {% endif %}
-        {% if citation is mapping and citation.content %}
-        <div class="help-text">{{ citation.content }}</div>
-        {% endif %}
-      </li>
-      {% endfor %}
-    </ul>
-  </details>
-  {% endif %}
-  {% if insight_history and insight_history|length > 1 %}
-  <details>
-    <summary>历史洞察草稿（{{ insight_history|length - 1 }} 份）</summary>
-    <ul>
-      {% for previous_insight in insight_history[1:] %}
-      <li>{{ previous_insight.created_at.strftime('%m-%d %H:%M') }} — {{ previous_insight.narrative[:120] }}…</li>
-      {% endfor %}
-    </ul>
-  </details>
-  {% endif %}
-  {% else %}
-  <p class="empty-state">尚未生成洞察。</p>
-  {% endif %}
-  <form action="/projects/{{ project_slug }}/analysis/latest/insights-generate" method="post">
-    <label for="research_goal">研究目标</label>
-    <input
-      type="text"
-      id="research_goal"
-      name="research_goal"
-      required
-      placeholder="如：分析玩家流失的核心驱动因素"
-    >
-    <button type="submit" data-loading-text="正在生成洞察…">{% if insight %}重新生成洞察{% else %}生成洞察{% endif %}</button>
-  </form>
-  {% if not insight %}
-  <p class="help-text">系统将结合确定性分析结果、编码主题和知识库，由 LLM 生成研究洞察。</p>
-  {% endif %}
-</section>
+    <section class="coding-section workspace-panel">
+      <div class="section-heading">
+        <div>
+          <h2>文本编码结果</h2>
+          <p class="help-text">开放题将由系统逐题归纳主题，并在这里回显可继续用于洞察合成的主题结果。</p>
+        </div>
+      </div>
+      {% if has_free_text_questions %}
+      <div
+        id="coding-progress-shell"
+        class="workflow-alert coding-progress-panel"
+        data-coding-status-url="{{ coding_status_url }}"
+        hidden
+      >
+        <strong id="coding-progress-text">正在准备文本编码任务…</strong>
+        <progress id="coding-progress-bar" value="0" max="100">0%</progress>
+        <p class="help-text" id="coding-progress-meta">已完成 0/0 个批次</p>
+      </div>
+      {% endif %}
+      {% if coding_fallback_notice %}
+      <section class="workflow-alert alert-success">
+        <strong>{{ coding_fallback_notice }}</strong>
+      </section>
+      {% endif %}
+      {% if not has_free_text_questions %}
+      <p class="empty-state">当前数据中没有开放题，无需执行文本编码。</p>
+      {% elif coding_results %}
+        {% for result in coding_results %}
+        <article class="coding-result-card">
+          <h3>{{ result.question_column }}</h3>
+          <ul>
+            {% for theme in result.themes %}
+            <li>
+              <strong>{{ theme.theme_name if theme is mapping else theme }}</strong>
+              {% if theme is mapping and theme.count is defined %}
+              （{{ theme.count }} 条回答）
+              {% endif %}
+            </li>
+            {% endfor %}
+          </ul>
+        </article>
+        {% endfor %}
+      {% else %}
+      <p class="empty-state">尚未执行文本编码。</p>
+      <form action="/projects/{{ project_slug }}/analysis/latest/code-text-all/start" method="post" data-running-message="文本编码任务已启动。你可以留在当前页面查看进度，也可以先切换到其他模块继续工作。">
+        <button type="submit" data-loading-text="正在启动编码…">执行文本编码（所有开放题）</button>
+      </form>
+      <p class="help-text">系统将使用 LLM 对所有 free_text 类型的题目进行主题编码。</p>
+      {% endif %}
+    </section>
 
-<section class="report-section">
-  <h2>研究报告</h2>
-  <form action="/projects/{{ project_slug }}/reports/generate-form" method="post">
-    <button type="submit" data-loading-text="正在生成报告…">生成报告</button>
-  </form>
-  <p class="help-text"><a href="/projects/{{ project_slug }}/reports/latest">查看最新报告</a></p>
-</section>
+    <section class="insight-section workspace-panel">
+      <div class="section-heading">
+        <div>
+          <h2>洞察合成</h2>
+          <p class="help-text">系统会综合统计结论、开放题主题和知识库依据，产出业务可读的洞察草稿。</p>
+        </div>
+      </div>
+      {% if insight_fallback_notice %}
+      <section class="workflow-alert alert-success">
+        <strong>{{ insight_fallback_notice }}</strong>
+      </section>
+      {% endif %}
+      {% if insight %}
+      <div class="insight-narrative">{{ insight.narrative }}</div>
+      {% if insight.evidence_section %}
+      <details>
+        <summary>证据依据</summary>
+        <div class="evidence">{{ insight.evidence_section }}</div>
+      </details>
+      {% endif %}
+      {% if insight.citations %}
+      <details>
+        <summary>本次知识依据</summary>
+        <ul>
+          {% for citation in insight.citations %}
+          <li>
+            <strong>{{ citation.document_title if citation is mapping else citation }}</strong>
+            {% if citation is mapping and citation.retrieval_pool %}
+            ｜{{ "方法论池" if citation.retrieval_pool == "method" else "领域知识池" }}
+            {% endif %}
+            {% if citation is mapping and citation.content %}
+            <div class="help-text">{{ citation.content }}</div>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </details>
+      {% endif %}
+      {% if insight_history and insight_history|length > 1 %}
+      <details>
+        <summary>历史洞察草稿（{{ insight_history|length - 1 }} 份）</summary>
+        <ul>
+          {% for previous_insight in insight_history[1:] %}
+          <li>{{ previous_insight.created_at.strftime('%m-%d %H:%M') }} — {{ previous_insight.narrative[:120] }}…</li>
+          {% endfor %}
+        </ul>
+      </details>
+      {% endif %}
+      {% else %}
+      <div class="empty-state-card">
+        <p class="empty-state-title">尚未生成洞察</p>
+        <p class="empty-state-copy">先整理研究目标，再让系统把统计结果、开放题主题和知识依据整合成业务洞察。</p>
+      </div>
+      {% endif %}
+      <form action="/projects/{{ project_slug }}/analysis/latest/insights-generate" method="post" data-running-message="洞察生成任务已提交，系统正在整合统计结果、编码主题和知识依据。">
+        <label for="research_goal">研究目标</label>
+        <input
+          type="text"
+          id="research_goal"
+          name="research_goal"
+          required
+          placeholder="如：分析玩家流失的核心驱动因素"
+        >
+        <button type="submit" data-loading-text="正在生成洞察…">{% if insight %}重新生成洞察{% else %}生成洞察{% endif %}</button>
+      </form>
+      {% if not insight %}
+      <p class="help-text">系统将结合确定性分析结果、编码主题和知识库，由 LLM 生成研究洞察。</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <aside class="task-sidebar" data-sidebar-panel>
+    <div class="sidebar-panel-header">
+      <button type="button" class="secondary" data-sidebar-close>收起侧栏</button>
+    </div>
+    <section class="workspace-panel task-panel">
+      <h2>当前任务</h2>
+      <p class="help-text">当前分析链路所在阶段会在这里持续给出明确状态，避免用户反复切页确认。</p>
+      <ul class="task-list">
+        <li>当前阶段：{{ workflow_phase or "imported" }}</li>
+        <li>开放题：{{ "存在" if has_free_text_questions else "无" }}</li>
+        <li>洞察：{{ "已生成" if insight else "待生成" }}</li>
+      </ul>
+    </section>
+
+    <section class="workspace-panel task-panel status-summary-card">
+      <h2>状态总览</h2>
+      <div class="status-summary-list">
+        <div class="status-summary-item">
+          <span>文本编码</span>
+          {% if coding_results %}
+          <span class="status-token status-token-ready">已就绪</span>
+          {% elif has_free_text_questions %}
+          <span class="status-token status-token-running">待执行</span>
+          {% else %}
+          <span class="status-token status-token-pending">不需要</span>
+          {% endif %}
+        </div>
+        <div class="status-summary-item">
+          <span>洞察合成</span>
+          {% if insight %}
+          <span class="status-token status-token-ready">已生成</span>
+          {% elif coding_results or not has_free_text_questions %}
+          <span class="status-token status-token-running">可执行</span>
+          {% else %}
+          <span class="status-token status-token-pending">等待上游</span>
+          {% endif %}
+        </div>
+        <div class="status-summary-item">
+          <span>报告生成</span>
+          {% if 'report_complete' in workflow_completed %}
+          <span class="status-token status-token-ready">已完成</span>
+          {% elif insight %}
+          <span class="status-token status-token-running">可生成</span>
+          {% else %}
+          <span class="status-token status-token-pending">未就绪</span>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace-panel task-panel">
+      <h2>下一步建议</h2>
+      <ul class="task-list">
+        {% if not has_free_text_questions %}
+        <li>当前数据没有开放题，可以直接生成洞察或报告。</li>
+        {% elif not coding_results %}
+        <li>建议先执行文本编码，再继续洞察合成。</li>
+        {% elif not insight %}
+        <li>文本编码已具备素材，下一步建议生成洞察。</li>
+        {% else %}
+        <li>洞察已生成，可以直接进入报告整理与业务汇报阶段。</li>
+        {% endif %}
+        <li><a href="/projects/{{ project_slug }}/reports/latest">查看最新报告</a></li>
+      </ul>
+    </section>
+
+    <section class="report-section workspace-panel task-panel">
+      <h2>研究报告</h2>
+      <form action="/projects/{{ project_slug }}/reports/generate-form" method="post" data-running-message="报告生成任务已启动，系统正在整理当前分析结果为业务汇报稿。">
+        <button type="submit" data-loading-text="正在生成报告…">生成报告</button>
+      </form>
+      <p class="help-text"><a href="/projects/{{ project_slug }}/reports/latest">查看最新报告</a></p>
+    </section>
+  </aside>
+</div>
 {% endif %}
 {% endblock %}
 {% block scripts %}

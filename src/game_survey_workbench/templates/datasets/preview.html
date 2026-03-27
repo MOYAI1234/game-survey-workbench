@@ -1,70 +1,117 @@
 {% extends "layout.html" %}
 {% block content %}
-<h2>数据导入预览</h2>
+<header>
+  <p class="eyebrow"><a href="/projects/{{ project_slug }}/analysis/latest">← 返回数据分析</a></p>
+  <h1>数据导入预览</h1>
+  <p>检测格式：<strong>{{ detection.format_type }}</strong></p>
+</header>
 
-<p>检测格式: <strong>{{ detection.format_type }}</strong></p>
+<div class="dataset-preview-workspace split-workspace" data-sidebar-toggle-root>
+  <section class="workspace-panel dataset-preview-main">
+    <div class="workspace-inline-actions">
+      <button type="button" class="secondary" data-sidebar-open hidden>显示侧栏</button>
+    </div>
+    <form method="post" action="/projects/{{ project_slug }}/datasets/confirm-import" data-running-message="导入任务已提交，系统正在建立分析记录并跳转到数据分析页。">
+      <input type="hidden" name="staging_id" value="{{ staging_id }}">
 
-<form method="post" action="/projects/{{ project_slug }}/datasets/confirm-import">
-  <input type="hidden" name="staging_id" value="{{ staging_id }}">
-
-  <table>
-    <thead>
-      <tr>
-        <th>列名</th>
-        <th>推断题型</th>
-        <th>推断依据</th>
-        <th>纳入分析</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for i in range(detection.column_titles | length) %}
-      <tr>
-        <td>{{ detection.column_titles[i] }}</td>
-        <td>
-          <select name="column_types">
-            {% for t in ["metadata", "single_choice", "multi_select", "free_text", "scale", "matrix", "ranking"] %}
-            <option value="{{ t }}" {% if detection.column_types[i] == t %}selected{% endif %}>
-              {{ t }}
-            </option>
+      <h2>字段映射确认</h2>
+      <div class="data-table">
+        <table>
+          <thead>
+            <tr>
+              <th>列名</th>
+              <th>推断题型</th>
+              <th>推断依据</th>
+              <th>纳入分析</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for i in range(detection.column_titles | length) %}
+            <tr>
+              <td>{{ detection.column_titles[i] }}</td>
+              <td>
+                <select name="column_types">
+                  {% for t in ["metadata", "single_choice", "multi_select", "free_text", "scale", "matrix", "ranking"] %}
+                  <option value="{{ t }}" {% if detection.column_types[i] == t %}selected{% endif %}>
+                    {{ t }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </td>
+              <td>
+                {% if detection.inferred_columns %}
+                  {{ detection.inferred_columns[i].reason }} ({{ detection.inferred_columns[i].confidence }})
+                {% else %}
+                  双层表头声明
+                {% endif %}
+              </td>
+              <td>
+                <input type="checkbox" name="column_include" value="{{ detection.column_titles[i] }}" checked>
+              </td>
+            </tr>
             {% endfor %}
-          </select>
-        </td>
-        <td>
-          {% if detection.inferred_columns %}
-            {{ detection.inferred_columns[i].reason }} ({{ detection.inferred_columns[i].confidence }})
-          {% else %}
-            双层表头声明
-          {% endif %}
-        </td>
-        <td>
-          <input type="checkbox" name="column_include" value="{{ detection.column_titles[i] }}" checked>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+          </tbody>
+        </table>
+      </div>
 
-  <h3>数据预览（前5行）</h3>
-  <table>
-    <thead>
-      <tr>
-        {% for title in detection.column_titles %}
-        <th>{{ title }}</th>
-        {% endfor %}
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in detection.preview_rows %}
-      <tr>
-        {% for cell in row %}
-        <td>{{ cell }}</td>
-        {% endfor %}
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      <h3>数据预览（前5行）</h3>
+      <div class="data-table">
+        <table>
+          <thead>
+            <tr>
+              {% for title in detection.column_titles %}
+              <th>{{ title }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in detection.preview_rows %}
+            <tr>
+              {% for cell in row %}
+              <td>{{ cell }}</td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
 
-  <button type="submit">确认导入</button>
-  <a href="/projects/{{ project_slug }}">返回重新上传</a>
-</form>
+      <div class="dataset-preview-actions">
+        <button type="submit">确认导入</button>
+        <a href="/projects/{{ project_slug }}">返回重新上传</a>
+      </div>
+    </form>
+  </section>
+
+  <aside class="dataset-preview-sidebar" data-sidebar-panel>
+    <div class="sidebar-panel-header">
+      <button type="button" class="secondary" data-sidebar-close>收起侧栏</button>
+    </div>
+    <section class="workspace-panel task-panel status-summary-card">
+      <h2>导入状态</h2>
+      <div class="status-summary-list">
+        <div class="status-summary-item">
+          <span>文件格式</span>
+          <span class="status-token status-token-ready">{{ detection.format_type }}</span>
+        </div>
+        <div class="status-summary-item">
+          <span>字段数量</span>
+          <span class="status-token status-token-ready">{{ detection.column_titles | length }} 列</span>
+        </div>
+        <div class="status-summary-item">
+          <span>下一步</span>
+          <span class="status-token status-token-running">确认导入</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace-panel task-panel">
+      <h2>下一步建议</h2>
+      <ul class="task-list">
+        <li>先检查题型推断和纳入分析字段是否符合预期。</li>
+        <li>确认后会直接进入分析页继续文本编码与洞察生成。</li>
+      </ul>
+    </section>
+  </aside>
+</div>
 {% endblock %}

@@ -9,26 +9,28 @@
   {% endif %}
 </header>
 
-<section>
+<section class="workspace-panel questionnaire-history-panel">
   {% if versions %}
-  <table>
-    <thead>
-      <tr>
-        <th>版本</th>
-        <th>研究目标</th>
-        <th>创建时间</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for version in versions %}
-      <tr>
-        <td>{{ version.version_id }}</td>
-        <td>{{ version.research_goal }}</td>
-        <td>{{ version.created_at.strftime('%Y-%m-%d %H:%M') if version.created_at else '' }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="data-table questionnaire-history-table">
+    <table>
+      <thead>
+        <tr>
+          <th>版本</th>
+          <th>研究目标</th>
+          <th>创建时间</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for version in versions %}
+        <tr>
+          <td>{{ version.version_id }}</td>
+          <td>{{ version.research_goal }}</td>
+          <td>{{ version.created_at.strftime('%Y-%m-%d %H:%M') if version.created_at else '' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
   <p class="empty-state">尚无问卷版本记录。</p>
   {% endif %}

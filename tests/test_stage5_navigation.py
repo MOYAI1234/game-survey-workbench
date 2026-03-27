@@ -39,6 +39,7 @@ def test_all_pages_inherit_layout(client, tmp_path):
         response = client.get(path)
         assert response.status_code == 200
         assert "<nav" in response.text, f"Missing nav on {path}"
+        assert 'class="project-sidebar"' in response.text, f"Missing project sidebar on {path}"
 
 
 def test_wave_workspace_shows_wave_specific_entry_links(client, tmp_path):
@@ -59,3 +60,5 @@ def test_wave_workspace_shows_wave_specific_entry_links(client, tmp_path):
     assert f'href="/projects/{slug}/waves/{wave.id}/questionnaires"' in response.text
     assert f'href="/projects/{slug}/waves/{wave.id}/analysis"' in response.text
     assert f'href="/projects/{slug}/waves/{wave.id}/reports"' in response.text
+    assert "wave-workspace" in response.text
+    assert "wave-sidebar" in response.text

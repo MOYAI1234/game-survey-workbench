@@ -48,6 +48,8 @@ def test_upload_preview_returns_preview_page_for_single_header(app_client, works
     assert response.status_code == 200
     html = response.text
     assert "预览" in html or "Preview" in html
+    assert "dataset-preview-workspace" in html
+    assert "dataset-preview-sidebar" in html
     assert "Gender" in html
     assert "Feedback" in html
 
@@ -69,6 +71,7 @@ def test_upload_preview_returns_preview_page_for_dual_header(app_client, workspa
 
     assert response.status_code == 200
     assert "Gender" in response.text
+    assert "data-table" in response.text
 
 
 def test_confirm_import_creates_dataset_and_redirects(app_client, workspace):

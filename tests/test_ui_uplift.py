@@ -50,34 +50,37 @@ def test_questionnaire_content_not_in_pre_block(
     assert 'class="prose questionnaire-rendered"' in html
 
 
-def test_project_nav_shows_on_project_detail(client: TestClient):
+def test_project_sidebar_shows_on_project_detail(client: TestClient):
     client.post("/projects", json={"slug": "nav-test", "name": "Nav Test"})
     response = client.get("/projects/nav-test")
     html = response.text
-    assert 'class="project-nav"' in html
+    assert 'class="project-sidebar"' in html
+    assert 'class="workspace-shell"' in html
+    assert 'href="/projects/nav-test"' in html
     assert 'href="/projects/nav-test/questionnaires/latest"' in html
     assert 'href="/projects/nav-test/analysis/latest"' in html
     assert 'href="/projects/nav-test/reports/latest"' in html
 
 
-def test_project_nav_shows_on_questionnaire_page(client: TestClient):
+def test_project_sidebar_shows_on_questionnaire_page(client: TestClient):
     client.post("/projects", json={"slug": "nav-test2", "name": "Nav Test2"})
     response = client.get("/projects/nav-test2/questionnaires/latest")
     html = response.text
-    assert 'class="project-nav"' in html
+    assert 'class="project-sidebar"' in html
+    assert 'class="workspace-shell"' in html
     assert 'href="/projects/nav-test2/questionnaires/latest"' in html
 
 
-def test_project_nav_absent_on_homepage(client: TestClient):
+def test_project_sidebar_absent_on_homepage(client: TestClient):
     response = client.get("/")
     html = response.text
-    assert 'class="project-nav"' not in html
+    assert 'class="project-sidebar"' not in html
 
 
-def test_project_nav_absent_on_knowledge_page(client: TestClient):
+def test_project_sidebar_absent_on_knowledge_page(client: TestClient):
     response = client.get("/knowledge")
     html = response.text
-    assert 'class="project-nav"' not in html
+    assert 'class="project-sidebar"' not in html
 
 
 def test_project_settings_appear_before_wave_workspace(client: TestClient):
@@ -132,6 +135,22 @@ def test_homepage_no_workflow_overview_section(client: TestClient):
     assert 'class="workflow-overview"' not in html
 
 
+def test_homepage_uses_project_card_grid(client: TestClient):
+    client.post("/projects", json={"slug": "grid-test", "name": "Grid Test"})
+    response = client.get("/")
+    html = response.text
+    assert 'class="project-card-grid"' in html
+    assert 'class="project-card"' in html
+    assert "Grid Test" in html
+
+
+def test_homepage_wraps_knowledge_summary_in_details(client: TestClient):
+    response = client.get("/")
+    html = response.text
+    assert 'class="knowledge-summary-panel"' in html
+    assert "<details" in html
+
+
 def test_alert_success_uses_no_hardcoded_green(client: TestClient):
     response = client.get("/static/app.css")
     css = response.text
@@ -158,7 +177,26 @@ def test_app_css_has_prose_class(client: TestClient):
     assert ".prose" in css
 
 
-def test_app_css_has_project_nav(client: TestClient):
+def test_app_css_has_project_sidebar(client: TestClient):
     response = client.get("/static/app.css")
     css = response.text
-    assert ".project-nav" in css
+    assert ".project-sidebar" in css
+    assert ".project-card-grid" in css
+    assert ".inline-status-note" in css
+    assert ".confirm-dialog-shell" in css
+
+
+def test_layout_includes_confirm_dialog_shell(client: TestClient):
+    response = client.get("/")
+    html = response.text
+    assert 'id="confirm-dialog-shell"' in html
+    assert 'id="confirm-dialog-confirm"' in html
+
+
+def test_app_css_has_sidebar_toggle_classes(client: TestClient):
+    response = client.get("/static/app.css")
+    css = response.text
+    assert ".split-workspace" in css
+    assert ".workspace-inline-actions" in css
+    assert ".status-summary-card" in css
+    assert ".status-token" in css

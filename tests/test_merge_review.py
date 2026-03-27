@@ -59,6 +59,9 @@ def test_merge_review_shows_codebook(app_client, workspace):
 
     assert response.status_code == 200
     html = response.text
+    assert "merge-review-workspace" in html
+    assert "merge-review-sidebar" in html
+    assert "合并建议" in html
     assert "Great graphics" in html
     assert "Good graphics" in html
     assert "Fun gameplay" in html

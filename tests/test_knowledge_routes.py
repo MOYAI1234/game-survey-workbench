@@ -63,6 +63,12 @@ def test_knowledge_page_shows_index_status_badges_and_retry_button(
 
     assert response.status_code == 200
     html = response.text
+    assert 'class="knowledge-toolbar"' in html
+    assert 'class="knowledge-document-list"' in html
+    assert 'class="knowledge-document-card"' in html
+    assert 'class="status-pill status-pill-running"' in html
+    assert 'class="status-pill status-pill-ready"' in html
+    assert 'class="status-pill status-pill-error"' in html
     assert "正在建立索引..." in html
     assert "已就绪 · 1,234 chunks" in html
     assert "索引失败" in html
@@ -70,6 +76,7 @@ def test_knowledge_page_shows_index_status_badges_and_retry_button(
     assert 'action="/knowledge/3/retry"' in html
     assert "重试索引" in html
     assert 'action="/knowledge/2/delete"' in html
+    assert 'data-confirm-text="确认将这篇文档移出共享知识库吗？"' in html
     assert "移出共享知识库" in html
     assert ".epub" in html
     assert "图片型 PDF" in html
@@ -141,3 +148,22 @@ def test_knowledge_page_cleans_missing_file_records(
     with Session(engine) as session:
         documents = list(session.exec(select(KnowledgeDocument)).all())
     assert documents == []
+
+
+def test_knowledge_page_uses_workspace_sections_when_empty(
+    tmp_path: Path,
+    monkeypatch,
+):
+    monkeypatch.setenv("GAME_SURVEY_WORKBENCH_WORKSPACE_ROOT", str(tmp_path))
+    bootstrap_workspace(tmp_path)
+    create_db_and_tables(tmp_path)
+
+    with TestClient(create_app()) as client:
+        response = client.get("/knowledge")
+
+    assert response.status_code == 200
+    html = response.text
+    assert 'class="knowledge-hero"' in html
+    assert 'class="knowledge-toolbar"' in html
+    assert 'class="knowledge-document-list"' in html
+    assert "当前没有符合筛选条件的知识文档" in html
