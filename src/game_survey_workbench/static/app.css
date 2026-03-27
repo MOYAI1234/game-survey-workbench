@@ -10,13 +10,21 @@
   --accent: #b2552d;
   --border: rgba(31, 26, 20, 0.1);
 
+  /* Font system */
+  --font-display: "Noto Serif SC", "Songti SC", STSong, serif;
+  --font-ui: "DM Sans", "PingFang SC", "Helvetica Neue", sans-serif;
+
+  /* Easing curves (from ui-animation skill) */
+  --ease-enter: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-move: cubic-bezier(0.25, 1, 0.5, 1);
+
   /* Map brand -> Pico custom properties */
   --pico-primary: #b2552d;
   --pico-primary-hover: #9a4526;
   --pico-primary-focus: rgba(178, 85, 45, 0.25);
   --pico-primary-inverse: #fff;
   --pico-border-radius: 12px;
-  --pico-font-family: "Segoe UI", "PingFang SC", sans-serif;
+  --pico-font-family: var(--font-ui);
   --pico-background-color: var(--bg);
   --pico-color: var(--text);
   --pico-muted-color: var(--muted);
@@ -1020,4 +1028,239 @@ table.data-table tbody tr:hover {
 
 .prose li + li {
   margin-top: 0.25em;
+}
+
+/* =========================================================================
+   UI UPGRADE — typography, motion, micro-interactions
+   (frontend-design + ui-animation skills)
+   ========================================================================= */
+
+/* -- Display font for headings & brand ------------------------------------ */
+h1, h2, h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+.nav-brand {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
+
+.project-sidebar-title {
+  font-family: var(--font-display);
+}
+
+.hero h1 {
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+/* -- Nav scroll-shrink ---------------------------------------------------- */
+.top-nav {
+  transition: padding 220ms var(--ease-move),
+              box-shadow 220ms ease,
+              background 220ms ease;
+}
+
+.top-nav.scrolled {
+  padding: 9px 24px;
+  box-shadow: 0 2px 16px rgba(31, 26, 20, 0.07);
+  background: rgba(255, 255, 255, 0.94);
+}
+
+/* -- Nav link underline sweep --------------------------------------------- */
+.nav-link {
+  position: relative;
+  transition: color 200ms ease;
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 1.5px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 220ms var(--ease-enter);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .nav-link:hover::after {
+    transform: scaleX(1);
+  }
+}
+
+/* -- Page-load stagger entry ---------------------------------------------- */
+@keyframes aurora-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero {
+  animation: aurora-rise 420ms var(--ease-enter) both;
+}
+
+.home-overview {
+  animation: aurora-rise 420ms 80ms var(--ease-enter) both;
+}
+
+.knowledge-summary-panel {
+  animation: aurora-rise 420ms 140ms var(--ease-enter) both;
+}
+
+/* Stagger project cards */
+.project-card {
+  animation: aurora-rise 380ms var(--ease-enter) both;
+}
+.project-card:nth-child(1) { animation-delay: 100ms; }
+.project-card:nth-child(2) { animation-delay: 150ms; }
+.project-card:nth-child(3) { animation-delay: 200ms; }
+.project-card:nth-child(4) { animation-delay: 250ms; }
+.project-card:nth-child(5) { animation-delay: 300ms; }
+
+/* -- Card hover lift ------------------------------------------------------ */
+.project-card,
+.knowledge-document-card,
+.coding-result-card,
+.current-wave-card {
+  transition: transform 220ms var(--ease-enter),
+              box-shadow 220ms var(--ease-enter),
+              background-color 180ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .project-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 16px 48px rgba(31, 26, 20, 0.11);
+    background: rgba(255, 255, 255, 0.88);
+  }
+
+  .knowledge-document-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 28px rgba(31, 26, 20, 0.09);
+    background: rgba(255, 255, 255, 0.78);
+  }
+}
+
+/* -- Button press feedback ------------------------------------------------ */
+button,
+input[type="submit"],
+input[type="button"] {
+  transition: transform 120ms var(--ease-enter),
+              opacity 120ms ease,
+              background-color 160ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  button:active:not(:disabled),
+  input[type="submit"]:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+}
+
+/* -- Sidebar nav icon upgrade --------------------------------------------- */
+.project-sidebar-icon {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+  font-size: 0;   /* hide the ● text */
+  display: inline-block;
+  transition: transform 200ms var(--ease-enter),
+              background-color 200ms ease;
+}
+
+.project-sidebar-link {
+  transition: background-color 160ms ease,
+              color 160ms ease,
+              transform 200ms var(--ease-enter);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .project-sidebar-link:hover .project-sidebar-icon {
+    transform: scale(1.5);
+  }
+}
+
+.project-sidebar-link.active .project-sidebar-icon {
+  transform: scale(1.4);
+}
+
+/* -- Confirm dialog enter animation --------------------------------------- */
+.confirm-dialog-panel {
+  transition: opacity 220ms var(--ease-enter),
+              transform 220ms var(--ease-enter);
+}
+
+.confirm-dialog-backdrop {
+  transition: opacity 200ms ease;
+}
+
+@starting-style {
+  .confirm-dialog-shell:not([hidden]) .confirm-dialog-panel {
+    opacity: 0;
+    transform: scale(0.92) translateY(-10px);
+  }
+
+  .confirm-dialog-shell:not([hidden]) .confirm-dialog-backdrop {
+    opacity: 0;
+  }
+}
+
+/* -- Status running pulse ------------------------------------------------- */
+@keyframes aurora-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+
+.status-pill-running,
+.status-token-running {
+  animation: aurora-pulse 2.2s ease-in-out infinite;
+}
+
+/* -- Sidebar card entrance ------------------------------------------------ */
+.project-sidebar {
+  animation: aurora-rise 380ms 60ms var(--ease-enter) both;
+}
+
+/* -- Table row hover ------------------------------------------------------ */
+.data-table tbody tr,
+table.data-table tbody tr {
+  transition: background-color 140ms ease;
+}
+
+/* -- Workflow stepper step hover ------------------------------------------ */
+@media (hover: hover) and (pointer: fine) {
+  .workflow-stepper .step-item {
+    transition: transform 200ms var(--ease-enter),
+                box-shadow 200ms var(--ease-enter);
+  }
+
+  .workflow-stepper .step-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(31, 26, 20, 0.08);
+  }
+}
+
+/* -- Reduced motion fallback ---------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
