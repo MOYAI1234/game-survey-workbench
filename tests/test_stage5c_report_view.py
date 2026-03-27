@@ -178,3 +178,38 @@ def test_report_history_shows_empty_state_card(client):
     html = response.text
     assert "empty-state-card" in html
     assert "还没有历史报告版本" in html
+
+
+def test_report_latest_page_renders_markdown_in_section_content(client, tmp_path):
+    slug = "report-markdown-render"
+    client.post("/projects", json={"slug": slug, "name": "Report Markdown Render"})
+
+    report_dir = tmp_path / "projects" / slug / "reports"
+    report_dir.mkdir(parents=True, exist_ok=True)
+    report_path = report_dir / "report.md"
+    report_path.write_text(
+        "# Demo Report\n\n"
+        "*Report generated 2026-03-27*\n\n"
+        "## 核心洞察\n\n"
+        "### 关键判断\n\n"
+        "**这是需要强调的结论。**\n",
+        encoding="utf-8",
+    )
+
+    engine = get_engine(tmp_path)
+    with Session(engine) as session:
+        session.add(
+            ReportRecord(
+                project_slug=slug,
+                analysis_run_id="run-markdown",
+                path=str(report_path),
+            )
+        )
+        session.commit()
+
+    response = client.get(f"/projects/{slug}/reports/latest")
+
+    assert response.status_code == 200
+    html = response.text
+    assert "<h3>关键判断</h3>" in html
+    assert "<strong>这是需要强调的结论。</strong>" in html

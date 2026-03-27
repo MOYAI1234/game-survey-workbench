@@ -23,12 +23,12 @@
     <section class="report-section">
       <h2>{{ section.title }}</h2>
       {% for paragraph in section.paragraphs %}
-      <p>{{ paragraph }}</p>
+      <div class="prose report-richtext">{{ paragraph | markdown | safe }}</div>
       {% endfor %}
       {% if section.bullets %}
       <ul>
         {% for bullet in section.bullets %}
-        <li>{{ bullet }}</li>
+        <li><div class="prose report-richtext">{{ bullet | markdown | safe }}</div></li>
         {% endfor %}
       </ul>
       {% endif %}

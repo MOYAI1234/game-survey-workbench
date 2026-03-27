@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import mistune
 from fastapi import APIRouter, Form, HTTPException, Request, Response, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -37,6 +38,7 @@ from game_survey_workbench.services.workflow_state import record_workflow_event
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
+templates.env.filters["markdown"] = mistune.create_markdown(escape=False)
 
 
 def _serve_report_file(report: ReportRecord, *, fmt: str = "md") -> Response:

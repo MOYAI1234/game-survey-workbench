@@ -77,7 +77,12 @@ def parse_report_markdown(markdown: str | None) -> ReportDisplay:
         if line.startswith("# "):
             title = line[2:].strip()
             continue
-        if line.startswith("*") and line.endswith("*"):
+        if (
+            line.startswith("*")
+            and line.endswith("*")
+            and not line.startswith("**")
+            and not line.endswith("**")
+        ):
             generated_on = line.strip("*").strip()
             continue
         if line.startswith("## "):
