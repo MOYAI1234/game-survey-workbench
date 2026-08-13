@@ -342,7 +342,7 @@ python -m uvicorn --app-dir src game_survey_workbench.app:create_app --factory -
 
 ```env
 GAME_SURVEY_WORKBENCH_LLM_PROVIDER=openai_compatible
-GAME_SURVEY_WORKBENCH_LLM_MODEL=Pro/deepseek-ai/DeepSeek-V3.2
+GAME_SURVEY_WORKBENCH_LLM_MODEL=deepseek-ai/DeepSeek-V4-Pro
 GAME_SURVEY_WORKBENCH_LLM_API_KEY=sk-your-provider-key
 GAME_SURVEY_WORKBENCH_LLM_BASE_URL=https://api.siliconflow.cn/v1
 ```
